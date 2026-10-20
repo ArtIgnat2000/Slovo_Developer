@@ -28,7 +28,7 @@ import { MUSIC_TRACKS, STARTER_TRACK_IDS } from '../src/engine/music';
 import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
-import { dayKey, dayPlan, useApp } from '../src/state/store';
+import { dayKey, dayPlan, ENDLESS_GEMS, setEndlessGemsForTests, useApp } from '../src/state/store';
 import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
@@ -218,6 +218,9 @@ async function playLesson(second = false) {
 
 
 async function main() {
+  // Точная арифметика алмазов (списано ровно N 💎) проверяется при выключенном
+  // восполнении; продуктовое поведение «бесконечные алмазы» — в конце прогона.
+  setEndlessGemsForTests(false);
   // Как в main.tsx: сначала дожидаемся чтения сохранения. Сторож записи держит
   // запись замороженной до подтверждённого чтения, иначе тесты писали бы впустую.
   await useApp.persist.rehydrate();
@@ -304,8 +307,8 @@ async function main() {
   );
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
   check(
-    'новый профиль стартует со 100 000 кристаллов',
-    useApp.getState().profiles[0].gems === 100000,
+    'новый профиль стартует с бесконечным запасом кристаллов',
+    useApp.getState().profiles[0].gems === ENDLESS_GEMS,
     String(useApp.getState().profiles[0].gems),
   );
   {
@@ -1284,6 +1287,15 @@ async function main() {
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();
+
+  // ── Бесконечные алмазы: включено восполнение, запас не падает ниже ENDLESS_GEMS ──
+  setEndlessGemsForTests(true);
+  useApp.setState((s) => ({ profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 5 } : p)) }));
+  await sleep(30);
+  check('бесконечные алмазы: мало кристаллов — баланс восполняется до запаса', useApp.getState().profiles[0].gems === ENDLESS_GEMS, String(useApp.getState().profiles[0].gems));
+  useApp.getState().addGems(-Number.MAX_SAFE_INTEGER);
+  await sleep(30);
+  check('бесконечные алмазы: полная трата не опускает баланс ниже запаса', useApp.getState().profiles[0].gems === ENDLESS_GEMS, String(useApp.getState().profiles[0].gems));
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');
