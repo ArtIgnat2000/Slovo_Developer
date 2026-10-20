@@ -6489,29 +6489,34 @@ p {
   .phone-turntable { transition: none; }
 }
 
-/* «Мой мир» (0.26.0): три слота выбранных вещей и список купленных для выбора.
-   Оформление — как у ангара: --stage-*, --case-*, --tag-*. */
+
+/* «Мой мир» (0.26.0): выбранные вещи на сценах и список для выбора.
+   Сцены — те же панели, что в ангаре (гараж, пристань, полка); наряды — мягкий фон.
+   Маскот БУКа в наряде не должен быть фиксированным (см. базовый .mascot). */
 .world-screen { padding-bottom: 96px; }
 .world-slots {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 .world-slot {
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: 6px;
-  min-height: 176px;
-  padding: 10px 8px 12px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 200px;
+  padding: 14px 12px 12px;
   border: 2px solid var(--case-line);
-  border-radius: 18px;
+  border-radius: 20px;
   background: linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
-  text-align: center;
+  overflow: hidden;
 }
+.world-slot > .hangar-panel { z-index: 0; }
 .world-slot.empty {
-  place-content: center;
+  min-height: 120px;
+  justify-content: center;
+  gap: 4px;
   border-style: dashed;
   background: var(--card);
   color: var(--ink-2);
@@ -6519,54 +6524,108 @@ p {
   cursor: pointer;
 }
 .world-slot-plus { font-size: 30px; line-height: 1; font-weight: 800; color: var(--primary); }
-.world-slot-art { display: grid; place-items: center; min-height: 92px; }
-.world-slot-title { font-size: 12px; line-height: 1.2; }
+/* Наряд: мягкий фон без декора. */
+.world-panel-outfit {
+  background:
+    radial-gradient(60% 40% at 50% 30%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
+}
+.world-slot-art {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  min-height: 140px;
+}
+/* Рисунки техники: размер задан явно — ширина в процентах в сетке схлопывалась до нуля. */
+.world-slot-art > .car-art,
+.world-slot-art > .ship-art,
+.world-slot-art > .electronics-art { width: 132px; }
+.world-pick-art > .car-art,
+.world-pick-art > .ship-art,
+.world-pick-art > .electronics-art { width: 84px; }
+/* Маскот в наряде — картинка в сцене, а не плавающая кнопка. */
+.world-slot-art .mascot,
+.world-pick-art .mascot {
+  position: static;
+  z-index: auto;
+  animation: none;
+}
+/* Подставка под вещью — цвет категории. */
+.world-slot-plinth {
+  position: relative;
+  z-index: 2;
+  width: min(78%, 260px);
+  height: 18px;
+  margin-top: -4px;
+  border-radius: 10px 10px 13px 13px;
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+  box-shadow: 0 8px 14px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.world-tone-ship .world-slot-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
+.world-tone-phone .world-slot-plinth { background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2)); }
+.world-slot-foot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+.world-slot-title {
+  min-width: 0;
+  padding: 3px 10px;
+  border: 2px solid var(--tag-line);
+  border-radius: 11px;
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+  font-size: 12px;
+  line-height: 1.2;
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--ink) 14%, transparent);
+}
 .world-picker { margin-top: 4px; }
 .world-pick {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 10px;
 }
 .world-pick-item {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 4px;
-  padding: 8px 6px 10px;
+  gap: 6px;
+  padding: 10px 8px 10px;
   border: 2px solid var(--line);
-  border-radius: 14px;
-  background: var(--card);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
   color: var(--ink);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
 }
+.world-pick-item.world-tone-car { background: linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom)); }
+.world-pick-item.world-tone-ship { background: linear-gradient(180deg, var(--stage-sky-top), var(--stage-water)); }
+.world-pick-item.world-tone-phone { background: linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom)); }
 .world-pick-item.on {
   border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  box-shadow: inset 0 0 0 2px var(--primary);
 }
 .world-pick-item > i {
   position: absolute;
-  top: 4px;
-  right: 6px;
+  top: 6px;
+  right: 8px;
   color: var(--primary);
   font-style: normal;
   font-weight: 800;
 }
-.world-pick-art { display: grid; place-items: center; min-height: 58px; }
-.world-pick-title { line-height: 1.2; }
-
-/* Картинки техники на «Моём мире» (0.26.0): у рисунка ширина в процентах, а ячейка
-   сетки без своей ширины схлопывается до нуля — рисунок пропадал. Задаём размер явно. */
-.world-slot-art,
 .world-pick-art {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  min-height: 84px;
 }
-.world-slot-art > .car-art,
-.world-slot-art > .ship-art,
-.world-slot-art > .electronics-art { width: 88px; }
-.world-pick-art > .car-art,
-.world-pick-art > .ship-art,
-.world-pick-art > .electronics-art { width: 56px; }
+.world-pick-title { line-height: 1.2; text-align: center; }

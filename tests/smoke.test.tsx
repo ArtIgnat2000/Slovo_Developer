@@ -787,7 +787,7 @@ async function main() {
   const worldCss = readFileSync('src/styles/app.css', 'utf8');
   check(
     '«Мой мир»: рисунки техники в слотах и списке имеют свой размер',
-    /\.world-slot-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss) && /\.world-pick-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss),
+    /\.world-slot-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss) && /\.world-slot-art\s+\.mascot[^}]*position:\s*static/.test(worldCss) && /\.world-pick-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss),
     '',
   );
   check('«Мой мир»: некупленную вещь не ставим', toggleWorldPick([], 'x', []).result === 'locked', '');
