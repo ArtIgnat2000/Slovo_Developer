@@ -1,0 +1,285 @@
+// ── Модель контента ──────────────────────────────────────────────────────────
+// Ключевое отличие от v1: у слова есть УДАРЕНИЕ, СЛОГИ и «ОПАСНАЯ» буква.
+// Именно вокруг этого строится методика запоминания словарных слов.
+
+import type { ChestSkinId } from './engine/chests';
+
+export type DangerKind = 'vowel' | 'consonant' | 'other';
+
+export interface Word {
+  id: string;
+  text: string;
+  stress: number; // индекс ударной буквы
+  syllables: string[];
+  danger: number[]; // индексы «опасных» букв (безударные гласные, двойные и непроизносимые согласные)
+  dangerKind: DangerKind; // 'other' — в слове есть и гласные, и согласные опасности («Россия»)
+  hint: string; // короткое пояснение значения — показывается и в заданиях, где слова не видно
+  emoji: string;
+  sentence: string; // предложение с пропуском ____
+  mnemonic?: string; // мнемоника / ассоциация
+  /** Имя файла картинки в public/words/ (без расширения). Нет — показываем эмодзи. */
+  image?: string;
+  theme: string; // id темы (урока)
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  emoji: string;
+  order: number;
+  wordIds: string[];
+}
+
+// ── Прогресс ─────────────────────────────────────────────────────────────────
+
+export interface WordState {
+  s: number; // score 0..100 (освоенность)
+  due: number; // timestamp следующего повторения
+  iv: number; // интервал в днях
+  n: number; // число успешных повторений подряд
+  seen: number; // когда видели последний раз
+  ok: number; // сколько раз отвечал верно
+  wrong: number;
+}
+
+export interface LessonState {
+  level: number; // 0..5 — «короны» навыка
+  best: number; // лучший результат в %
+  doneAt: number;
+  plays: number;
+}
+
+export interface DayStat {
+  xp: number;
+  correct: number;
+  wrong: number;
+  lessons: number;
+  /** Лучшая серия верных ответов подряд за день — для задания «без ошибок» */
+  flawless: number;
+  /** Текущая серия верных ответов подряд (сбрасывается ошибкой); по ней считается flawless */
+  streak?: number;
+  /** Верных ответов в режиме «Повторение» (точность тренировки; задание дня считает слова) */
+  reviewCorrect: number;
+  /**
+   * Слова, которые ребёнок потренировал в повторении сегодня (уникальные id).
+   * Задание «Повтори N слов» считает именно потренированные слова, а не верные ответы:
+   * ошибка в повторении не должна «замораживать» прогресс (см. PLAN, 2026-09-29).
+   */
+  reviewWords?: string[];
+  /** Оценка активного времени в приложении за локальный день; не мера внимания. */
+  activeSeconds?: number;
+  /** Число закрытых карточек в занятии, включая знакомство; точность считается по ответам. */
+  tasks?: number;
+  /** Ошибочные ответы по словам за этот день: wordId → количество. */
+  errorWords?: Record<string, number>;
+  /** Уникальные слова, которые после ошибки были правильно отработаны. */
+  recoveredWords?: string[];
+}
+
+export type StudySessionStatus = 'active' | 'completed' | 'stopped' | 'interrupted';
+
+/** Компактная локальная запись одного урока или повторения для дневного отчёта. */
+export interface StudySession {
+  id: string;
+  day: string;
+  startedAt: number;
+  endedAt?: number;
+  /** Оценка времени взаимодействия в видимой вкладке, с отсечением пауз. */
+  activeSeconds: number;
+  mode: 'lesson' | 'review';
+  lessonId?: string;
+  tasks: number;
+  correct: number;
+  wrong: number;
+  /** wordId → число ошибок в этой сессии; не сохраняем введённый текст. */
+  errorWords: Record<string, number>;
+  /** Ошибочные ответы по виду задания. */
+  taskKindErrors: Partial<Record<TaskKind, number>>;
+  /** Уникальные слова, успешно решённые в отработке после ошибки. */
+  recoveredWords: string[];
+  /** Меняется при ответе или добавлении времени; при перезапуске сессия прервана. */
+  lastActivityAt: number;
+  status: StudySessionStatus;
+}
+
+export interface StudyAnswerMeta {
+  sessionId: string;
+  taskKind: TaskKind;
+  reason: TaskReason;
+}
+
+/**
+ * Слоты, по которым БУК может носить вещи: шапка, очки, шея, значок.
+ * `toy` — техника рядом с БУКом (телефон, машина, корабль): она не «надевается»
+ * на сову, а стоит рядом с ней, но живёт в том же гардеробе и в том же слоте
+ * одновременно может быть только одна вещь.
+ */
+export type ShopSlot = 'head' | 'face' | 'neck' | 'badge' | 'toy';
+
+/** Размер базовой очереди урока; настройки принадлежат профилю ребёнка. */
+export type LessonSize = 'short' | 'standard' | 'full';
+
+/** Что ребёнок купил и что носит прямо сейчас (магазин — пункт 4 плана). */
+export interface ShopState {
+  owned: string[];
+  equipped: Partial<Record<ShopSlot, string>>;
+  /** Купленные музыкальные лупы и выбранный для БУКа фон. */
+  musicOwned?: string[];
+  musicTrack?: string | null;
+  /** Раздел «Звуки»: открытые наборы мелодий ответа и выбранный (engine/sounds.ts). */
+  soundOwned?: string[];
+  soundPack?: string;
+  /** Тюнинг цвета купленных вещей (см. engine/shop.ts и docs/shop-tuning.md) */
+  tuning?: ShopTuning;
+  /** Список желаемых товаров («Мечты 🤍», фаза 2 магазина): id вещей, костюмов или мелодий. */
+  wishlist?: string[];
+}
+
+/**
+ * Тюнинг цвета: у вещи есть базовый оттенок (бесплатный, всегда доступен) и
+ * несколько открываемых за кристаллы. Решение 2026-10-05: 1 💎 берём один раз
+ * за оттенок, дальше переключение между открытыми бесплатно.
+ */
+export interface ShopTuning {
+  /** Текущий оттенок: id вещи → id оттенка; нет записи — значит базовый цвет */
+  current: Record<string, string>;
+  /** Открытые оттенки: id вещи → id оттенков (базовый здесь не хранится) */
+  unlocked: Record<string, string[]>;
+}
+
+/**
+ * Костюмные пазлы (идея из родительского чата, вдохновлено событиями Duolingo):
+ * за каждый реально пройденный урок — +1 фрагмент пазла; собрал 9 — БУК надевает
+ * костюм. Фрагменты хранятся по костюмам: смена цели сборки не теряет прогресс.
+ * Когда вся коллекция собрана, урок приносит кристаллы вместо фрагментов
+ * (награда не «сгорает»). Правила — src/engine/puzzles.ts.
+ */
+export interface PuzzleState {
+  /** Число фрагментов по id костюма (0..PUZZLE_SIZE) */
+  pieces: Record<string, number>;
+  /** Костюм, который собираем сейчас; null — автоматический выбор первого несобранного */
+  collecting: string | null;
+  /** id собранных костюмов — разблокированы навсегда */
+  assembled: string[];
+  /** Надетый сейчас костюм; null — БУК без костюма */
+  worn: string | null;
+}
+
+/** Вид ежедневного задания; «повтори N слов» — тренировка в режиме «Повторение». */
+export type QuestKind = 'lessons' | 'flawless' | 'correct' | 'review';
+
+/** Задание дня с уже решённой целью: план фиксируется на день при первом обращении. */
+export interface QuestPlanItem {
+  kind: QuestKind;
+  target: number;
+}
+
+/**
+ * Состояние ежедневных заданий (пункт 3 плана). Метрики дня отдельно не храним —
+ * они считаются из `days[day]`; здесь только «что уже забрано», счётчики сундуков,
+ * чек последней награды и зафиксированный на день план заданий.
+ */
+export interface DailyState {
+  day: string; // YYYY-MM-DD, к которому относятся claimed/chestsToday
+  claimed: string[]; // id выполненных и забранных заданий: `<день>:<вид>`
+  chestsToday: number; // все открытые сегодня сундуки, включая бонусные
+  bonusChestsClaimed?: number; // сколько сундуков за уроки уже открыто сегодня
+  chestsTotal: number;
+  /**
+   * Последняя награда сундука этого дня — чтобы чек не пропадал после закрытия окна.
+   * `wakeBonus` — часть `gems`, добавленная за разогрев сундука («Разбуди сундук»).
+   */
+  lastChest?: { gems: number; xp: number; freezes: number; wakeBonus?: number };
+  lastChestKind?: 'daily' | 'bonus';
+  /**
+   * Сколько раз сегодня доплачивали за разбуженный сундук («Разбуди сундук»).
+   * Награда выдаётся до шоу (кристаллы не должны теряться из-за анимации), а
+   * тапы по закрытому сундуку могут случиться уже в сцене — поэтому надбавку
+   * платим отдельно и не больше одного раза на открытый сундук.
+   */
+  wakePaid?: number;
+  /**
+   * План заданий этого дня. Нужен, потому что набор дня зависит от профиля: у ребёнка,
+   * которому ещё нечего повторять, «Повтори N слов» заменяется другим заданием, а цель
+   * повторения подстраивается под число выученных слов. План нельзя пересчитывать на лету —
+   * иначе цель «уезжала» бы прямо посреди дня (см. журнал PLAN, 2026-09-29).
+   */
+  plan?: QuestPlanItem[];
+}
+
+/** Недельные пороги, уже оплаченные ребёнку в текущей неделе. */
+export interface WeeklyState {
+  week: string; // YYYY-MM-DD понедельника
+  claimed: number[]; // пороги активных дней: 3, 5 и 7
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  avatar: string;
+  createdAt: number;
+  xp: number;
+  gems: number;
+  streak: number;
+  lastDay: string; // YYYY-MM-DD
+  freezes: number; // «заморозки» серии
+  words: Record<string, WordState>;
+  lessons: Record<string, LessonState>;
+  errors: Record<string, number>;
+  days: Record<string, DayStat>;
+  /** Локальная история занятий, последние 30 дней. */
+  studySessions?: StudySession[];
+  achievements: string[];
+  /** Размер базовой очереди урока; у старых профилей по умолчанию «standard». */
+  lessonSize?: LessonSize;
+  adaptiveCards?: number;
+  adaptiveGood?: number;
+  daily?: DailyState; // опционально: профили, созданные до этой версии, живут без него
+  weekly?: WeeklyState; // опционально: недельные награды, появившиеся после ранних профилей
+  shop?: ShopState; // опционально: появилось вместе с магазином
+  puzzle?: PuzzleState; // опционально: костюмные пазлы (src/engine/puzzles.ts)
+  /** Выбранный облик сундука (src/engine/chests.ts); у старых профилей его нет. */
+  chestSkin?: ChestSkinId;
+  /**
+   * Уже открытые облики сундука. Условия открытия проверяются в момент, когда
+   * ребёнок смотрит полку, а сам факт открытия остаётся здесь — иначе облик
+   * «сгорал» бы при обрыве серии дней. Тот же список гасит повторный тост
+   * «новый сундук открылся», поэтому он же и есть «о чём уже сказали».
+   */
+  chestSkins?: string[];
+}
+
+// ── Задания ──────────────────────────────────────────────────────────────────
+
+export type TaskKind = 'intro' | 'syllables' | 'gap' | 'build' | 'write' | 'visual' | 'fix';
+
+export type TaskReason = 'learn' | 'practice' | 'review' | 'repair';
+
+export interface Task {
+  uid: string;
+  kind: TaskKind;
+  wordId: string;
+  reason: TaskReason;
+  /** Индекс опасной буквы, вокруг которой построено задание */
+  dangerIdx: number;
+  /** Варианты ответа (для gap / fix) */
+  options?: string[];
+  /** Перемешанные буквы (для build) */
+  letters?: string[];
+  /** Неправильное написание, которое показываем в задании «исправь робота» */
+  wrong?: string;
+  /** Сколько секунд показываем слово (для visual) */
+  showMs?: number;
+}
+
+export interface LessonRun {
+  lessonId: string;
+  tasks: Task[];
+  index: number;
+  correct: number;
+  wrong: number;
+  streakBest: number;
+  startedAt: number;
+  xp: number;
+  results: { wordId: string; ok: boolean }[];
+}

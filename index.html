@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>СЛОВО 2.0 — словарные слова</title>
+    <meta name="description" content="Увлекательная тренировка словарных слов для 2 класса. Работает без интернета." />
+    <!-- Статичное значение важно: браузер видит его раньше любого скрипта. -->
+    <meta name="color-scheme" content="only light" />
+    <meta name="theme-color" content="#7C5CFF" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="СЛОВО" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!--
+      Тема объявляется до первого кадра.
+
+      Сам тег выше уже говорит «only light»: Chrome может прочитать его ещё
+      до выполнения этого скрипта. Скрипт выбирает сохранённую тему до первой
+      отрисовки. В тёмной теме meta="dark" (допустимое значение HTML), а
+      CSS color-scheme="only dark". Samsung Internet с принудительным
+      затемнением может игнорировать оба объявления: его настройку нельзя
+      выключить со страницы.
+
+      Настройки лежат в IndexedDB и читаются асинхронно; зеркала цветовой схемы
+      и стиля в localStorage доступны сразу. Логика повторяет src/platform/theme.ts;
+      tests/theme-ui.test.tsx проверяет этот скрипт из настоящего index.html.
+    -->
+    <script>
+      (function () {
+        var saved = null;
+        var savedStyle = null;
+        var prefersDark = false;
+        try {
+          saved = window.localStorage.getItem('slovo2-theme');
+          savedStyle = window.localStorage.getItem('slovo2-theme-style');
+        } catch (error) { /* нет доступа к хранилищу */ }
+        try {
+          prefersDark = !!window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        } catch (error) { /* нет системной темы — используем светлую */ }
+        var theme = saved === 'light' || saved === 'dark' ? saved : 'auto';
+        var styles = ['classic', 'neon', 'space', 'forest', 'ocean'];
+        var style = styles.indexOf(savedStyle) >= 0 ? savedStyle : 'classic';
+        var dark = theme === 'dark' || (theme === 'auto' && prefersDark);
+        var root = document.documentElement;
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        root.setAttribute('data-theme-style', style);
+        root.style.colorScheme = dark ? 'only dark' : 'only light';
+        var schemeMeta = document.querySelector('meta[name="color-scheme"]');
+        if (schemeMeta) schemeMeta.setAttribute('content', dark ? 'dark' : 'only light');
+        var themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) {
+          var panelColors = {
+            classic: { light: '#7C5CFF', dark: '#171426' },
+            neon: { light: '#f0f4ff', dark: '#0d0d1a' },
+            space: { light: '#f2efff', dark: '#101027' },
+            forest: { light: '#f1f8e9', dark: '#11231d' },
+            ocean: { light: '#ecf8ff', dark: '#0b2030' }
+          };
+          themeMeta.setAttribute('content', panelColors[style][dark ? 'dark' : 'light']);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Для занятий нужно включить JavaScript.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
