@@ -26,7 +26,7 @@ import {
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice, SHOP_ITEMS } from '../engine/shop';
 import { migrateMusicShop, MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from '../engine/music';
-import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, SOUND_PACKS } from '../engine/sounds';
+import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, SOUND_PACKS, STARTER_SOUND_IDS } from '../engine/sounds';
 import { COSTUME_PALETTES, normalizeTuning, recolor, TINT_PALETTES, type RecolorOutcome } from '../engine/tints';
 import {
   COSTUMES,
@@ -217,16 +217,46 @@ function readShop(p: Profile): ShopState {
 /** Алмазы, с которыми начинает каждый новый профиль. */
 export const STARTING_GEMS = 100_000;
 
-function newProfile(name: string, avatar: string): Profile {
-  // Всё открыто с первого запуска: каждая вещь, костюм, мелодия, набор звуков,
-  // оттенок и облик сундука. Выбор по умолчанию (стартовая мелодия, классика,
-  // базовый облик сундука) не меняется.
-  const costumeIds = COSTUMES.map((c) => c.id);
-  const tintUnlocked: Record<string, string[]> = {};
+/**
+ * Всё открыто: каждая вещь магазина, костюм, мелодия, набор звуков, оттенок и
+ * облик сундука. Чистая функция: только добавляет к уже имеющемуся, ничего не
+ * отбирает и не трогает алмазы и выбор ребёнка (стартовая мелодия, классика,
+ * базовый облик сундука). Вызывается для новых профилей и один раз для старых.
+ */
+export function openEverything(p: Profile): Profile {
+  const union = (a: string[] = [], b: string[]) => [...new Set([...a, ...b])];
+  const shop = p.shop ?? { owned: [], equipped: {} };
+  const tintUnlocked: Record<string, string[]> = { ...(shop.tuning?.unlocked ?? {}) };
   for (const [targetId, palette] of [...Object.entries(TINT_PALETTES), ...Object.entries(COSTUME_PALETTES)]) {
-    if (palette.extra.length) tintUnlocked[targetId] = palette.extra.map((tint) => tint.id);
+    if (palette.extra.length) tintUnlocked[targetId] = union(tintUnlocked[targetId], palette.extra.map((tint) => tint.id));
   }
+  const costumeIds = COSTUMES.map((c) => c.id);
+  const pieces: Record<string, number> = { ...(p.puzzle?.pieces ?? {}) };
+  for (const id of costumeIds) pieces[id] = PUZZLE_SIZE;
   return {
+    ...p,
+    openedAll: true,
+    chestSkins: union(p.chestSkins, CHEST_SKINS.map((skin) => skin.id)),
+    shop: {
+      ...shop,
+      owned: union(shop.owned, SHOP_ITEMS.map((item) => item.id)),
+      musicOwned: union(shop.musicOwned, MUSIC_TRACKS.map((track) => track.id)),
+      musicTrack: shop.musicTrack ?? STARTER_TRACK_IDS[0],
+      soundOwned: union(shop.soundOwned, SOUND_PACKS.map((pack) => pack.id)),
+      soundPack: shop.soundPack ?? DEFAULT_SOUND_PACK,
+      tuning: { current: shop.tuning?.current ?? {}, unlocked: tintUnlocked },
+    },
+    puzzle: {
+      pieces,
+      collecting: null,
+      assembled: union(p.puzzle?.assembled, costumeIds),
+      worn: p.puzzle?.worn ?? null,
+    },
+  };
+}
+
+function newProfile(name: string, avatar: string): Profile {
+  return openEverything({
     id: `p_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     name,
     avatar,
@@ -245,26 +275,18 @@ function newProfile(name: string, avatar: string): Profile {
     lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
     weekly: { week: weekStartKey(), claimed: [] },
-    // Музыка по умолчанию — стартовая мелодия, а «Тишина» остаётся одним
-    // нажатием в коллекции БУКа.
-    chestSkins: CHEST_SKINS.map((skin) => skin.id),
+    chestSkins: [],
     shop: {
-      owned: SHOP_ITEMS.map((item) => item.id),
+      owned: [],
       equipped: {},
-      musicOwned: MUSIC_TRACKS.map((track) => track.id),
+      musicOwned: [...STARTER_TRACK_IDS],
       musicTrack: STARTER_TRACK_IDS[0],
-      soundOwned: SOUND_PACKS.map((pack) => pack.id),
+      soundOwned: [...STARTER_SOUND_IDS],
       soundPack: DEFAULT_SOUND_PACK,
-      tuning: { current: {}, unlocked: tintUnlocked },
       wishlist: [],
     },
-    puzzle: {
-      pieces: Object.fromEntries(costumeIds.map((id) => [id, PUZZLE_SIZE])),
-      collecting: null,
-      assembled: costumeIds,
-      worn: null,
-    },
-  };
+    puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
+  });
 }
 
 function normalizeDays(raw: unknown, today: string): Record<string, DayStat> {
@@ -284,7 +306,7 @@ function normalizeDays(raw: unknown, today: string): Record<string, DayStat> {
   }));
 }
 
-function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | null {
+function normalizeProfile(raw: Partial<Profile> | null | undefined, openLegacy = false): Profile | null {
   if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id.trim()) return null;
   const base = newProfile(
     typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Ученик',
@@ -295,7 +317,7 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
     : [];
   const puzzle = normalizePuzzle(raw.puzzle);
     const music = migrateMusicShop(raw.shop);
-    return {
+    const result: Profile = {
       ...base,
       ...raw,
       id: raw.id,
@@ -330,6 +352,9 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined): Profile | n
       },
       puzzle,
     };
+    // Старые профили из хранилища (до «всё открыто») получают открытое один раз.
+    // Импорт файла открытым не делаем: в резервной копии сохраняется то, что в ней куплено.
+    return openLegacy && !raw.openedAll ? openEverything(result) : result;
 }
 
 function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings {
@@ -508,12 +533,12 @@ interface PersistedShape {
  * важном месте: невалидный профиль НЕ выбрасывается молча, а уходит в корзину —
  * «потерять» данные можно только явно, из родительского раздела.
  */
-function normalizePersisted(raw: unknown): PersistedShape {
+function normalizePersisted(raw: unknown, openLegacy = false): PersistedShape {
   const p = (raw ?? {}) as Partial<PersistedShape>;
   const profiles: Profile[] = [];
   let vault = normalizeVault(p.vault);
   for (const item of Array.isArray(p.profiles) ? p.profiles : []) {
-    const prof = normalizeProfile(item);
+    const prof = normalizeProfile(item, openLegacy);
     if (prof) profiles.push(prof);
     else vault = addTrash(vault, item as Profile, 'invalid');
   }
@@ -1370,10 +1395,10 @@ export const useApp = create<AppState>()(
       }),
       // Данные из хранилища (или из файла) проходят санитайзер: раньше
       // невалидный профиль просто выбрасывался молча.
-      merge: (persisted, current) => ({ ...current, ...normalizePersisted(persisted) }),
+      merge: (persisted, current) => ({ ...current, ...normalizePersisted(persisted, true) }),
       // Без migrate любое расхождение версии означает потерю прогресса
       // (zustand не может мигрировать и падает внутри hydrate).
-      migrate: (state) => normalizePersisted(state),
+      migrate: (state) => normalizePersisted(state, true),
       onRehydrateStorage: () => (state, error) => {
         void afterHydration(state as AppState | undefined, error);
       },
