@@ -2613,19 +2613,6 @@ p {
   border-radius: 3px;
   background: var(--line);
 }
-/* Главный подиум: любимая вещь крупно, на фоне панели своей полки. */
-.hangar-main {
-  position: relative;
-  display: grid;
-  place-items: center;
-  margin-bottom: 16px;
-  padding: 18px 14px 52px;
-  border: 2px solid var(--case-line);
-  border-radius: 22px;
-  background: linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
-  box-shadow: inset 0 3px 16px color-mix(in srgb, var(--primary) 10%, transparent);
-  overflow: hidden;
-}
 .hangar-panel {
   position: absolute;
   inset: 0;
@@ -2648,42 +2635,7 @@ p {
     radial-gradient(58% 26% at 50% 7%, var(--case-lamp-glow), transparent 72%),
     linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
 }
-.hangar-main-art {
-  position: relative;
-  z-index: 3;
-  display: block;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 16%, transparent));
-}
 /* Машина и корабль — карандашные рисунки 720×480: видны крупно и целиком. */
-.hangar-main-art .car-art,
-.hangar-main-art .ship-art,
-.hangar-main-art .electronics-art { width: min(56vw, 230px); }
-.hangar-plinth {
-  position: absolute;
-  z-index: 2;
-  bottom: 12px;
-  left: 50%;
-  width: min(84%, 320px);
-  height: 30px;
-  transform: translateX(-50%);
-  border-radius: 10px 10px 13px 13px;
-  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
-  box-shadow: 0 8px 14px color-mix(in srgb, var(--ink) 20%, transparent);
-}
-.hangar-plinth::before {
-  content: '';
-  position: absolute;
-  inset: 6px 7px 5px;
-  border-radius: 7px;
-  background: color-mix(in srgb, #ffffff 22%, transparent);
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, #ffffff 30%, transparent);
-}
-.hangar-tone-ship .hangar-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
-.hangar-tone-phone .hangar-plinth { background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2)); }
 /* Бумажная бирка — как на витрине (токены --tag-*). */
 .hangar-tag {
   position: relative;
@@ -2701,7 +2653,6 @@ p {
   text-align: center;
   box-shadow: 0 4px 8px color-mix(in srgb, var(--ink) 14%, transparent);
 }
-.hangar-tag-star { transform: rotate(-1.5deg); }
 /* Полка коллекции: панель с декором полки и ряд вещей на мини-подиумах. */
 .hangar-zone { margin-bottom: 14px; }
 .hangar-stage {
@@ -2741,6 +2692,18 @@ p {
 .hangar-item .car-art,
 .hangar-item .ship-art,
 .hangar-item .electronics-art { width: 92px; }
+/* Любимая вещь (★) в своей части — крупнее остальных. */
+.hangar-item.star .car-art,
+.hangar-item.star .ship-art,
+.hangar-item.star .electronics-art { width: 124px; }
+.hangar-empty {
+  position: relative;
+  z-index: 3;
+  margin: 0;
+  padding: 30px 12px;
+  text-align: center;
+  color: var(--ink-soft, var(--ink));
+}
 .hangar-item > svg { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 16%, transparent)); }
 .hangar-item-plinth {
   width: 100%;
@@ -2790,12 +2753,12 @@ p {
   cursor: pointer;
 }
 @media (max-width: 359px) {
-  .hangar-main-art .car-art,
-  .hangar-main-art .ship-art,
-  .hangar-main-art .electronics-art { width: 62vw; }
   .hangar-item .car-art,
   .hangar-item .ship-art,
   .hangar-item .electronics-art { width: 80px; }
+  .hangar-item.star .car-art,
+  .hangar-item.star .ship-art,
+  .hangar-item.star .electronics-art { width: 100px; }
 }
 
 /* Ценник — бумажная бирка бутика, а не кнопка. */

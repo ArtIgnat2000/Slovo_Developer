@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ITEM_BY_ID, TOY_SHELVES, growthStage, isOwned, toysByShelf, type ShopItem } from '../engine/shop';
+import { growthStage, isOwned, toysByShelf, type ShopItem, type ToyKind } from '../engine/shop';
 import { haptic } from '../platform/haptics';
 import { sfx } from '../platform/sound';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../state/store';
@@ -8,28 +8,30 @@ import { BayDecor } from './TechScene';
 import { ToyArt } from './ToyArt';
 
 /**
- * «Ангар БУКа» (0.22.0) — сцена коллекции техники.
+ * «Ангар БУКа» — сцена коллекции техники из трёх частей (0.26.0):
+ *  • полка для телефона — телефоны стоят на деревянных полках;
+ *  • пристань для корабля — корабли у причала, море и волны;
+ *  • гараж для машины — машины в гараже с лампами.
  *
- * Пользователь пожаловался: купленные машины и другие крупные товары не
- * следует отображать на БУКе. Решение — docs/proposals/large-items-scene.md
- * (принято пользователем 2026-10-19): ВСЯ техника (авто, телефоны, корабли)
- * больше не рисуется на маскоте (правило `showsOnBuk` в engine/shop.ts) и
- * экспонируется здесь:
- *  • любимая вещь (`equipped.toy`) — на главном подиуме со звездой;
- *  • остальная коллекция — по полкам в порядке витрины: авто → телефоны →
- *    корабли, каждая вещь на своём подиуме с бумажной биркой;
- *  • БУК стоит на коврике рядом — хозяин коллекции, а не подставка.
+ * Части идут всегда в этом порядке и всегда видны, даже пустые: в пустой
+ * части написано, что туда встанет. Техника не рисуется на БУКе (правило
+ * `showsOnBuk` в engine/shop.ts); БУК стоит на коврике рядом — хозяин коллекции.
  *
- * Визуальный язык — тот же, что у витрины техники (TechScene, 0.19.0):
- * панели арок с гаражом, пирсом и волнами, полки, лампы, бирки, коврик;
- * поэтому ангар наследует все пять оформлений приложения (--stage-*,
- * --case-*, --tag-*).
+ * Любимая вещь (`equipped.toy`) отмечена звездой ★ в своей части и крупнее
+ * остальных. Тап по вещи — звезда ставится или снимается. Отдельного большого
+ * подиума сверху больше нет: ангар состоит только из трёх частей.
  *
- * Тап по вещи — «на подиум» / «с подиума»: слот `equipped.toy` с 0.22.0
- * означает «любимая вещь ангара». Профиль не мигрируется: у старых профилей
- * машина в `equipped.toy` просто встаёт на подиум и уходит с совы. Краски
- * (🎨 1 💎 за оттенок) — как раньше, в подробной карточке магазина.
+ * Визуальный язык — тот же, что у витрины техники (TechScene, 0.19.0): арки с
+ * декором BayDecor, бумажные бирки, коврик; наследует пять оформлений приложения.
  */
+
+/** Части ангара: порядок и подписи фиксированы. */
+const BAYS: { id: ToyKind; title: string; emoji: string; empty: string }[] = [
+  { id: 'phone', title: 'Полка для телефона', emoji: '📱', empty: 'Телефон встанет на полку, как только вы его купите' },
+  { id: 'ship', title: 'Пристань для корабля', emoji: '⛵', empty: 'Корабль причалит к пристани после покупки' },
+  { id: 'car', title: 'Гараж для машины', emoji: '🚗', empty: 'Машина заедет в гараж после покупки' },
+];
+
 export function HangarScene({ onClose }: { onClose: () => void }) {
   const profile = useActiveProfile();
   const look = useLook();
@@ -50,11 +52,9 @@ export function HangarScene({ onClose }: { onClose: () => void }) {
   const owned = profile.shop?.owned ?? [];
   const tuning = profile.shop?.tuning;
   const favoriteId = look.toy && owned.includes(look.toy) ? look.toy : null;
-  const favorite = favoriteId ? ITEM_BY_ID[favoriteId] ?? null : null;
   const growth = growthStage(masteredCount(profile));
-  const hasToys = TOY_SHELVES.some((shelf) => toysByShelf(shelf.id).some((item) => isOwned(owned, item.id)));
 
-  /** Тап по вещи: ставим на главный подиум или убираем с него. */
+  /** Тап по вещи: звезда ставится или снимается. */
   const tapItem = (item: ShopItem) => {
     sfx.tap();
     haptic.tap();
@@ -64,21 +64,21 @@ export function HangarScene({ onClose }: { onClose: () => void }) {
       wasFavorite
         ? {
             emoji: item.emoji ?? '🚗',
-            title: `«${item.title}» — с подиума`,
-            text: 'Главный подиум свободен для другой вещи',
+            title: `«${item.title}» — без звезды`,
+            text: 'Вещь стоит в своей части ангара',
           }
         : {
             emoji: item.emoji ?? '🚗',
-            title: `«${item.title}» — на подиуме! ★`,
-            text: 'Теперь она главная в ангаре',
+            title: `«${item.title}» — со звездой ★`,
+            text: 'Теперь она любимая в ангаре',
           },
     );
   };
 
   const itemAria = (item: ShopItem) =>
     favoriteId === item.id
-      ? `${item.title} — на главном подиуме. Убрать с подиума`
-      : `${item.title}. Поставить на главный подиум`;
+      ? `${item.title} — любимая, с звездой. Снять звезду`
+      : `${item.title}. Поставить звезду`;
 
   return (
     <div className="hangar-veil" role="presentation" onClick={onClose}>
@@ -99,73 +99,44 @@ export function HangarScene({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {!hasToys ? (
-          <div className="card tiny" style={{ textAlign: 'center' }}>
-            Пока пусто. Витрина ➜ полка «Техника» — там авто, телефоны и корабли.
-          </div>
-        ) : (
-          <>
-            <div className="tiny muted mb">Тапни по вещи — встанет на главный подиум ★</div>
+        <div className="tiny muted mb">Тапни по вещи — она станет любимой ★</div>
 
-            {/* Главный подиум: любимая вещь крупно — рисунок машины 720×480
-                наконец видно целиком, а не сжатым до 17 px на крыле совы. */}
-            {favorite && (
-              <div className={`hangar-main hangar-tone-${favorite.toy ?? 'car'}`}>
-                <span className={`hangar-panel hangar-panel-${favorite.toy ?? 'car'}`} aria-hidden="true">
-                  <BayDecor tone={favorite.toy ?? 'car'} />
+        {BAYS.map(({ id, title, emoji, empty }) => {
+          const items = toysByShelf(id).filter((item) => isOwned(owned, item.id));
+          return (
+            <section key={id} className={`hangar-zone hangar-tone-${id}`} aria-label={title}>
+              <h3 className="music-shelf-title">
+                <span aria-hidden="true">{emoji}</span> {title}
+              </h3>
+              <div className="hangar-stage">
+                <span className={`hangar-panel hangar-panel-${id}`} aria-hidden="true">
+                  <BayDecor tone={id} />
                 </span>
-                <button
-                  type="button"
-                  className="hangar-main-art"
-                  aria-label={itemAria(favorite)}
-                  onClick={() => tapItem(favorite)}
-                >
-                  <ToyArt id={favorite.id} size={118} tuning={tuning} />
-                </button>
-                <span className="hangar-plinth" aria-hidden="true" />
-                <span className="hangar-tag hangar-tag-star">
-                  <b>★ На подиуме</b>
-                  {favorite.title}
-                </span>
-              </div>
-            )}
-
-            {/* Полки коллекции: порядок тот же, что на витрине техники. */}
-            {TOY_SHELVES.map(({ id, title, emoji }) => {
-              const items = toysByShelf(id).filter((item) => isOwned(owned, item.id));
-              if (!items.length) return null;
-              return (
-                <section key={id} className={`hangar-zone hangar-tone-${id}`} aria-label={`${title} в ангаре`}>
-                  <h3 className="music-shelf-title">
-                    <span aria-hidden="true">{emoji}</span> {title}
-                  </h3>
-                  <div className="hangar-stage">
-                    <span className={`hangar-panel hangar-panel-${id}`} aria-hidden="true">
-                      <BayDecor tone={id} />
-                    </span>
-                    <div className="hangar-row">
-                      {items.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          className={`hangar-item${favoriteId === item.id ? ' star' : ''}`}
-                          aria-label={itemAria(item)}
-                          onClick={() => tapItem(item)}
-                        >
-                          <ToyArt id={item.id} size={58} tuning={tuning} />
-                          <span className="hangar-item-plinth" aria-hidden="true" />
-                          <span className="hangar-tag">
-                            <b>{favoriteId === item.id ? `★ ${item.title}` : item.title}</b>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                {items.length > 0 ? (
+                  <div className="hangar-row">
+                    {items.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`hangar-item${favoriteId === item.id ? ' star' : ''}`}
+                        aria-label={itemAria(item)}
+                        onClick={() => tapItem(item)}
+                      >
+                        <ToyArt id={item.id} size={favoriteId === item.id ? 84 : 58} tuning={tuning} />
+                        <span className="hangar-item-plinth" aria-hidden="true" />
+                        <span className="hangar-tag">
+                          <b>{favoriteId === item.id ? `★ ${item.title}` : item.title}</b>
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                </section>
-              );
-            })}
-          </>
-        )}
+                ) : (
+                  <p className="hangar-empty tiny">{empty}</p>
+                )}
+              </div>
+            </section>
+          );
+        })}
 
         {/* БУК — хозяин коллекции: стоит на коврике, техника НЕ на нём. */}
         <div className="hangar-buk" aria-hidden="true">

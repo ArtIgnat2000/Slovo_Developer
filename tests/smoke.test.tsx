@@ -694,12 +694,27 @@ async function main() {
   check('ангар открылся', !!document.querySelector('.hangar') && has('Ангар БУКа'), body().slice(0, 200));
   const hangarItems = Array.from(document.querySelectorAll('.hangar-item'));
   check(
-    'в ангаре одна купленная вещь — «Болид» на главном подиуме',
+    'в ангаре одна купленная вещь — «Болид» со звездой ★',
     hangarItems.length === 1 &&
       (hangarItems[0].textContent ?? '').includes('Болид') &&
-      !!document.querySelector('.hangar-item.star') &&
-      has('★ На подиуме'),
+      !!document.querySelector('.hangar-item.star'),
     `плашек: ${hangarItems.length}`,
+  );
+  // 0.26.0: ангар состоит из трёх частей — полка для телефона, пристань для
+  // корабля, гараж для машины; части видны всегда, даже пустые.
+  const bayTitles = Array.from(document.querySelectorAll('.hangar-zone h3')).map((h) => (h.textContent ?? '').trim());
+  check(
+    'ангар из трёх частей: полка, пристань, гараж (в этом порядке)',
+    bayTitles.length === 3 &&
+      bayTitles[0].includes('Полка для телефона') &&
+      bayTitles[1].includes('Пристань для корабля') &&
+      bayTitles[2].includes('Гараж для машины'),
+    bayTitles.join(' | '),
+  );
+  check(
+    'пустые части ангара подсказывают, что там встанет',
+    document.querySelectorAll('.hangar-empty').length === 2,
+    `пустых частей: ${document.querySelectorAll('.hangar-empty').length}`,
   );
   click(document.querySelector('.hangar-item.star'));
   await sleep(50);
