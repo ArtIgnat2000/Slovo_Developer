@@ -4,6 +4,7 @@ import { haptic } from '../platform/haptics';
 import { sfx } from '../platform/sound';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../state/store';
 import { Mascot } from './Mascot';
+import { RarityChip } from './RarityChip';
 import { BayDecor } from './TechScene';
 import { ToyArt } from './ToyArt';
 
@@ -131,6 +132,7 @@ export function HangarScene({ onClose }: { onClose: () => void }) {
                     <span className="hangar-item-plinth" aria-hidden="true" />
                     <span className="hangar-tag">
                       <b>{favoriteId === item.id ? `★ ${item.title}` : item.title}</b>
+                      <RarityChip item={item} className="rarity-chip-mini" />
                     </span>
                   </button>
                 ))}

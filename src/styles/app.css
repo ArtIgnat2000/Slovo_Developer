@@ -6629,3 +6629,38 @@ p {
   min-height: 84px;
 }
 .world-pick-title { line-height: 1.2; text-align: center; }
+
+/* Тип вещи (0.27.0): обычный, крутой, легендарный, ТОПОВЫЙ. Бейдж — в углу карточки
+   магазина, мелкий — в ангаре и на «Моём мире», в подробном листе — под названием. */
+.rarity-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 2px solid var(--rarity-line, #b0bec5);
+  border-radius: var(--r-pill);
+  background: var(--rarity-bg, #eceff1);
+  color: var(--rarity-ink, #455a64);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.rarity-common { --rarity-bg: #eceff1; --rarity-ink: #455a64; --rarity-line: #b0bec5; }
+.rarity-cool { --rarity-bg: #e3f2fd; --rarity-ink: #0d47a1; --rarity-line: #64b5f6; }
+.rarity-legendary { --rarity-bg: #f3e5f5; --rarity-ink: #6a1b9a; --rarity-line: #ba68c8; }
+.rarity-top {
+  --rarity-bg: linear-gradient(90deg, #fff3c4, #ffd54f);
+  --rarity-ink: #5d3a00;
+  --rarity-line: #ffb300;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #ffb300 22%, transparent);
+  text-transform: uppercase;
+}
+.rarity-chip.rarity-top { background: linear-gradient(90deg, #fff3c4, #ffd54f); }
+.shop-rarity {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+}
+.rarity-chip-detail { margin: 2px 0 6px; }
+.rarity-chip-mini { margin-top: 4px; font-size: 9px; padding: 1px 6px; }

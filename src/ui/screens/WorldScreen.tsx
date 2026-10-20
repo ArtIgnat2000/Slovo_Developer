@@ -7,6 +7,7 @@ import { masteredCount, useActiveProfile, useApp } from '../../state/store';
 import { Mascot } from '../Mascot';
 import { BayDecor } from '../TechScene';
 import { ToyArt } from '../ToyArt';
+import { RarityChip } from '../RarityChip';
 
 /**
  * «Мой мир» (0.26.0): вкладка с выбранными вещами ребёнка.
@@ -84,6 +85,7 @@ export function WorldScreen() {
               <span className="world-slot-plinth" aria-hidden="true" />
               <div className="world-slot-foot">
                 <b className="world-slot-title">{item.title}</b>
+                <RarityChip item={item} className="rarity-chip-mini" />
                 <button type="button" className="btn sm ghost" onClick={() => tap(id)}>
                   Убрать
                 </button>
@@ -125,6 +127,7 @@ export function WorldScreen() {
                   >
                     <span className="world-pick-art">{art(item, 84)}</span>
                     <span className="world-pick-title">{item.title}</span>
+                    <RarityChip item={item} className="rarity-chip-mini" />
                     {on && <i aria-hidden="true">✓</i>}
                   </button>
                 );
