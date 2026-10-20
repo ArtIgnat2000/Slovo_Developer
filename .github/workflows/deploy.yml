@@ -26,7 +26,16 @@ jobs:
             echo "GitHub Pages is not enabled yet; enabling it now (build_type=workflow)."
             gh api --method POST "repos/${{ github.repository }}/pages" -f "build_type=workflow" || true
           else
-            echo "GitHub Pages is already enabled."
+            # Pages могли включить в режиме legacy (сырой исходник из корня ветки main).
+            # deploy-pages работает только в режиме workflow, поэтому переключаем.
+            BUILD_TYPE=$(gh api "repos/${{ github.repository }}/pages" -q .build_type)
+            if [ "$BUILD_TYPE" != "workflow" ]; then
+              echo "GitHub Pages in build_type=$BUILD_TYPE; switching to workflow."
+              gh api --method PUT "repos/${{ github.repository }}/pages" -f "build_type=workflow" \
+                || echo "::warning::Не удалось переключить Pages автоматически. Переключите вручную: Settings → Pages → Source → GitHub Actions."
+            else
+              echo "GitHub Pages is already enabled (workflow)."
+            fi
           fi
 
       - uses: actions/checkout@v4
@@ -40,6 +49,9 @@ jobs:
       - run: npm run content:check
       - run: npm run test:smoke
       - run: npm run build
+        env:
+          # Путь репозитория на GitHub Pages: https://<owner>.github.io/<repo>/
+          VITE_BASE: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
