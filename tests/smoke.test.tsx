@@ -3,6 +3,7 @@
 // диалог выхода из урока, монотонную полоску прогресса, пометку отработки ошибки,
 // экран результатов с целью дня, выдачу награды за задания дня и сундук.
 import './setup';
+import { readFileSync } from 'node:fs';
 import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -782,6 +783,13 @@ async function main() {
   // ── Мой мир (0.26.0): вкладка с тремя выбранными вещами ───────────────
   // Чистая логика: до трёх мест, только купленное, без повторов.
   check('«Мой мир»: в третье место нельзя поставить четвёртую вещь', toggleWorldPick(['cap', 'bow', 'scarf'], 'glasses', ['cap', 'bow', 'scarf', 'glasses']).result === 'full', '');
+  // Картинки техники имеют явный размер в слотах и в списке (иначе рисунок схлопывается).
+  const worldCss = readFileSync('src/styles/app.css', 'utf8');
+  check(
+    '«Мой мир»: рисунки техники в слотах и списке имеют свой размер',
+    /\.world-slot-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss) && /\.world-pick-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss),
+    '',
+  );
   check('«Мой мир»: некупленную вещь не ставим', toggleWorldPick([], 'x', []).result === 'locked', '');
   check(
     '«Мой мир»: при загрузке отбрасываются повторы, чужие и некупленные вещи',

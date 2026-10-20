@@ -6555,3 +6555,18 @@ p {
 }
 .world-pick-art { display: grid; place-items: center; min-height: 58px; }
 .world-pick-title { line-height: 1.2; }
+
+/* Картинки техники на «Моём мире» (0.26.0): у рисунка ширина в процентах, а ячейка
+   сетки без своей ширины схлопывается до нуля — рисунок пропадал. Задаём размер явно. */
+.world-slot-art,
+.world-pick-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.world-slot-art > .car-art,
+.world-slot-art > .ship-art,
+.world-slot-art > .electronics-art { width: 88px; }
+.world-pick-art > .car-art,
+.world-pick-art > .ship-art,
+.world-pick-art > .electronics-art { width: 56px; }
