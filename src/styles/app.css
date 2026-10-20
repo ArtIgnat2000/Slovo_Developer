@@ -2654,10 +2654,13 @@ p {
   box-shadow: 0 4px 8px color-mix(in srgb, var(--ink) 14%, transparent);
 }
 /* Полка коллекции: панель с декором полки и ряд вещей на мини-подиумах. */
-.hangar-zone { margin-bottom: 14px; }
+/* Одна большая сцена выбранной части и выбор части под ней (0.26.0). */
+.hangar-scene { margin-bottom: 12px; }
+.hangar-scene-title { margin: 0 0 8px; }
+.hangar-bays { margin-bottom: 14px; }
 .hangar-stage {
   position: relative;
-  min-height: 132px;
+  min-height: 250px;
   padding: 12px 10px 14px;
   border: 2px solid var(--case-line);
   border-radius: 18px;
@@ -2670,7 +2673,7 @@ p {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  min-height: 104px;
+  min-height: 200px;
   padding: 4px 2px 2px;
   overflow-x: auto;
   scrollbar-width: thin;

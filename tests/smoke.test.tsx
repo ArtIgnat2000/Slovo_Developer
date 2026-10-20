@@ -700,21 +700,38 @@ async function main() {
       !!document.querySelector('.hangar-item.star'),
     `плашек: ${hangarItems.length}`,
   );
-  // 0.26.0: ангар состоит из трёх частей — полка для телефона, пристань для
-  // корабля, гараж для машины; части видны всегда, даже пустые.
-  const bayTitles = Array.from(document.querySelectorAll('.hangar-zone h3')).map((h) => (h.textContent ?? '').trim());
+  // 0.26.0: одна большая сцена выбранной части и выбор части под ней —
+  // полка для телефона, пристань для корабля, гараж для машины (в этом порядке).
+  const partTabs = Array.from(document.querySelectorAll('.hangar-bays [role="tab"]'));
+  const partLabels = partTabs.map((t) => (t.textContent ?? '').trim());
   check(
-    'ангар из трёх частей: полка, пристань, гараж (в этом порядке)',
-    bayTitles.length === 3 &&
-      bayTitles[0].includes('Полка для телефона') &&
-      bayTitles[1].includes('Пристань для корабля') &&
-      bayTitles[2].includes('Гараж для машины'),
-    bayTitles.join(' | '),
+    'под сценой три части: полка, пристань, гараж (в этом порядке)',
+    partTabs.length === 3 &&
+      partLabels[0].includes('Полка') &&
+      partLabels[1].includes('Пристань') &&
+      partLabels[2].includes('Гараж'),
+    partLabels.join(' | '),
   );
   check(
-    'пустые части ангара подсказывают, что там встанет',
-    document.querySelectorAll('.hangar-empty').length === 2,
-    `пустых частей: ${document.querySelectorAll('.hangar-empty').length}`,
+    'сцена открыта на части любимой вещи — гараж «Болид»',
+    (document.querySelector('.hangar-scene-title')?.textContent ?? '').includes('Гараж для машины'),
+    document.querySelector('.hangar-scene-title')?.textContent ?? 'нет заголовка сцены',
+  );
+  click(partTabs[0]);
+  await sleep(40);
+  check(
+    'выбор «Полка» показывает полку для телефона с подсказкой о пустоте',
+    (document.querySelector('.hangar-scene-title')?.textContent ?? '').includes('Полка для телефона') &&
+      !!document.querySelector('.hangar-empty') &&
+      document.querySelectorAll('.hangar-item').length === 0,
+    document.querySelector('.hangar-scene-title')?.textContent ?? '',
+  );
+  click(partTabs[2]);
+  await sleep(40);
+  check(
+    'выбор «Гараж» возвращает «Болид» на сцену',
+    document.querySelectorAll('.hangar-item').length === 1 && !!document.querySelector('.hangar-item.star'),
+    `плашек: ${document.querySelectorAll('.hangar-item').length}`,
   );
   click(document.querySelector('.hangar-item.star'));
   await sleep(50);
