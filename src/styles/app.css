@@ -1,0 +1,6524 @@
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  overscroll-behavior-y: contain;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+/* ── Каркас ──────────────────────────────────────────────────────────────── */
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%),
+    var(--bg);
+}
+
+.screen {
+  flex: 1;
+  padding: calc(14px + var(--safe-t)) 16px calc(96px + var(--safe-b));
+  max-width: var(--screen-max);
+  width: 100%;
+  margin: 0 auto;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+h1 {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+}
+h2 {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+}
+h3 {
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+p {
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+.muted {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+.tiny {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.grow {
+  flex: 1;
+}
+
+/* ── Карточки ────────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.card.tight {
+  padding: 12px 14px;
+}
+.card.flat {
+  box-shadow: none;
+  border-color: transparent;
+  background: var(--bg-2);
+}
+
+/* ── Кнопки ──────────────────────────────────────────────────────────────── */
+
+.btn {
+  border: none;
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  font-size: var(--fs-md);
+  font-weight: 800;
+  min-height: var(--tap);
+  cursor: pointer;
+  background: var(--primary-soft);
+  color: var(--primary);
+  transition: transform 0.08s ease, filter 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn:active {
+  transform: translateY(2px) scale(0.99);
+}
+.btn.primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 5px 0 #5b3ede;
+}
+.btn.primary:active {
+  box-shadow: 0 2px 0 #5b3ede;
+  transform: translateY(3px);
+}
+.btn.green {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 5px 0 #158f43;
+}
+.btn.green:active {
+  box-shadow: 0 2px 0 #158f43;
+  transform: translateY(3px);
+}
+.btn.ghost {
+  background: transparent;
+  border: 2px solid var(--line);
+  color: var(--ink-2);
+}
+.btn.danger {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.btn.wide {
+  width: 100%;
+}
+.btn.lg {
+  min-height: 58px;
+  font-size: 20px;
+  border-radius: var(--r-md);
+}
+.btn[disabled] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.btn.sm {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: var(--fs-sm);
+}
+
+.chip {
+  border: 2px solid var(--line);
+  background: var(--card);
+  border-radius: var(--r-pill);
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  min-height: 42px;
+}
+.chip.on {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Кнопка выхода из урока — увеличенная зона тапа для Android (48dp) */
+.lesson-exit {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  flex: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  position: relative;
+  z-index: 1;
+}
+.lesson-exit:active {
+  background: var(--line);
+  transform: scale(0.96);
+}
+@media (hover: none) {
+  .lesson-exit {
+    /* Расширяем хит-зону без визуального увеличения (для пальца) */
+    position: relative;
+  }
+  .lesson-exit::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+}
+
+/* ── Верхняя панель ──────────────────────────────────────────────────────── */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  border: 2px solid var(--line);
+  cursor: pointer;
+}
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+.stat-pill.fire {
+  color: var(--orange);
+}
+.stat-pill.xp {
+  color: var(--primary);
+}
+/* Имя сокращается многоточием: в шапке главной с 0.22.0 ещё одна кнопка
+   (🚗 ангар) — на узких экранах строка не должна ломаться. */
+.topbar .grow { min-width: 0; }
+.topbar-name {
+  overflow: hidden;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── Главная «Уроки»: герой «Сегодня» и спокойные мета-блоки (2026-10-15) ─
+   Один главный удар на первый экран. Цель, квесты, неделя остаются, но
+   без рамки-на-рамке и без второго CTA. Путь — отдельная глава ниже. */
+
+.rewards-btn {
+  position: relative;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.rewards-btn.wait {
+  border-color: var(--orange);
+}
+.rewards-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 0 2px var(--card);
+}
+.rewards-backdrop {
+  justify-content: flex-end;
+  padding: 0;
+}
+.rewards-sheet {
+  width: 100%;
+  max-width: var(--screen-max);
+  max-height: min(88dvh, 740px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 16px 16px calc(20px + var(--safe-b));
+  box-shadow: var(--shadow-lg);
+}
+
+.home-hero {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: var(--r-lg);
+  padding: 16px 16px 14px;
+  background: var(--primary-soft);
+  color: var(--ink);
+  box-shadow: 0 6px 0 var(--primary);
+  cursor: pointer;
+  font: inherit;
+}
+.home-hero:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--primary);
+}
+.home-hero:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+.home-hero-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.home-hero-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.home-hero-emoji {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  background: var(--card);
+  flex: none;
+}
+.home-hero-title {
+  display: block;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.home-hero-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.home-hero-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: #fff;
+  font-size: var(--fs-md);
+  font-weight: 800;
+  box-shadow: 0 4px 0 #5b3ede;
+}
+.home-hero:active .home-hero-cta {
+  box-shadow: 0 2px 0 #5b3ede;
+}
+
+.home-goal .streak-days {
+  margin-top: 2px;
+}
+
+.quest-list {
+  gap: 8px;
+}
+.quest-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.quest-main:focus-visible {
+  outline: 3px solid var(--primary);
+  border-radius: 8px;
+}
+.quest-main .grow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.quest-go {
+  color: var(--ink-3);
+  font-size: 18px;
+  flex: none;
+}
+.quest-bar {
+  margin-top: 6px;
+}
+
+.home-review {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 0;
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.home-review:active {
+  transform: translateY(1px);
+}
+.home-review-emoji {
+  font-size: 26px;
+  flex: none;
+}
+.home-review-title {
+  display: block;
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+
+.home-path-title {
+  margin: 20px 0 12px;
+}
+.node-btn.quiet {
+  box-shadow: 0 2px 0 var(--line);
+}
+.node-btn.quiet .node-emoji {
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  background: var(--bg-2);
+}
+.node-btn.quiet .crowns {
+  transform: scale(0.85);
+  transform-origin: left center;
+}
+
+.home-achievements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 16px;
+}
+.home-achievement {
+  width: 72px;
+  text-align: center;
+}
+.home-achievement-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.home-vlabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 8px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+.home-vlabs:active {
+  color: var(--ink-2);
+}
+
+.weekly-marks {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+}
+.weekly-mark {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+.weekly-mark.reached {
+  color: var(--primary);
+}
+.weekly-mark.awarded {
+  color: var(--green);
+}
+
+/* ── Прогресс ────────────────────────────────────────────────────────────── */
+
+.bar {
+  height: 14px;
+  background: var(--primary-soft);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+  border-radius: var(--r-pill);
+  transition: width 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.bar.green > i {
+  background: var(--green);
+}
+.bar.orange > i {
+  background: var(--orange);
+}
+
+.ring {
+  display: grid;
+  place-items: center;
+  flex: none;
+  position: relative;
+}
+.ring svg {
+  display: block;
+  overflow: visible;
+}
+
+/* Галочка «цель выполнена» — как в Garmin/Apple Fitness */
+.ring-check {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--card);
+  box-shadow: var(--shadow);
+  animation: pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+/* Полоска цели дня с меткой «с чего начали»: после урока видно, сколько он дал */
+.goal-track {
+  position: relative;
+}
+.goal-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ink-3);
+  opacity: 0.55;
+}
+
+/* Бейдж «+30 сверх цели» — перебор плана отдельной наградой, а не дробью */
+.goal-over {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--orange-soft);
+  color: var(--orange);
+  border: 2px solid var(--orange);
+  border-radius: var(--r-pill);
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Бейдж «🔧 ещё раз» — задание-отработка после ошибки.
+   Подсказывает, почему слово вернулось, но не выглядит наказанием. */
+.stat-pill.repair {
+  color: var(--orange);
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+.stat-pill.tasks {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+/* Ошибка в полосе вердикта: слово вернётся в этом уроке — это не наказание,
+   поэтому мягкий оранжевый и без счётчика. Класс отдельный от .repair в шапке
+   (тот бейдж — про тип текущего задания), чтобы смыслы не смешивались. */
+.stat-pill.again {
+  color: var(--orange-ink);
+  border-color: var(--orange);
+  background: var(--orange-soft);
+  white-space: nowrap;
+}
+
+/* ── Задания дня ─────────────────────────────────────────────────────────── */
+
+.quest {
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  background: var(--bg-2);
+}
+/* Подпись «что делать» + кнопка запуска внутри карточки задания дня */
+.quest-action {
+  margin-top: 8px;
+  gap: 8px;
+  align-items: center;
+}
+.quest-action .btn.sm {
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
+.quest.done {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.quest-emoji {
+  font-size: 24px;
+  width: 30px;
+  text-align: center;
+  flex: none;
+}
+.quest-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+.quest-gem {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  color: var(--primary);
+  white-space: nowrap;
+}
+.quest-gem.taken {
+  color: var(--green);
+}
+.chest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--orange);
+  color: #332643;
+  box-shadow: 0 5px 0 #c87b08;
+  animation: chestReadyPop 0.48s cubic-bezier(0.2, 1.2, 0.35, 1) both;
+}
+.chest:active {
+  box-shadow: 0 2px 0 #c87b08;
+  transform: translateY(3px);
+}
+.chest-progress {
+  margin-top: 14px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+}
+.chest-progress.ready {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+.chest-progress.opened {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.chest-glyph {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: var(--r-sm);
+  background: var(--orange-soft);
+}
+.chest-progress.opened .chest-glyph {
+  background: var(--green-soft);
+}
+.chest-mini-glyph {
+  width: 32px;
+  height: 32px;
+  display: block;
+  overflow: visible;
+}
+.chest-mini-glyph.locked {
+  width: 28px;
+  height: 28px;
+  color: var(--ink-3);
+}
+.chest-mini-glyph.ready {
+  filter: drop-shadow(0 2px 2px rgba(133, 80, 38, .2));
+}
+.chest-mini-glyph.opened {
+  width: 30px;
+  height: 30px;
+}
+.chest-title {
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+.chest-keys {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--line);
+}
+.chest-key {
+  width: 42px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-pill);
+  color: var(--ink-3);
+  opacity: 0.72;
+}
+.chest-key.on {
+  border-style: solid;
+  border-color: #efad42;
+  background: var(--bg-2);
+  color: #d88920;
+  opacity: 1;
+}
+.key-symbol {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: color 160ms ease, filter 160ms ease;
+}
+.key-symbol-hole {
+  fill: var(--bg-2);
+  stroke: none;
+}
+.chest-key.newly-lit {
+  animation: keyLand 0.52s cubic-bezier(0.2, 1.35, 0.35, 1) var(--key-delay, 0ms) both;
+}
+.chest-key.newly-lit .key-symbol {
+  filter: drop-shadow(0 0 5px rgba(255, 194, 65, .85));
+}
+@keyframes keyLand {
+  0% { transform: scale(.72) rotate(-15deg); }
+  72% { transform: scale(1.16) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.chest-receipt {
+  padding: 12px;
+  border: 2px solid var(--green);
+  border-radius: var(--r-md);
+  background: var(--green-soft);
+}
+.chest-receipt-icon {
+  font-size: 25px;
+  flex: none;
+}
+.chest-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.chest-receipt .chest-rewards {
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+.chest-reward {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-size: var(--fs-md);
+  font-weight: 800;
+}
+.chest-dialog {
+  max-width: 360px;
+}
+.chest-dialog .dialog-emoji {
+  animation: chestCelebrate 0.7s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes chestCelebrate {
+  0% { transform: scale(0.5) rotate(-10deg); }
+  70% { transform: scale(1.18) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.chest .chest-mini-glyph {
+  width: 27px;
+  height: 27px;
+  flex: none;
+}
+.chest-progress.ready .chest-glyph {
+  animation: chestReadyGlow 0.9s ease-out 1;
+}
+@keyframes chestReadyPop {
+  0% { transform: scale(.96); }
+  68% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+@keyframes chestReadyGlow {
+  0% { filter: drop-shadow(0 0 0 rgba(255, 177, 49, 0)); }
+  45% { filter: drop-shadow(0 0 12px rgba(255, 177, 49, .72)); }
+  100% { filter: drop-shadow(0 0 0 rgba(255, 177, 49, 0)); }
+}
+
+/* ── Облики сундука ──────────────────────────────────────────────────────
+   Полка выбора внешнего вида (src/ui/ChestSkins.tsx) и вход в неё из карточки
+   заданий. Сетка 2×N: карточка облика — это превью сундука, название и либо
+   кнопка «Выбрать», либо прогресс до открытия. */
+.chest-skin-hint {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  text-align: center;
+}
+.chest-skin-line {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.chest-skin-line b {
+  color: var(--ink);
+}
+.chest-skin-line:active {
+  transform: translateY(1px);
+}
+.chest-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chest-skin-link {
+  padding: 4px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.chest-skin-link:active {
+  transform: translateY(1px);
+}
+
+.skin-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  animation: fadeIn 0.2s ease;
+}
+.skin-sheet-inner {
+  max-width: var(--screen-max);
+  margin: 0 auto;
+  padding: calc(16px + var(--safe-t)) 16px calc(28px + var(--safe-b));
+}
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.skin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+.skin-card:active {
+  transform: translateY(1px);
+}
+.skin-card.on {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+.skin-card.locked {
+  cursor: default;
+  opacity: .92;
+}
+.skin-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 104px;
+}
+.skin-preview img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 8px rgba(36, 31, 54, .18));
+}
+/* Запертый облик показываем силуэтом: видно форму, но не выданы краски —
+   ребёнок понимает, ЧТО он открывает, и не путает с уже собранным. */
+.skin-card.locked .skin-preview img {
+  opacity: .35;
+  filter: grayscale(1) drop-shadow(0 6px 8px rgba(36, 31, 54, .14));
+}
+.skin-lock {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font-size: 20px;
+}
+.skin-title {
+  font-weight: 800;
+}
+.skin-new {
+  color: var(--orange-ink);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.skin-state {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-weight: 800;
+}
+.skin-state.chosen {
+  background: var(--green-soft);
+  color: var(--ink);
+}
+.skin-how,
+.skin-left {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+.skin-card .bar,
+.skin-card [role='progressbar'] {
+  min-height: 8px;
+}
+
+/* ── Церемония открытия сундука БУКа ───────────────────────────────────── */
+.chest-ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: stretch center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(ellipse 70% 58% at 50% 42%, rgba(255, 207, 91, .32), transparent 72%),
+    radial-gradient(ellipse 62% 48% at 24% 48%, rgba(59, 221, 222, .18), transparent 72%),
+    radial-gradient(ellipse 58% 44% at 78% 40%, rgba(185, 113, 255, .22), transparent 72%),
+    linear-gradient(155deg, #554298 0%, #40377e 48%, #253b75 100%);
+  color: #fffaf0;
+  animation: ceremonyFadeIn 0.24s ease-out both;
+}
+.chest-ceremony::before,
+.chest-ceremony::after {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+}
+.chest-ceremony::before {
+  opacity: .22;
+  background-image: radial-gradient(rgba(255, 238, 186, .72) .8px, transparent .8px);
+  background-size: 47px 47px;
+  mask-image: radial-gradient(ellipse at center, #000 0%, transparent 72%);
+}
+.chest-ceremony::after {
+  box-shadow: inset 0 0 90px rgba(7, 5, 20, .26);
+}
+.chest-ceremony-stage {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  display: flex;
+  justify-content: center;
+  width: min(100%, 560px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.ceremony-spotlight {
+  position: absolute;
+  z-index: -1;
+  top: 8%;
+  left: 50%;
+  width: min(108vw, 600px);
+  height: min(78vh, 660px);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 214, 130, .12), rgba(185, 142, 255, .05) 48%, transparent 72%);
+  transform: translateX(-50%);
+}
+.chest-ceremony-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 100dvh;
+  padding: calc(58px + var(--safe-t)) 18px calc(20px + var(--safe-b));
+  text-align: center;
+}
+.chest-ceremony-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: #ffdc91;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  line-height: 1.3;
+}
+.ceremony-kicker-rule {
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 220, 145, .8));
+}
+.ceremony-kicker-rule:last-child {
+  transform: scaleX(-1);
+}
+.chest-ceremony-copy {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+}
+.chest-ceremony-copy h2 {
+  margin: 2px 0 4px;
+  color: #fffaf0;
+  font-size: clamp(25px, 7vw, 34px);
+  font-weight: 900;
+  letter-spacing: -.035em;
+  line-height: 1.08;
+  text-shadow: 0 2px 18px rgba(8, 5, 21, .3);
+}
+.chest-ceremony-copy p {
+  margin: 0;
+  color: rgba(255, 250, 240, .82);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.chest-ceremony-scene {
+  position: relative;
+  flex: none;
+  width: min(100%, 430px);
+  height: clamp(235px, 42vh, 330px);
+  margin: -2px auto -4px;
+  isolation: isolate;
+}
+.ceremony-stage-halo {
+  position: absolute;
+  z-index: -1;
+  right: 2%;
+  bottom: 1%;
+  left: 9%;
+  height: 72%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 203, 100, .2), rgba(124, 92, 255, .1) 48%, transparent 73%);
+  filter: blur(7px);
+}
+.chest-illustration {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.chest-art-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 13px 14px rgba(7, 5, 20, .28));
+}
+.chest-art-closed {
+  z-index: 1;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.chest-art-open {
+  z-index: 2;
+  opacity: 0;
+  transform: translate(-50%, -44%) scale(.74) rotate(-3deg);
+  filter: drop-shadow(0 14px 22px rgba(255, 194, 67, .34));
+}
+.chest-aura {
+  position: absolute;
+  z-index: 0;
+  inset: 13% 8% 8%;
+  border-radius: 50%;
+  /* Цвет ауры задаёт облик сундука (--chest-aura из engine/chests.ts), форма и
+     затухание — общие: свечение должно узнаваться, чем бы сундук ни был. */
+  background: radial-gradient(ellipse, var(--chest-aura, rgba(255, 225, 126, .68)), rgba(154, 91, 255, .12) 63%, transparent 78%);
+  filter: blur(10px);
+  opacity: .08;
+}
+.chest-art-keys {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.scene-key {
+  opacity: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 3px 4px rgba(58, 31, 54, .45));
+}
+.chest-spark {
+  opacity: .28;
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 8px rgba(255, 236, 157, .9));
+}
+.chest-ceremony-buk {
+  position: absolute;
+  z-index: 4;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 132px;
+  pointer-events: none;
+}
+.chest-ceremony .chest-ceremony-buk .mascot {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  display: block;
+  margin: 0;
+  pointer-events: none;
+  animation: none;
+}
+.chest-ceremony .chest-ceremony-buk .mascot.dance {
+  animation: chestMascotDance .72s ease-in-out 1 both;
+}
+.chest-ceremony-speech {
+  position: relative;
+  z-index: 1;
+  max-width: 176px;
+  margin: 0 0 -3px 16px;
+  padding: 7px 11px;
+  border: 1.5px solid rgba(255, 232, 181, .72);
+  border-radius: 15px 15px 15px 5px;
+  background: #fffaf0;
+  box-shadow: 0 5px 18px rgba(11, 7, 24, .2);
+  color: #332643;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+.chest-ceremony-result {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 104px;
+  transition: opacity .24s ease, transform .24s ease;
+}
+.chest-ceremony-result.waiting {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+.chest-ceremony-result.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+.chest-ceremony-result.revealed .chest-ceremony-total {
+  animation: ceremonyRewardPop .48s cubic-bezier(.18, 1.25, .3, 1) both;
+}
+.chest-ceremony-result.revealed .chest-ceremony-balance strong {
+  display: inline-block;
+  animation: ceremonyBalanceHighlight .62s ease-out both;
+}
+.chest-ceremony-skin {
+  margin-top: 10px;
+  color: rgba(255, 250, 240, .78);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.chest-ceremony-result-label {
+  color: #ffdc91;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .2em;
+}
+.chest-ceremony-total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: -1px 0;
+  color: #fff4c6;
+  font-size: clamp(36px, 10vw, 48px);
+  font-weight: 950;
+  letter-spacing: -.045em;
+  line-height: 1.08;
+  text-shadow: 0 3px 18px rgba(255, 190, 74, .22);
+}
+.ceremony-gem-icon {
+  display: block;
+  width: 46px;
+  height: 46px;
+  filter: drop-shadow(0 3px 10px rgba(111, 227, 239, .52)) drop-shadow(0 1px 10px rgba(255, 124, 190, .24));
+}
+.chest-ceremony-balance {
+  color: rgba(255, 250, 240, .8);
+  font-size: 14px;
+  font-weight: 600;
+}
+.chest-ceremony-balance strong {
+  color: #fffaf0;
+  font-size: 16px;
+  font-weight: 900;
+}
+.ceremony-extra-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 5px;
+  color: #fffaf0;
+  font-size: 13px;
+  font-weight: 800;
+}
+.ceremony-extra-rewards span {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 232, 181, .24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+}
+.chest-ceremony-skip {
+  position: absolute;
+  z-index: 10;
+  top: calc(12px + var(--safe-t));
+  right: 16px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 250, 240, .34);
+  border-radius: 999px;
+  background: rgba(25, 21, 43, .34);
+  color: #fffaf0;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+.chest-ceremony-skip span {
+  padding-left: 2px;
+  font-size: 19px;
+  vertical-align: -1px;
+}
+.chest-ceremony-skip:focus-visible,
+.chest-ceremony-done:focus-visible,
+.chest-ceremony-open:focus-visible {
+  outline: 3px solid #ffe08b;
+  outline-offset: 3px;
+}
+.chest-ceremony-open {
+  position: relative;
+  width: min(100%, 350px);
+  min-height: 62px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 244, 198, .8);
+  border-radius: var(--r-pill);
+  background: linear-gradient(135deg, #fff0a7 0%, #ffd05b 55%, #ffad3f 100%);
+  color: #382544;
+  box-shadow: 0 6px 0 #bb722c, 0 12px 28px rgba(7, 5, 20, .24), 0 0 24px rgba(255, 211, 98, .2);
+  animation: ceremonyOpenPulse .72s ease-in-out 2;
+}
+.chest-ceremony-open:active {
+  box-shadow: 0 2px 0 #bb722c, 0 5px 14px rgba(7, 5, 20, .2);
+  transform: translateY(4px) scale(.99);
+}
+.chest-ceremony-open .key-symbol {
+  width: 27px;
+  height: 27px;
+  color: #a95928;
+}
+.chest-ceremony-open-spark {
+  color: #a95928;
+  font-size: 22px;
+  line-height: 1;
+}
+@keyframes ceremonyOpenPulse {
+  0%, 100% { filter: brightness(1); transform: scale(1); }
+  50% { filter: brightness(1.12); transform: scale(1.025); }
+}
+.chest-ceremony-done {
+  width: min(100%, 350px);
+  min-height: 54px;
+  color: #242039;
+  box-shadow: 0 5px 0 rgba(8, 5, 21, .22), 0 10px 24px rgba(7, 5, 20, .2);
+}
+.chest-ceremony-wait {
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 250, 240, .68);
+  font-size: 13px;
+  font-weight: 700;
+}
+.chest-ceremony .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Один короткий, управляемый burst вместо непрерывного дождя конфетти. */
+.ceremony-confetti {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.ceremony-confetti-piece {
+  position: absolute;
+  top: 57%;
+  left: 59%;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--particle-color, #ffdc91);
+  opacity: 0;
+  transform: translate(0, 0) scale(.5);
+}
+.piece-1 { --dx: -105px; --dy: -70px; --turn: -125deg; --particle-color: #ffdc91; --particle-delay: 1.94s; }
+.piece-2 { --dx: -74px; --dy: -105px; --turn: 165deg; --particle-color: #8cebd7; --particle-delay: 2.02s; }
+.piece-3 { --dx: -28px; --dy: -90px; --turn: 95deg; --particle-color: #ff8cc1; --particle-delay: 1.98s; }
+.piece-4 { --dx: 26px; --dy: -113px; --turn: -165deg; --particle-color: #b7a6ff; --particle-delay: 2.07s; }
+.piece-5 { --dx: 81px; --dy: -86px; --turn: 135deg; --particle-color: #ffdc91; --particle-delay: 2.01s; }
+.piece-6 { --dx: 112px; --dy: -55px; --turn: -100deg; --particle-color: #8cebd7; --particle-delay: 2.1s; }
+.piece-7 { --dx: -120px; --dy: -22px; --turn: 145deg; --particle-color: #b7a6ff; --particle-delay: 2.12s; }
+.piece-8 { --dx: -76px; --dy: -35px; --turn: -145deg; --particle-color: #ff8cc1; --particle-delay: 2.04s; }
+.piece-9 { --dx: 78px; --dy: -36px; --turn: 115deg; --particle-color: #ffdc91; --particle-delay: 2.08s; }
+.piece-10 { --dx: 121px; --dy: -18px; --turn: -135deg; --particle-color: #b7a6ff; --particle-delay: 2.16s; }
+.piece-11 { --dx: -43px; --dy: -125px; --turn: 155deg; --particle-color: #8cebd7; --particle-delay: 2.13s; }
+.piece-12 { --dx: 45px; --dy: -123px; --turn: -95deg; --particle-color: #ff8cc1; --particle-delay: 2.18s; }
+.piece-13 { --dx: -143px; --dy: -52px; --turn: 190deg; --particle-color: #fff0a7; --particle-delay: 1.9s; }
+.piece-14 { --dx: -104px; --dy: -143px; --turn: -190deg; --particle-color: #ff9b62; --particle-delay: 2.03s; }
+.piece-15 { --dx: -7px; --dy: -149px; --turn: 205deg; --particle-color: #ffdc91; --particle-delay: 1.96s; }
+.piece-16 { --dx: 143px; --dy: -110px; --turn: -205deg; --particle-color: #8cebd7; --particle-delay: 2.04s; }
+.piece-17 { --dx: 129px; --dy: -8px; --turn: 175deg; --particle-color: #ff8cc1; --particle-delay: 2.13s; }
+.piece-18 { --dx: 12px; --dy: -151px; --turn: -175deg; --particle-color: #b7a6ff; --particle-delay: 2.08s; }
+
+.chest-ceremony.is-waiting .chest-ceremony-content {
+  animation: ceremonyContentIn .32s ease-out both;
+}
+.chest-ceremony.is-waiting .chest-ceremony-buk {
+  animation: ceremonyBukArrive .58s cubic-bezier(.2, 1.15, .35, 1) .12s both;
+}
+.chest-ceremony.is-waiting .chest-ceremony-speech {
+  animation: ceremonySpeechIn .28s cubic-bezier(.2, 1.2, .35, 1) .42s both;
+}
+.chest-ceremony.is-waiting .scene-key {
+  opacity: 0;
+}
+.chest-ceremony.is-showing .chest-ceremony-content {
+  animation: ceremonyContentIn .32s ease-out both;
+}
+.chest-ceremony.is-showing .chest-ceremony-buk {
+  animation: ceremonyBukArrive .58s cubic-bezier(.2, 1.15, .35, 1) .18s both;
+}
+.chest-ceremony.is-showing .chest-ceremony-speech {
+  animation: ceremonySpeechIn .28s cubic-bezier(.2, 1.2, .35, 1) .56s both;
+}
+.chest-ceremony.is-showing .chest-illustration {
+  animation: ceremonyChestLeap .58s cubic-bezier(.16, .9, .3, 1) 1.46s both;
+}
+.chest-ceremony.is-showing .chest-ceremony-buk .mascot {
+  animation: chestMascotCheer .7s cubic-bezier(.2, 1.1, .3, 1) 1.52s both;
+}
+.chest-ceremony.is-showing .chest-art-closed {
+  animation: ceremonyClosedChestVanish .38s ease-in 1.44s both;
+}
+.chest-ceremony.is-showing .chest-art-open {
+  animation: ceremonyOpenChestBurst .86s cubic-bezier(.16, .95, .3, 1) 1.44s both;
+}
+.chest-ceremony.is-showing .chest-art-keys {
+  animation: ceremonyKeyLayerFade .2s ease-out 1.38s both;
+}
+.chest-ceremony.is-showing .chest-aura {
+  animation: ceremonyAuraBloom .75s ease-out 1.74s both;
+}
+.chest-ceremony.is-showing .ceremony-stage-halo {
+  animation: ceremonyHaloFlash .88s cubic-bezier(.16, .9, .3, 1) 1.62s both;
+}
+.chest-ceremony.is-showing .scene-key {
+  animation: ceremonyKeyGlow .43s cubic-bezier(.2, 1.2, .35, 1) var(--scene-key-delay, .82s) both;
+}
+.scene-key-one { --scene-key-delay: .18s; --key-start-x: -138px; --key-start-y: 64px; --key-start-rotate: -58deg; }
+.scene-key-two { --scene-key-delay: .36s; --key-start-x: 0px; --key-start-y: -138px; --key-start-rotate: 0deg; }
+.scene-key-three { --scene-key-delay: .54s; --key-start-x: 138px; --key-start-y: 64px; --key-start-rotate: 58deg; }
+.chest-ceremony.is-showing .chest-spark-one {
+  animation: ceremonySpark 1.1s ease-in-out .92s both;
+}
+.chest-ceremony.is-showing .chest-spark-two {
+  animation: ceremonySpark 1.1s ease-in-out 1.12s both;
+}
+.chest-ceremony.is-showing .ceremony-confetti-piece {
+  animation: ceremonyParticle .78s cubic-bezier(.15, .72, .24, 1) var(--particle-delay, 2s) both;
+}
+.chest-ceremony.is-final .chest-art-closed {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.94);
+}
+.chest-ceremony.is-final .chest-art-open {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.chest-ceremony.is-final .chest-art-keys {
+  opacity: 0;
+}
+.chest-ceremony.is-final .scene-key {
+  opacity: 0;
+}
+.chest-ceremony.is-final .chest-aura {
+  opacity: .54;
+}
+.chest-ceremony.is-final .chest-ceremony-buk .mascot.dance {
+  animation: chestMascotDance .72s ease-in-out 1 both;
+}
+.chest-ceremony.is-final .ceremony-confetti {
+  display: none;
+}
+
+@keyframes ceremonyRewardPop {
+  0% { opacity: .35; transform: translateY(10px) scale(.78); }
+  72% { opacity: 1; transform: translateY(-2px) scale(1.08); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes ceremonyBalanceHighlight {
+  0% { color: #ffdc91; transform: scale(.9); }
+  65% { color: #fff; transform: scale(1.12); }
+  100% { color: #fffaf0; transform: scale(1); }
+}
+@keyframes ceremonyFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ceremonyContentIn {
+  from { opacity: .86; }
+  to { opacity: 1; }
+}
+@keyframes ceremonyBukArrive {
+  from { opacity: 0; transform: translateY(15px) scale(.94); }
+  75% { opacity: 1; transform: translateY(-3px) scale(1.025); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes ceremonySpeechIn {
+  from { opacity: 0; transform: translateY(5px) scale(.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes ceremonyClosedChestVanish {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(.84) rotate(-2deg); }
+}
+@keyframes ceremonyOpenChestBurst {
+  0% { opacity: 0; transform: translate(-50%, -44%) scale(.72) rotate(-3deg); }
+  62% { opacity: 1; transform: translate(-50%, -53%) scale(1.08) rotate(1.5deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+}
+@keyframes ceremonyKeyLayerFade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes ceremonyAuraBloom {
+  0% { opacity: .08; }
+  55% { opacity: .8; }
+  100% { opacity: .54; }
+}
+@keyframes ceremonyHaloFlash {
+  0% { opacity: .18; transform: translateX(-50%) scale(.72); filter: blur(12px); }
+  56% { opacity: .95; transform: translateX(-50%) scale(1.12); filter: blur(2px); }
+  100% { opacity: .5; transform: translateX(-50%) scale(1); filter: blur(7px); }
+}
+@keyframes ceremonyKeyGlow {
+  0% { opacity: 0; transform: translate(var(--key-start-x, 0), var(--key-start-y, 18px)) rotate(var(--key-start-rotate, -18deg)) scale(.52); filter: brightness(.9); }
+  70% { opacity: 1; transform: translate(0, -6px) rotate(8deg) scale(1.2); filter: brightness(1.8) drop-shadow(0 0 10px rgba(255, 226, 143, .95)); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); filter: brightness(1.15); }
+}
+@keyframes ceremonySpark {
+  0%, 100% { opacity: .25; transform: scale(.65); }
+  45% { opacity: 1; transform: scale(1.35); }
+}
+@keyframes ceremonyParticle {
+  0% { opacity: 0; transform: translate(0, 0) scale(.4) rotate(0); }
+  14% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.82) rotate(var(--turn)); }
+}
+@keyframes ceremonyChestLeap {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-13px) scale(1.045); }
+  58% { transform: translateY(2px) scale(.985); }
+  78% { transform: translateY(-4px) scale(1.015); }
+}
+@keyframes chestMascotCheer {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  28% { transform: translateY(-13px) rotate(-9deg) scale(1.06); }
+  62% { transform: translateY(1px) rotate(7deg) scale(.98); }
+}
+@keyframes chestMascotDance {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  25% { transform: rotate(-8deg) translateY(-7px); }
+  75% { transform: rotate(8deg) translateY(-5px); }
+}
+
+@media (max-width: 360px) {
+  .chest-ceremony-content { padding-right: 12px; padding-left: 12px; }
+  .chest-ceremony-scene { height: clamp(198px, 31vh, 235px); }
+  .chest-ceremony-buk { left: -5px; transform: scale(.9); transform-origin: left bottom; }
+  .chest-ceremony-speech { font-size: 12px; }
+}
+@media (max-height: 650px) and (min-width: 361px) {
+  .chest-ceremony-content { justify-content: flex-start; gap: 5px; }
+  .chest-ceremony-scene { height: 220px; }
+  .chest-ceremony-result { min-height: 90px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chest,
+  .chest-progress.ready .chest-glyph,
+  .chest-key.newly-lit,
+  .chest-glyph.wake,
+  .chest-wake-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+  .chest-ceremony,
+  .chest-ceremony *,
+  .chest-ceremony *::before,
+  .chest-ceremony *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .chest-ceremony .chest-art-closed {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.94);
+  }
+  .chest-ceremony .chest-art-open {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .chest-ceremony .chest-art-keys { opacity: 0; }
+  .chest-ceremony .chest-aura { opacity: .54; }
+  .chest-ceremony .ceremony-confetti { display: none; }
+}
+
+.stat-pill.gems {
+  color: var(--primary);
+}
+
+/* Полоска серии дней внутри карточки «Цель дня» (пункт 5) */
+.streak-label {
+  margin-top: 10px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.streak-days {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+.streak-dot {
+  flex: 1;
+  height: 20px;
+  border-radius: 8px;
+  background: var(--line);
+}
+.streak-dot.on {
+  background: var(--orange);
+  box-shadow: 0 2px 0 #c87b08;
+}
+.streak-dot.today {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* ── «Разбуди сундук»: тапы по закрытому сундуку (2026-10-14) ──────────────
+   Ребёнок тапает по сундуку ещё до открытия и ждёт, что это на что-то повлияет.
+   Пять тапов будят сундук: он дрожит, светится и приносит надбавку к награде
+   (правила — CHEST_WAKE_TAPS / CHEST_WAKE_GEMS в engine/quests.ts). */
+
+/* Карточка заданий: маленький сундук — это кнопка, пока сундук не открыт. */
+.chest-glyph.wake {
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
+.chest-glyph.wake:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.chest-glyph.wake.waking {
+  background: #ffe6b0;
+}
+.chest-glyph.wake.awake {
+  background: radial-gradient(circle, #ffe9a8, var(--orange-soft));
+  box-shadow: 0 0 0 2px rgba(255, 179, 71, .5), 0 0 16px rgba(255, 196, 87, .55);
+}
+.chest-wake {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  color: var(--ink-2);
+}
+.chest-wake.awake {
+  border-style: solid;
+  border-color: var(--orange);
+  background: var(--orange-soft);
+  color: var(--ink);
+}
+.chest-wake-dots {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+.chest-wake-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+.chest-wake-dot.on {
+  background: #ffb347;
+  box-shadow: 0 0 8px rgba(255, 179, 71, .8);
+  transform: scale(1.16);
+}
+.chest-reward.wake {
+  background: var(--orange-soft);
+}
+
+/* Сцена открытия: закрытый сундук сам становится кнопкой. */
+.chest-wake-shaker {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+.chest-wake-tap {
+  position: absolute;
+  z-index: 5;
+  top: 2%;
+  right: 0;
+  bottom: 2%;
+  left: 22%;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.chest-wake-tap:focus-visible {
+  outline: 3px solid #ffe08b;
+  outline-offset: 4px;
+}
+.chest-ceremony.is-waiting .chest-aura {
+  opacity: calc(.1 + .55 * var(--wake-progress, 0));
+}
+.chest-ceremony.is-awake .chest-aura {
+  opacity: .64;
+}
+.chest-ceremony.is-awake .ceremony-stage-halo {
+  opacity: .82;
+}
+.chest-ceremony.is-awake .scene-key {
+  filter: drop-shadow(0 0 9px rgba(255, 226, 143, .95));
+}
+.chest-wake-panel {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  margin: 0 0 6px;
+}
+.chest-wake-panel .chest-wake-dot {
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 250, 240, .26);
+}
+.chest-wake-panel .chest-wake-dot.on {
+  background: #ffd264;
+  box-shadow: 0 0 10px rgba(255, 210, 100, .9);
+}
+.chest-wake-caption {
+  color: #fff2c9;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+.chest-wake-panel.awake .chest-wake-caption {
+  color: #ffe08b;
+}
+.chest-wake-panel.awake .chest-wake-dot {
+  animation: ceremonySpark 1.1s ease-in-out both;
+}
+
+/* ── Магазин БУКа ────────────────────────────────────────────────────────── */
+
+/* ── Магазин БУКа: витрина + гардероб (концепция 2026-10-17) ── */
+
+/* Шапка: название, баланс и переключатель «Витрина/Гардероб» —
+   прилипают к верху, чтобы 💎 и уровень были видны всегда. */
+.shop-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: calc(-14px - var(--safe-t)) -16px 0;
+  padding: calc(14px + var(--safe-t)) 16px 8px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+}
+.shop-seg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+}
+.shop-seg button {
+  flex: 1;
+  min-height: 42px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.shop-seg button.on {
+  background: var(--primary);
+  color: #fff;
+}
+/* Полки витрины: горизонтальный скролл, «скоро» — приглушено. */
+.shop-cats {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0 6px;
+  scrollbar-width: none;
+}
+.shop-cats::-webkit-scrollbar { display: none; }
+.shop-cats .chip { flex: none; }
+.shop-cats .chip:disabled { opacity: 0.55; cursor: default; }
+
+.shop-stage {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.shop-mascot {
+  position: relative;
+  border: none;
+  background:
+    radial-gradient(58% 30% at 50% 5%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+  box-shadow: inset 0 0 0 2px var(--case-line-soft);
+  border-radius: 46px 46px 18px 18px;
+  padding: 8px 10px 12px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 118px;
+}
+.shop-mascot .mascot {
+  position: static;
+  z-index: auto; /* см. пояснение у `.shop-icon .mascot`: сетка делает z-index рабочим */
+  animation: none;
+}
+/* в магазине маскот не «висит» поверх экрана, а стоит в карточке */
+.shop-mascot .mascot.dance {
+  animation: dance 0.6s ease-in-out 3;
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+/* Единый макет карточки товара: плашка состояния в углу, арт,
+   название, ценник и ОДНО действие. Тап по карточке — подробный sheet. */
+.shop-item {
+  position: relative;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.shop-item:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .shop-item:active { transform: none; }
+}
+.shop-item.owned {
+  border-color: var(--green);
+}
+.shop-item.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+/* то, что собирается прямо сейчас, — подсвечено, а не приглушено */
+.shop-item.current {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.shop-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--orange-soft);
+  color: var(--orange-ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+.shop-icon {
+  height: 76px;
+  display: grid;
+  place-items: center;
+}
+/* БУК внутри иконки — картинка, а не плавающий элемент: снимаем и позицию, и z-index.
+   Без сброса z-index остаётся 25 из базового `.mascot`, а для элемента сетки он
+   действует даже при `position: static`. Из-за этого сова рисовалась ПОВЕРХ замка
+   у несобранного костюма (`.pz-locked::after`) и закрывала его крылом и лапкой. */
+.shop-icon .mascot {
+  position: static;
+  z-index: auto;
+  animation: none;
+}
+
+/* ── Машины: цветные карандашные рисунки настоящих моделей (0.21.0; цвет — 0.21.1)
+   У каждой машины — свой цветной лист: прозрачный фон, собственная тень под
+   колёсами и общая линия «пола» (низ рисунка у всех десяти машин на одной
+   высоте). Поэтому в любом месте рисунок сам стоит на подиуме и не требует
+   подгонки координат — только размера. Размер задаёт контекст. */
+.car-art {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+  /* Цветной карандаш (mix-blend-mode) не должен смешиваться с фоном вокруг. */
+  isolation: isolate;
+}
+.car-art > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+/* Тюнинг машины: выбранный оттенок ложится на готовый цветной рисунок и
+   маскируется его же альфой — бумага вокруг машины остаётся прозрачной,
+   штриховка, хром и блики сохраняются. База тюнинга не рисуется: базовый вид
+   машины — её собственные цвета. */
+.car-art-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--car-tint);
+  opacity: 0.72;
+  /* «Цветной карандаш»: берём только тон и насыщенность, светотень рисунка
+     остаётся своей — рисунок не темнеет и не теряет штриховку. */
+  mix-blend-mode: color;
+  pointer-events: none;
+  -webkit-mask-image: var(--car-mask);
+  mask-image: var(--car-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+/* Корабли используют тот же полноцветный карандашный стиль, что и авто. */
+.ship-art,
+.electronics-art {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+  line-height: 0;
+  isolation: isolate;
+}
+.ship-art > img,
+.electronics-art > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+.ship-art-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--ship-tint);
+  opacity: 0.72;
+  mix-blend-mode: color;
+  pointer-events: none;
+  -webkit-mask-image: var(--ship-mask);
+  mask-image: var(--ship-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+/* Карточка витрины: рисунок занимает ширину ниши, но не выходит за высоту. */
+.shop-icon > .car-art,
+.shop-icon > .ship-art,
+.shop-icon > .electronics-art { max-width: 126px; }
+/* Крупный лист в подробной карточке — как гравюра на паспарту. */
+.shop-bigart-toy > .car-art,
+.shop-bigart-toy > .ship-art,
+.shop-bigart-toy > .electronics-art { width: min(100%, 340px); margin-bottom: 4px; }
+/* Гардероб и мечты: маленькие рисунки в квадратных плитках. */
+.shop-wear-icon > .car-art,
+.shop-wear-icon > .ship-art,
+.shop-wear-icon > .electronics-art { max-width: 52px; }
+.wishlist-card-art > .car-art,
+.wishlist-card-art > .ship-art,
+.wishlist-card-art > .electronics-art,
+.mz-art > .car-art,
+.mz-art > .ship-art,
+.mz-art > .electronics-art { max-width: 104px; }
+/* Сцена техники: машины и суда стоят на подиумах в своих залах. */
+.tech-item > .car-art,
+.tech-item > .ship-art,
+.tech-item > .electronics-art { width: 100%; }
+.tech-tag > .car-art,
+.tech-tag > .ship-art,
+.tech-tag > .electronics-art { width: 26px; }
+.shop-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+.shop-desc {
+  min-height: 32px;
+}
+/* Ценник — плашка, а не кнопка: «сколько стоит» читается отдельно
+   от «что делать». Доступное — акцентом, дорогущее — тихо. */
+.shop-price {
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+.shop-price.afford {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ── Витрина-бутик (0.19.0) ────────────────────────────────────────────────
+   Магазин выглядит витриной детского бутика: мягкие лавандовые ниши-арки,
+   тёплая лампа сверху, вещь стоит на круглом подиуме, цена — бумажная бирка.
+   Разметка остаётся сеткой `.shop-grid`, поэтому карточки и порядок полок
+   не меняются — меняется только сцена вокруг товара. */
+.shop-boutique {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 2px solid var(--case-line);
+  border-radius: 26px;
+  background:
+    radial-gradient(80% 40% at 50% 0%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-wall), var(--case-wall-2));
+  box-shadow: inset 0 3px 14px color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.shop-boutique-row { align-items: stretch; }
+/* Последний нечётный товар — по центру витрины, а не один в левом углу. */
+.shop-boutique-row.single {
+  grid-template-columns: minmax(0, calc(50% - 5px));
+  justify-content: center;
+}
+
+/* Карточка-витрина: ниша сверху, этикетка снизу. */
+.shop-boutique .shop-item {
+  height: 100%;
+  padding: 8px 8px 10px;
+  gap: 3px;
+  border: 2px solid var(--case-line);
+  border-radius: 22px;
+  background: var(--case-card);
+  box-shadow:
+    0 3px 0 color-mix(in srgb, var(--primary) 16%, transparent),
+    0 8px 18px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.shop-boutique .shop-item.owned { border-color: var(--green); }
+.shop-boutique .shop-item.on,
+.shop-boutique .shop-item.current {
+  border-color: var(--primary);
+  background: var(--case-card-on);
+}
+
+/* Арочная ниша: подсветка, тёплый блик лампы, подиум под вещью. */
+.shop-case {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 126px;
+  border-radius: 46px 46px 16px 16px;
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--case-lamp-glow), transparent 74%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+  overflow: hidden;
+}
+.shop-case::before {
+  content: '';
+  position: absolute;
+  inset: 6px 8px 8px;
+  border: 2px solid var(--case-line-soft);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.shop-case-lamp {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  z-index: 1;
+  width: 34px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 16px 6px var(--case-lamp-glow);
+}
+.shop-case .shop-icon {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 86px;
+  margin-bottom: 12px;
+  background: none;
+}
+.shop-case-podium {
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  z-index: 0;
+  width: 64%;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--case-plinth-top), var(--case-plinth-bottom));
+  box-shadow: 0 7px 12px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+/* Цвет ниши по подполке: телефоны — лаванда, машины — мята, корабли — небо. */
+.shop-boutique-mint .shop-case {
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--case-lamp-glow), transparent 74%),
+    linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom));
+}
+.shop-boutique-mint .shop-case-podium {
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+}
+.shop-boutique-sky .shop-case {
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--case-lamp-glow), transparent 74%),
+    linear-gradient(180deg, var(--case-sky-top), var(--case-sky-bottom));
+}
+.shop-boutique-sky .shop-case-podium {
+  background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep));
+}
+
+/* ── Витрина техники: сцена с тремя арками и БУКом (0.19.0) ──────────────
+   Прямой отклик на референс магазина: слева мятный гараж с машиной на
+   комоде-подиуме, в центре голубая арка с морем, пирсом и кораблём, справа
+   лавандовая витрина с телефоном. У каждой арки — бумажная бирка с
+   миниатюрой вещи и ценой. Перед арками на коврике стоит БУК.
+   Арка — кнопка: тап открывает вещь, как обычная карточка витрины. */
+.tech-stage {
+  --arch: clamp(138px, 43vw, 208px);
+  --arch-mid: clamp(158px, 48vw, 236px);
+  /* Радиус купола арки. Ширина арки — примерно треть сцены, поэтому доля от
+     ширины экрана даёт ту же форму, что в референсе, и не зависит от сетки.
+     Фиксированный радиус выбран намеренно: «бесконечный» (999px) и проценты
+     с косой чертой часть движков не растеризует и рисует вместо арки
+     прямоугольник. */
+  --dome: clamp(30px, 12vw, 54px);
+  --stage-pad-bottom: clamp(56px, 16vw, 78px);
+  --stage-floor-h: clamp(66px, 19vw, 88px);
+  position: relative;
+  margin-bottom: 14px;
+  padding: 16px 8px 0;
+  border: 2px solid var(--case-line);
+  border-radius: 30px;
+  background:
+    radial-gradient(86% 42% at 50% 0%, color-mix(in srgb, #ffffff 40%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
+  box-shadow: inset 0 3px 16px color-mix(in srgb, var(--primary) 10%, transparent);
+  overflow: hidden;
+}
+/* Облака, дерево и растение — декор референса, а не товары. */
+.tech-cloud {
+  position: absolute;
+  z-index: 0;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--stage-cloud);
+  pointer-events: none;
+}
+.tech-cloud::before,
+.tech-cloud::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  border-radius: 50%;
+  background: inherit;
+}
+.tech-cloud-a { top: 26px; left: 5%; width: 42px; }
+.tech-cloud-a::before { left: 6px; width: 18px; height: 18px; }
+.tech-cloud-a::after { right: 5px; width: 24px; height: 24px; }
+.tech-cloud-b { top: 62px; right: 9%; width: 34px; }
+.tech-cloud-b::before { left: 4px; width: 16px; height: 16px; }
+.tech-cloud-b::after { right: 4px; width: 20px; height: 20px; }
+.tech-cloud-c { top: 12px; right: 32%; width: 28px; opacity: 0.8; }
+.tech-cloud-c::before { left: 3px; width: 13px; height: 13px; }
+.tech-cloud-c::after { right: 3px; width: 17px; height: 17px; }
+.tech-tree {
+  position: absolute;
+  z-index: 2;
+  left: -4px;
+  bottom: calc(var(--stage-floor-h) - 46px);
+  width: 40px;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 15%, transparent));
+}
+.tech-plant {
+  position: absolute;
+  z-index: 2;
+  right: -2px;
+  bottom: calc(var(--stage-floor-h) - 42px);
+  width: 30px;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 15%, transparent));
+}
+.tech-floor {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  height: var(--stage-floor-h);
+  background: linear-gradient(180deg, var(--stage-floor), var(--stage-floor-2));
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  pointer-events: none;
+}
+.tech-bays {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.14fr 1fr;
+  gap: 6px;
+  align-items: end;
+  padding-bottom: var(--stage-pad-bottom);
+}
+.tech-bay {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.tech-bay:active .tech-arch { transform: scale(0.98); }
+@media (prefers-reduced-motion: reduce) {
+  .tech-bay:active .tech-arch { transform: none; }
+}
+.tech-arch {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--arch);
+  border-radius: var(--dome) var(--dome) 13px 13px;
+  background: linear-gradient(180deg, var(--stage-mint-frame), var(--stage-mint-frame-2));
+  box-shadow:
+    0 10px 16px color-mix(in srgb, var(--ink) 16%, transparent),
+    inset 0 2px 0 color-mix(in srgb, #ffffff 40%, transparent);
+  transition: transform 0.12s ease;
+}
+/* Центральная арка выше: витрина читается как в референсе. Средняя — телефоны. */
+.tech-bay-ship .tech-arch {
+  background: linear-gradient(180deg, var(--stage-ship-frame), var(--stage-ship-frame-2));
+}
+.tech-bay-phone .tech-arch {
+  height: var(--arch-mid);
+  background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2));
+}
+/* Внутренняя ниша: рамка арки остаётся снаружи. */
+.tech-panel {
+  position: absolute;
+  inset: 8px;
+  overflow: hidden;
+  border-radius: calc(var(--dome) - 7px) calc(var(--dome) - 7px) 6px 6px;
+  background: linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom));
+  box-shadow:
+    inset 0 2px 6px color-mix(in srgb, var(--ink) 14%, transparent),
+    inset 0 0 0 2px color-mix(in srgb, #ffffff 34%, transparent);
+}
+/* Машина: рифлёная дверь гаража и три тёплые лампы. */
+.tech-garage {
+  position: absolute;
+  top: 24%;
+  right: 10%;
+  bottom: 0;
+  left: 10%;
+  border-radius: 10px 10px 0 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      var(--case-mint-top) 0 8px,
+      color-mix(in srgb, var(--case-mint-bottom) 86%, var(--bg-2)) 8px 10px
+    );
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--case-mint-deep) 55%, transparent);
+}
+.tech-lamps {
+  position: absolute;
+  top: 10%;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  gap: clamp(10px, 3.4vw, 18px);
+}
+.tech-lamps i {
+  width: 8px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 10px 4px var(--case-lamp-glow);
+}
+/* Корабль: небо, дальние холмы, море, пирс и волны. */
+.tech-bay-ship .tech-panel {
+  background:
+    radial-gradient(22% 8% at 24% 18%, var(--stage-cloud) 60%, transparent 61%),
+    radial-gradient(18% 7% at 70% 26%, var(--stage-cloud) 60%, transparent 61%),
+    radial-gradient(46% 14% at 6% 50%, var(--stage-leaf) 60%, transparent 61%),
+    radial-gradient(52% 16% at 94% 52%, var(--stage-leaf-2) 60%, transparent 61%),
+    linear-gradient(180deg, var(--stage-sky-top) 0 42%, var(--stage-sky-mid) 42% 52%, var(--stage-water) 52% 74%, var(--stage-water-2) 74% 100%);
+}
+.tech-pier {
+  position: absolute;
+  z-index: 1;
+  bottom: 41%;
+  left: -2%;
+  width: 46%;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--ink) 20%, transparent));
+}
+.tech-waves {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 24%;
+  border-radius: 0 0 8px 8px;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 8px,
+    color-mix(in srgb, #ffffff 32%, transparent) 8px 11px
+  );
+}
+/* Телефон: две полки витрины и лампа сверху. */
+.tech-bay-phone .tech-panel {
+  background:
+    radial-gradient(58% 26% at 50% 7%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+}
+.tech-shelf {
+  position: absolute;
+  right: 10%;
+  left: 10%;
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #ffffff 66%, var(--case-arch-bottom)),
+    color-mix(in srgb, var(--primary) 24%, var(--case-arch-bottom))
+  );
+  box-shadow: 0 3px 6px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.tech-shelf-1 { bottom: 40%; }
+.tech-shelf-2 { bottom: 18%; }
+/* Вещь на витрине. */
+.tech-item {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  display: block;
+  transform: translateX(-50%);
+  pointer-events: none;
+  filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 16%, transparent));
+}
+.tech-item > svg { display: block; width: 100%; height: auto; }
+.tech-bay-car .tech-item { bottom: 25px; width: 72%; }
+.tech-bay-ship .tech-item { bottom: 29%; width: 80%; }
+.tech-bay-phone .tech-item { bottom: calc(40% + 2px); width: 48%; }
+/* Комод-подиум: машина стоит на нём, корабль и телефон — за ним. */
+.tech-plinth {
+  position: absolute;
+  z-index: 2;
+  bottom: -14px;
+  left: 50%;
+  width: 96%;
+  height: 36px;
+  transform: translateX(-50%);
+  border-radius: 10px 10px 13px 13px;
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+  box-shadow: 0 8px 14px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.tech-plinth::before {
+  content: '';
+  position: absolute;
+  inset: 7px 7px 6px;
+  border-radius: 7px;
+  background: color-mix(in srgb, #ffffff 22%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #ffffff 30%, transparent);
+}
+.tech-plinth::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, #ffffff 82%, var(--bg-2));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 30%, transparent);
+}
+.tech-bay-ship .tech-plinth {
+  background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep));
+}
+.tech-bay-phone .tech-plinth {
+  background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2));
+}
+/* Бумажная бирка: миниатюра вещи и цена, как на референсе. */
+.tech-tag {
+  position: absolute;
+  z-index: 4;
+  top: 54%;
+  right: -4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: 46px;
+  padding: 3px 2px 2px;
+  border: 2px solid var(--tag-line);
+  border-radius: 11px;
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+  box-shadow: 0 5px 10px color-mix(in srgb, var(--ink) 18%, transparent);
+  transform: rotate(3deg);
+  pointer-events: none;
+}
+.tech-tag > svg { width: 22px; height: 22px; }
+.tech-tag b {
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+.tech-tag.owned { border-color: var(--green); color: var(--green); }
+.tech-bay-car .tech-tag { top: 30%; right: -8px; transform: rotate(-4deg); }
+.tech-bay-ship .tech-tag { top: 7%; right: 1px; transform: rotate(3deg); }
+.tech-bay-phone .tech-tag { top: 8%; right: -5px; transform: rotate(4deg); }
+/* БУК — хозяин магазина: стоит на коврике перед арками. */
+.tech-buk {
+  position: absolute;
+  z-index: 5;
+  bottom: 2px;
+  left: 50%;
+  display: grid;
+  place-items: end center;
+  width: 104px;
+  height: 100px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.tech-buk::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 120px;
+  height: 26px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary-soft) 78%, var(--bg-2));
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.tech-buk .mascot {
+  /* position: static, а не relative: у `.mascot` есть `right`/`bottom`
+     плавающей кнопки, и при relative он уезжает из сцены. */
+  position: static;
+  inset: auto;
+  z-index: 1;
+  animation: none;
+}
+@media (min-width: 520px) {
+  .tech-buk .mascot {
+    transform: scale(1.12);
+    transform-origin: bottom center;
+  }
+  .tech-tag { width: 54px; }
+  .tech-tag b { font-size: 11px; }
+  .tech-tag > svg { width: 26px; height: 26px; }
+}
+@media (max-width: 359px) {
+  .tech-stage { padding-right: 6px; padding-left: 6px; }
+  .tech-bays { gap: 4px; }
+  .tech-tag { width: 44px; }
+  .tech-tree { left: -14px; }
+}
+
+/* ── «Ангар БУКа»: сцена коллекции техники (0.22.0) ──────────────────────
+   Крупные покупки больше не рисуются на маскоте (showsOnBuk в engine/shop.ts,
+   docs/proposals/large-items-scene.md): вся техника экспонируется здесь —
+   любимая вещь на главном подиуме со ★, коллекция по полкам (авто →
+   телефоны → корабли). Язык сцены общий с витриной техники (0.19.0):
+   панели арок с гаражом, пирсом и волнами, бумажные бирки, БУК на коврике —
+   поэтому ангар наследует все пять оформлений приложения
+   (--stage-*, --case-*, --tag-*). */
+.hangar-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 40; /* тот же слой, что sheet магазина: ConfirmDialog (.overlay, 50) поверх */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(36, 31, 54, 0.45);
+  animation: fadeIn 0.15s ease;
+}
+.hangar {
+  width: 100%;
+  max-width: var(--screen-max);
+  max-height: 88dvh;
+  padding: 10px 18px calc(18px + var(--safe-b));
+  overflow-y: auto;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--bg-2);
+  box-shadow: 0 -14px 44px color-mix(in srgb, var(--ink) 34%, transparent);
+  animation: sheetUp 0.22s ease;
+  overscroll-behavior: contain;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hangar { animation: none; }
+}
+.hangar-grab {
+  width: 44px;
+  height: 5px;
+  margin: 2px auto 10px;
+  border-radius: 3px;
+  background: var(--line);
+}
+/* Главный подиум: любимая вещь крупно, на фоне панели своей полки. */
+.hangar-main {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+  padding: 18px 14px 52px;
+  border: 2px solid var(--case-line);
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
+  box-shadow: inset 0 3px 16px color-mix(in srgb, var(--primary) 10%, transparent);
+  overflow: hidden;
+}
+.hangar-panel {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Фоны панелей — те же, что у арок витрины (.tech-panel и варианты полок). */
+.hangar-panel-car { background: linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom)); }
+.hangar-panel-ship {
+  background:
+    radial-gradient(22% 8% at 24% 18%, var(--stage-cloud) 60%, transparent 61%),
+    radial-gradient(18% 7% at 70% 26%, var(--stage-cloud) 60%, transparent 61%),
+    radial-gradient(46% 14% at 6% 50%, var(--stage-leaf) 60%, transparent 61%),
+    radial-gradient(52% 16% at 94% 52%, var(--stage-leaf-2) 60%, transparent 61%),
+    linear-gradient(180deg, var(--stage-sky-top) 0 42%, var(--stage-sky-mid) 42% 52%, var(--stage-water) 52% 74%, var(--stage-water-2) 74% 100%);
+}
+.hangar-panel-phone {
+  background:
+    radial-gradient(58% 26% at 50% 7%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+}
+.hangar-main-art {
+  position: relative;
+  z-index: 3;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 16%, transparent));
+}
+/* Машина и корабль — карандашные рисунки 720×480: видны крупно и целиком. */
+.hangar-main-art .car-art,
+.hangar-main-art .ship-art,
+.hangar-main-art .electronics-art { width: min(56vw, 230px); }
+.hangar-plinth {
+  position: absolute;
+  z-index: 2;
+  bottom: 12px;
+  left: 50%;
+  width: min(84%, 320px);
+  height: 30px;
+  transform: translateX(-50%);
+  border-radius: 10px 10px 13px 13px;
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+  box-shadow: 0 8px 14px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.hangar-plinth::before {
+  content: '';
+  position: absolute;
+  inset: 6px 7px 5px;
+  border-radius: 7px;
+  background: color-mix(in srgb, #ffffff 22%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #ffffff 30%, transparent);
+}
+.hangar-tone-ship .hangar-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
+.hangar-tone-phone .hangar-plinth { background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2)); }
+/* Бумажная бирка — как на витрине (токены --tag-*). */
+.hangar-tag {
+  position: relative;
+  z-index: 3;
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border: 2px solid var(--tag-line);
+  border-radius: 11px;
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.hangar-tag-star { transform: rotate(-1.5deg); }
+/* Полка коллекции: панель с декором полки и ряд вещей на мини-подиумах. */
+.hangar-zone { margin-bottom: 14px; }
+.hangar-stage {
+  position: relative;
+  min-height: 132px;
+  padding: 12px 10px 14px;
+  border: 2px solid var(--case-line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
+  overflow: hidden;
+}
+.hangar-row {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-height: 104px;
+  padding: 4px 2px 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.hangar-item {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  padding: 4px 6px 6px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  cursor: pointer;
+}
+.hangar-item.star {
+  background: color-mix(in srgb, #ffd166 26%, transparent);
+  box-shadow: inset 0 0 0 2px var(--tag-line);
+}
+.hangar-item .car-art,
+.hangar-item .ship-art,
+.hangar-item .electronics-art { width: 92px; }
+.hangar-item > svg { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 16%, transparent)); }
+.hangar-item-plinth {
+  width: 100%;
+  height: 8px;
+  margin-top: -2px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+  box-shadow: 0 3px 6px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.hangar-tone-ship .hangar-item-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
+.hangar-tone-phone .hangar-item-plinth { background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2)); }
+.hangar-item .hangar-tag { max-width: 112px; margin-top: 6px; font-size: 10px; }
+/* БУК на коврике — любуется коллекцией, а не служит ей подставкой. */
+.hangar-buk {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  margin-top: 10px;
+}
+.hangar-buk::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 120px;
+  height: 26px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary-soft) 78%, var(--bg-2));
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.hangar-buk .mascot {
+  /* БУК в сцене — картинка, а не плавающая кнопка: снимаем позицию,
+     z-index и анимацию (сброс обязателен — см. «Известные грабли» HANDOFF). */
+  position: static;
+  inset: auto;
+  z-index: 1;
+  animation: none;
+}
+.hangar-note { margin-top: 4px; text-align: center; }
+/* Входы в ангар: кнопка на полке витрины и «Открыть ангар» в гардеробе. */
+.hangar-open { margin: 2px 0 12px; }
+/* Значок в шапке главной — компактный, как 🎁 наград. */
+.stat-pill.hangar-btn {
+  padding-right: 10px;
+  padding-left: 10px;
+  cursor: pointer;
+}
+@media (max-width: 359px) {
+  .hangar-main-art .car-art,
+  .hangar-main-art .ship-art,
+  .hangar-main-art .electronics-art { width: 62vw; }
+  .hangar-item .car-art,
+  .hangar-item .ship-art,
+  .hangar-item .electronics-art { width: 80px; }
+}
+
+/* Ценник — бумажная бирка бутика, а не кнопка. */
+.shop-boutique .shop-price {
+  margin-top: 3px;
+  padding: 3px 12px 3px 10px;
+  border: 2px solid var(--tag-line);
+  border-radius: 11px;
+  background: var(--tag-bg);
+  color: var(--tag-ink);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--tag-ink) 14%, transparent);
+}
+.shop-boutique .shop-price.afford {
+  border-color: var(--primary);
+  background: var(--bg-2);
+  color: var(--primary);
+}
+/* Кнопка — внизу этикетки. В узкой карточке «Купить · 💎60» при 15 px
+   ломалось на две строки, и кнопки в ряду становились разной высоты:
+   уменьшаем кегль и поля ровно настолько, чтобы строка осталась одной. */
+.shop-boutique .shop-item .btn {
+  width: 100%;
+  min-height: var(--tap);
+  margin-top: auto;
+  padding: 8px 6px;
+  border-radius: 15px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+@media (max-width: 360px) {
+  .shop-boutique .shop-item .btn {
+    padding-inline: 4px;
+    font-size: 13px;
+  }
+}
+.shop-boutique .shop-item .shop-desc { min-height: 0; }
+
+.shop-case-group + .shop-case-group { margin-top: 20px; }
+.shop-case-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  padding: 4px 12px;
+  border: 2px solid var(--case-line);
+  border-radius: var(--r-pill);
+  background: var(--case-card);
+  color: var(--primary);
+  font-size: var(--fs-sm);
+}
+/* Ближайшая покупка: мягкая подсказка на бирке, не второй герой. */
+.shop-tech-goal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border: 2px solid var(--case-line);
+  border-radius: 18px;
+  background: var(--case-card);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.shop-tech-goal-icon {
+  flex: none;
+  font-size: 26px;
+  line-height: 1;
+}
+.shop-tech-goal b { display: block; font-size: var(--fs-sm); }
+.shop-tech-goal .tiny { display: block; }
+
+/* ── Герой витрины и Мечты (фаза 2 магазина) ────────────────────────────── */
+.shop-hero {
+  position: relative;
+  margin-bottom: 14px;
+  border-radius: 26px;
+  overflow: hidden;
+  background:
+    radial-gradient(64% 86% at 10% 0%, var(--case-lamp-glow), transparent 62%),
+    linear-gradient(135deg, var(--case-wall), var(--case-wall-2));
+  border: 2px solid var(--case-line);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bg-2) 30%, transparent);
+  display: flex;
+  gap: 14px;
+  padding: 12px 14px 12px 10px;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.shop-hero:active {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-hero:active {
+    transform: none;
+  }
+}
+/* БУК стоит на сцене витрины: арка с лампой и круглый коврик под лапами —
+   та же сцена, что в референсе магазина, только хозяин здесь БУК. */
+.shop-hero-art {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  flex: none;
+  width: 122px;
+  height: 146px;
+  padding-bottom: 14px;
+  border-radius: 54px 54px 18px 18px;
+  background:
+    radial-gradient(58% 30% at 50% 5%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom));
+  box-shadow: inset 0 0 0 2px var(--case-line-soft);
+  overflow: hidden;
+}
+.shop-hero-art::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 30px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 14px 5px var(--case-lamp-glow);
+}
+.shop-hero-art::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: 74%;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-plinth-top);
+  box-shadow: 0 5px 10px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.shop-hero-art > * {
+  position: relative;
+  z-index: 1;
+}
+.shop-hero-art .mascot {
+  position: static;
+  z-index: 1;
+}
+.shop-hero-body {
+  min-width: 0;
+}
+.shop-hero-body .shop-badge {
+  position: static;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.shop-hero-title {
+  font-size: var(--fs-md);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.shop-heart {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--r-pill);
+  line-height: 1;
+  min-width: 38px;
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.shop-heart:active {
+  transform: scale(1.15);
+}
+.shop-heart.on {
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(124, 58, 237, 0.4));
+}
+.shop-heart:not(.on) {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+}
+.shop-heart:hover {
+  opacity: 0.9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-heart:active {
+    transform: none;
+  }
+}
+
+.wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.wishlist-card {
+  position: relative;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.wishlist-card:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wishlist-card:active {
+    transform: none;
+  }
+}
+.wishlist-card.afford {
+  border-color: color-mix(in srgb, var(--primary) 65%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.wishlist-card-art {
+  height: 72px;
+  display: grid;
+  place-items: center;
+}
+.wishlist-progress-row {
+  width: 100%;
+  margin: 4px 0 2px;
+}
+
+/* Подробная карточка — sheet снизу: примерка крупно, цена,
+   действие и палитра в одном месте; верстка под ним не прыгает. */
+.shop-sheet-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 40; /* ниже .overlay (50): ConfirmDialog из sheet — поверх */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(36, 31, 54, 0.45);
+  animation: fadeIn 0.15s ease;
+}
+.shop-sheet {
+  width: 100%;
+  max-width: var(--screen-max);
+  max-height: 82dvh;
+  overflow-y: auto;
+  background: var(--bg-2);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 10px 18px calc(18px + var(--safe-b));
+  animation: sheetUp 0.22s ease;
+}
+@keyframes sheetUp {
+  from { transform: translateY(40px); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-sheet { animation: none; }
+}
+.shop-sheet-grab {
+  width: 44px;
+  height: 5px;
+  margin: 2px auto 10px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.shop-bigart {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: var(--r-lg);
+  background: var(--primary-soft);
+}
+.shop-bigart .mascot {
+  position: static;
+  z-index: auto;
+  animation: none;
+}
+/* Техника в подробной карточке (0.19.0): та же витрина, только крупно —
+   мятная арка с лампой и подиум под лапами. */
+.shop-bigart-toy {
+  position: relative;
+  padding-bottom: 30px;
+  background:
+    radial-gradient(62% 40% at 50% 6%, var(--case-lamp-glow), transparent 72%),
+    linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom));
+  box-shadow: inset 0 0 0 2px var(--case-line-soft);
+}
+.shop-bigart-toy::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 40px;
+  height: 7px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--case-lamp);
+  box-shadow: 0 0 18px 7px var(--case-lamp-glow);
+}
+.shop-bigart-toy::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: 62%;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
+  box-shadow: 0 7px 12px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.shop-bigart-toy > .car-art,
+.shop-bigart-toy > .ship-art,
+.shop-bigart-toy > .electronics-art { position: relative; z-index: 1; }
+/* Телефон — тоже сам товар крупным планом: высокий корпус на подиуме,
+   рисунок тянется по ширине карточки и не липнет к лампе. */
+.shop-bigart-toy > svg.shop-bigart-toy-art {
+  position: relative;
+  z-index: 1;
+  width: min(74%, 230px);
+  height: auto;
+  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--ink) 16%, transparent));
+}
+.shop-bigart-toy .mascot {
+  position: relative;
+  z-index: 1;
+}
+/* Крупная обложка трека в sheet */
+.music-cover-lg {
+  width: 120px;
+  height: 120px;
+}
+.music-cover-lg span { font-size: 44px; }
+/* Анимированный эквалайзер: идёт примерка записи */
+.shop-eq {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+.shop-eq i {
+  width: 3px;
+  border-radius: 2px;
+  background: #fff;
+  animation: shopEq 0.8s ease-in-out infinite;
+}
+.shop-eq i:nth-child(2) { animation-delay: 0.15s; }
+.shop-eq i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes shopEq {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-eq i { animation: none; }
+}
+
+/* Строка гардероба: моя вещь — примерка и одно быстрое действие */
+.shop-wear {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.shop-wear + .shop-wear { margin-top: 8px; }
+.shop-wear.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.shop-wear-icon {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+}
+/* БУК в строках гардероба, в карточках «Мечты» и в плашке активного сбора —
+   картинка, а не плавающий элемент: снимаем fixed-позицию и z-index базового
+   `.mascot` (тот же приём, что в `.shop-icon .mascot`). Без этого правила сова
+   улетала из строки в правый нижний угол экрана, и разделы «Мои костюмы» и
+   «Мои наряды» выглядели пустыми (жалоба 2026-10-19, 0.21.2). */
+.shop-wear-icon .mascot,
+.wishlist-card-art .mascot,
+.shop-collect .mascot {
+  position: static;
+  z-index: auto;
+  animation: none;
+}
+/* Активный сбор костюма — крупно, над сеткой */
+.shop-collect {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 2px dashed color-mix(in srgb, var(--primary) 55%, transparent);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--primary-soft) 55%, transparent);
+}
+.shop-progress {
+  height: 8px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--line);
+}
+.shop-progress i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--primary);
+  transition: width 0.4s ease;
+}
+
+/* ── «Передать приложение»: QR-код и ссылка (2026-10-14) ───────────────────
+   Непонятно, как поделиться ссылкой с новым учеником. Карточка живёт в
+   «Родителям» и на экране «Кто будет учиться?»: QR для показа с телефона,
+   системное «Поделиться» и копирование ссылки. */
+.share-app-icon {
+  font-size: 26px;
+  flex: none;
+}
+.share-app-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 12px;
+}
+.share-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: #fff;
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+.share-qr:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.share-qr-art {
+  display: block;
+  width: 132px;
+  height: 132px;
+}
+
+/* QR-код — на белой «бумаге». Бумага остаётся белой и в тёмной теме: код
+   должен читаться камерой второго телефона, а не подчиняться палитре
+   интерфейса. */
+.qr-code {
+  display: block;
+  background: #fff;
+}
+
+.share-qr .tiny {
+  color: #6b6480;
+}
+.share-qr.missing {
+  cursor: default;
+  background: var(--bg-2);
+  color: var(--ink-3);
+  max-width: 150px;
+  padding: 14px 10px;
+  text-align: center;
+}
+.share-link {
+  font-family: ui-monospace, monospace;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.share-app-buttons {
+  gap: 8px;
+  margin-top: 8px;
+}
+.share-note {
+  margin-top: 8px;
+  color: var(--green);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.share-manual {
+  margin-top: 6px;
+  font-size: var(--fs-sm);
+}
+.share-steps {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.share-steps li + li {
+  margin-top: 3px;
+}
+.share-app.compact .share-qr-art {
+  width: 108px;
+  height: 108px;
+}
+.share-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(14, 10, 28, .72);
+  animation: ceremonyFadeIn .18s ease-out both;
+}
+.share-zoom-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  /* Белая бумага: QR на ней остаётся чёрно-белым в любой теме. */
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(8, 5, 21, .4);
+}
+.share-zoom-art {
+  display: block;
+  width: min(78vw, 360px);
+  height: min(78vw, 360px);
+}
+.share-zoom-link {
+  font-family: ui-monospace, monospace;
+  font-size: var(--fs-sm);
+  color: #6b6480;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 360px) {
+  .share-app-body { flex-direction: column; align-items: center; }
+  .share-app-body .grow { width: 100%; }
+  .share-qr-art { width: 116px; height: 116px; }
+}
+
+/* ── Тост-награда ────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(12px + var(--safe-t));
+  z-index: 45;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 2px solid var(--primary);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  animation: toastIn 0.3s cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+.toast-emoji {
+  font-size: 26px;
+  flex: none;
+}
+.toast-title {
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ── Диалог подтверждения ────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(36, 31, 54, 0.45);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.18s ease;
+}
+.dialog {
+  width: 100%;
+  max-width: 340px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 20px 18px;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  animation: pop 0.22s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.dialog-emoji {
+  font-size: 46px;
+  line-height: 1;
+}
+.dialog h2 {
+  margin: 6px 0 4px;
+}
+.dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ── Путь уроков ─────────────────────────────────────────────────────────── */
+
+.path {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  padding: 6px 0 10px;
+}
+.node {
+  width: 100%;
+  max-width: 340px;
+}
+.node-btn {
+  width: 100%;
+  border: none;
+  border-radius: 26px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  background: var(--card);
+  border: 2px solid var(--line);
+  box-shadow: 0 5px 0 var(--line);
+  text-align: left;
+  color: var(--ink);
+}
+.node-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--line);
+}
+.node-btn.current {
+  border-color: var(--primary);
+  box-shadow: 0 5px 0 var(--primary);
+  background: var(--primary-soft);
+}
+.node-btn.current:active {
+  box-shadow: 0 2px 0 var(--primary);
+}
+.node-emoji {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  background: var(--primary-soft);
+  flex: none;
+}
+.node-title {
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+.crowns {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+.crown {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.crown.on {
+  background: var(--orange);
+}
+.node.locked .node-btn {
+  opacity: 0.5;
+}
+
+/* ── Задания ─────────────────────────────────────────────────────────────── */
+
+.task {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  min-height: 62dvh;
+}
+
+.prompt {
+  text-align: center;
+  font-weight: 800;
+  font-size: var(--fs-lg);
+}
+
+.word-big {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.word-big .stress {
+  position: relative;
+  color: var(--primary);
+  text-decoration: none;
+}
+.word-big .stress::after {
+  content: '';
+  position: absolute;
+  top: -0.03em;
+  left: 50%;
+  width: 0.065em;
+  height: 0.2em;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%) rotate(30deg);
+  pointer-events: none;
+}
+/*
+ * «Опасная» буква — это чип, а не просто подкрашенная литера.
+ * padding по бокам (0.16em ≈ 6px при 38px) нужен, чтобы цветная плашка не
+ * прилипала к соседним буквам, к картинке сверху и к краю карточки. Радиус
+ * 0.22em держим кратным кеглю, чтобы на любом размере чип выглядел одинаково.
+ */
+.word-big .danger {
+  color: var(--orange-ink, #b45309);
+  background: var(--orange-soft);
+  border-radius: 0.22em;
+  padding: 0 0.16em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.word-big.blink .danger {
+  animation: blink 0.7s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,
+  100% {
+    background: var(--orange-soft);
+  }
+  50% {
+    background: var(--orange);
+    color: #fff;
+  }
+}
+
+.syllables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.syllable {
+  font-size: 30px;
+  font-weight: 800;
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  border: 3px solid var(--line);
+  background: var(--card);
+  cursor: pointer;
+  min-width: 64px;
+  text-align: center;
+}
+.syllable.done {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.syllable.next {
+  border-color: var(--primary);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  min-height: 62px;
+}
+.slot {
+  width: 46px;
+  height: 58px;
+  border-radius: 12px;
+  border: 3px dashed var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.slot.filled {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.slot.ok {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: #12a04a;
+}
+.slot.bad {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--red);
+  animation: shake 0.4s;
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+.letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.letter {
+  width: 46px;
+  height: 58px;
+  border-radius: 12px;
+  border: none;
+  background: var(--card);
+  box-shadow: 0 3px 0 var(--line), 0 6px 14px rgba(36, 31, 54, 0.08);
+  font-size: 26px;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--ink);
+}
+.letter:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--line);
+}
+.letter.used {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+}
+.option {
+  min-height: 64px;
+  border-radius: var(--r-md);
+  border: 3px solid var(--line);
+  background: var(--card);
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--ink);
+  padding: 8px;
+}
+.option.ok {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.option.bad {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+  animation: shake 0.4s;
+}
+.option.dim {
+  opacity: 0.5;
+}
+
+.typed {
+  font-size: 32px;
+  font-weight: 800;
+  min-height: 56px;
+  display: grid;
+  place-items: center;
+  letter-spacing: 0.06em;
+  width: 100%;
+  border-radius: var(--r-md);
+  border: 3px dashed var(--line);
+  padding: 6px 10px;
+  word-break: break-all;
+  text-align: center;
+}
+.typed.ok {
+  border-color: var(--green);
+  color: var(--green);
+  border-style: solid;
+}
+.typed.bad {
+  border-color: var(--red);
+  color: var(--red);
+  border-style: solid;
+  animation: shake 0.4s;
+}
+
+.sentence {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  text-align: center;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  width: 100%;
+}
+.sentence .gap {
+  display: inline-block;
+  min-width: 90px;
+  border-bottom: 3px solid var(--primary);
+}
+
+/* ── Подсказка к заданию ─────────────────────────────────────────────────── */
+
+/* Подсказка к заданию — тот же порядок, что и у карточки слова: картинка сверху,
+   текст снизу, всё по центру. Никаких вариантов «картинка слева» — на узком
+   экране строка сжимала рисунок в полоску и уводила его за край экрана.
+   Размер картинки задают токены (--art-clue, --art-clue-hero), а не раскладка. */
+.clue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  text-align: center;
+}
+.clue-hero {
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(100%, 400px);
+  margin-inline: auto;
+  padding: var(--sp-3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.clue-hero > .word-art-frame {
+  max-width: 100%;
+}
+/* ── Картинка слова: плита с безопасной зоной ───────────────────────────────
+ *
+ * Было: <img> с рамкой вплотную к буквам. Картинки нарисованы «в край» квадрата,
+ * поэтому любая соседняя строка выглядела приклеенной к рисунку — особенно если
+ * над ней висел цветной чип опасной буквы.
+ *
+ * Стало: иллюстрация всегда стоит на плите (подложка + рамка + скругление) и
+ * внутри плиты имеет воздух --art-safe (12% от размера). Три вещи держат зазор:
+ *   1) padding плиты — гарантирует, что рисунок не коснётся рамки;
+ *   2) сам рисунок со скруглением читается как отдельный объект («фотография»);
+ *   3) разрыв между плитой и словом задаёт карточка (--wcard-gap-art).
+ */
+
+.word-art-frame {
+  display: grid;
+  place-items: center;
+  flex: none;
+  position: relative;
+  box-sizing: border-box;
+  width: var(--art-size);
+  height: var(--art-size);
+  padding: calc(var(--art-size) * var(--art-safe));
+  border: 2px solid var(--art-frame-line);
+  border-radius: clamp(16px, calc(var(--art-size) * 0.24), 30px);
+  background:
+    radial-gradient(120% 120% at 30% 0%, var(--art-plate-glow) 0%, transparent 62%),
+    var(--art-plate);
+  box-shadow: inset 0 -3px 0 rgba(36, 31, 54, 0.05);
+  vertical-align: middle;
+}
+.word-art-inner {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.word-art-placeholder {
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  font-size: calc(var(--art-size) * 0.46);
+}
+.word-art-frame > .word-art-inner > .word-art {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: clamp(10px, calc(var(--art-size) * 0.16), 22px);
+  background: var(--card);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.word-art-frame > .word-art-inner > .word-art.is-ready {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .word-art-frame > .word-art-inner > .word-art {
+    transition: none;
+  }
+}
+
+/* «Снимок» (вариант B «Фотокарточка»): плита растягивается по ширине паспарту,
+   а не стоит квадратом по центру. Внутри паспарту остаётся ровное поле 12px —
+   снимок не касается ни края карточки, ни разделительной линии под ним.
+   Все расчёты, которые в обычной плите идут от --art-size (padding, радиусы,
+   кегль эмодзи), здесь переопределены явными значениями: --art-size может быть
+   и процентом (--art-photo), а calc() с процентом в этих местах смысла
+   не имеет. */
+.word-art-frame.word-art-fill {
+  width: min(100%, var(--art-size));
+  height: auto;
+  aspect-ratio: 1;
+  padding: var(--sp-3);
+  border: 0;
+  box-shadow: none;
+  border-radius: 16px;
+  background: var(--photo-paper);
+}
+.word-art-frame.word-art-fill > .word-art-inner > .word-art {
+  border-radius: 8px;
+  background: var(--photo-paper);
+  /* Тонкий контур вместо рамки: снимок читается как напечатанный, но не
+     спорит с цветными фонами наших картинок. */
+  box-shadow: 0 0 0 1px var(--photo-edge);
+}
+.word-art-frame.word-art-fill > .word-art-inner > .word-art-placeholder {
+  font-size: clamp(56px, 30vw, 104px);
+}
+
+/* ── Карточка слова ──────────────────────────────────────────────────────────
+ *
+ * Общий каркас: плита → слово → подпись. Вариант меняет только композицию,
+ * правила зазоров остаются одни и те же (это и есть лечение «картинка липнет
+ * к буквам»): воздух между плитой и словом = --wcard-gap-art (20px),
+ * между словом и подписью = --wcard-gap-word (16px).
+ */
+
+.wcard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wcard-gap-art);
+  width: 100%;
+  padding: var(--wcard-pad);
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+}
+.wcard-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wcard-gap-word);
+  width: 100%;
+  min-width: 0;
+}
+.wcard-word {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--sp-1);
+  max-width: 100%;
+}
+.wcard-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  align-items: center;
+  width: 100%;
+}
+.wcard .sentence {
+  margin: 0;
+}
+
+/* Вариант B. «Фотокарточка» (основной с 2026-10-06): картинка и слово живут в
+   одной рамке, как в паспарту. Картинка сверху и растянута во всю ширину
+   (word-art-fill), под ней — разделительная линия и «поля» пошире, в которых
+   напечатано слово. Разделитель (--line) плюс padding-top (20px) держат тот же
+   минимальный зазор «картинка → буквы», что и в варианте A, но слово при этом
+   выглядит частью картинки, а не отдельным блоком.
+   Боковое поле 12px: паспарту вокруг снимка остаётся заметным, а снимок
+   получает максимум ширины карточки.
+   Кегль слова не трогаем: слово — то, что ребёнок запоминает, и в «фотокарточке»
+   оно остаётся крупным (38px, в модальном словарике — 34px). */
+.wcard-photo {
+  padding: var(--sp-3) var(--sp-3) var(--sp-5);
+  gap: 0;
+}
+.wcard-photo .wcard-main {
+  border-top: 2px solid var(--line);
+  padding-top: var(--wcard-gap-art);
+  gap: var(--sp-3);
+}
+.wcard-photo .wcard-body {
+  gap: var(--sp-3);
+}
+
+/* Миниатюра в пилюле словарика: плита тут лишняя — на 22px рамка и подложка
+   превращаются в шум, поэтому картинка идёт голой, но со скруглением. */
+.word-art-frame.word-chip-art {
+  display: inline-grid;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 8px;
+  vertical-align: -4px;
+  margin-right: var(--sp-2);
+}
+.word-art-frame.word-chip-art > .word-art-inner > .word-art {
+  border-radius: 7px;
+}
+.clue-emoji {
+  font-size: 40px;
+  line-height: 1;
+  flex: none;
+}
+.clue-body {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-width: 0;
+}
+.clue-hint {
+  margin: 8px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+  text-align: center;
+}
+.clue-hint b {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* ── Клавиатура ──────────────────────────────────────────────────────────── */
+
+.keyboard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+.kb-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.key {
+  flex: 1;
+  min-width: 0;
+  height: 54px;
+  border-radius: 12px;
+  border: none;
+  background: var(--card);
+  box-shadow: 0 3px 0 var(--line), 0 6px 12px rgba(36, 31, 54, 0.07);
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+.key:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--line);
+}
+.key.back {
+  flex: 1.6;
+  font-size: 22px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* ── Обратная связь ──────────────────────────────────────────────────────── */
+
+.footer-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 16px calc(12px + var(--safe-b));
+  background: var(--card);
+  border-top: 2px solid var(--line);
+  z-index: 20;
+  animation: slideUp 0.22s ease;
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.footer-bar.ok {
+  background: var(--green-soft);
+  border-top-color: var(--green);
+}
+.footer-bar.bad {
+  background: var(--red-soft);
+  border-top-color: var(--red);
+}
+.footer-inner {
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.verdict {
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+.verdict small {
+  display: block;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+/* ── Полоса вердикта в уроке (2026-10-15) ──────────────────────────────────
+   Пауза после ответа — не пустой экран, а «экран результата»: что ответил
+   ребёнок (замороженная карточка выше), верно или нет, сколько XP, как слово
+   пишется и что дальше. Полоса стоит В ПОТОКЕ, а не поверх задания: место под
+   неё браузер считает сам, а разметка ответа не уезжает под кнопку.
+   Класс .footer-bar оставлен — по нему полосу находят тесты и общие стили
+   баннеров приложения (там позиционирование fixed остаётся нужным). */
+.lesson-screen > .footer-bar.verdict-bar {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  flex: none;
+  /* Потолок высоты: длинное слово/мнемоника не съедают задание целиком —
+     полоса в этом случае прокручивается сама. */
+  max-height: 58svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 10px calc(var(--lesson-pad-x) * -1) calc(var(--lesson-pad-b) * -1);
+  padding: 12px var(--lesson-pad-x) var(--lesson-pad-b);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  box-shadow: 0 -6px 18px rgba(36, 31, 54, 0.08);
+}
+.verdict-bar .footer-inner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+/* Живая область для скринридера: только текст результата, без кнопки. */
+.verdict-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.verdict-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.verdict-head .verdict {
+  margin-right: auto;
+}
+.verdict-label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink-2);
+}
+/* Образец написания: буквы с ударением и подсвеченным опасным местом. */
+.verdict-word {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+.verdict-bar .verdict-word .word-big {
+  font-size: clamp(26px, 8vw, 30px);
+}
+.verdict-note {
+  text-align: center;
+  line-height: 1.3;
+}
+.verdict-bar .buk-verdict {
+  margin-top: 0;
+  text-align: center;
+}
+.verdict-next {
+  margin-top: 2px;
+}
+/* На коротком экране полоса компактнее: буквы меньше, отступы теснее — иначе
+   задание над ней сжимается до полоски. */
+@media (max-height: 680px) {
+  .lesson-screen > .footer-bar.verdict-bar {
+    padding-top: 10px;
+  }
+  .verdict-bar .footer-inner,
+  .verdict-bar .verdict-status {
+    gap: 6px;
+  }
+  .verdict-bar .verdict-word .word-big {
+    font-size: 24px;
+  }
+}
+
+.fix-card {
+  width: 100%;
+  border-radius: var(--r-md);
+  background: var(--card);
+  border: 3px solid var(--orange);
+  padding: 14px;
+  text-align: center;
+}
+.fix-card.bad {
+  border-color: var(--red);
+}
+.fix-card .pair {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  font-size: 28px;
+  font-weight: 800;
+  margin: 6px 0;
+}
+.fix-card .pair b.you {
+  color: var(--red);
+  text-decoration: line-through;
+}
+.fix-card .pair b.right {
+  color: var(--green);
+}
+
+/* ── Нижняя навигация ────────────────────────────────────────────────────── */
+
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  background: var(--card);
+  border-top: 2px solid var(--line);
+  padding-bottom: var(--safe-b);
+  z-index: 30;
+}
+.tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--ink-3);
+  font-weight: 800;
+  font-size: 11px;
+  cursor: pointer;
+}
+.tab.on {
+  color: var(--primary);
+}
+.tab span.ico {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* ── Помощник БУК в уроке (docs/buk-in-lesson.md) ──────────────────────────
+   Маленькая спокойная сова в шапке урока: без полётов поверх задания, без
+   звука. Тап — вопрос по слову, пузырь «Подсказать?» — тихое предложение. */
+.buk-owl-wrap {
+  position: relative;
+  flex: none;
+}
+.buk-owl {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--primary-soft);
+  cursor: pointer;
+}
+/* Внутри кнопки сова стоит в потоке и не «плавает» */
+.buk-owl .mascot {
+  position: static;
+  animation: none;
+  pointer-events: none;
+}
+.buk-owl.pulse {
+  animation: bukOwlPulse 1.1s ease-in-out infinite;
+}
+@keyframes bukOwlPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+/* Пузырь висит поверх полосы прогресса: задание не сдвигается под пальцем */
+.buk-nudge {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 6;
+  white-space: nowrap;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  padding: 6px 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.buk-panel {
+  border: 2px solid var(--primary);
+  border-radius: var(--r-lg, 18px);
+  background: var(--card);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  animation: pop 0.22s ease;
+}
+.buk-panel-text {
+  margin: 0 0 8px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+/* Строчка БУКа в полосе вердикта */
+.buk-verdict {
+  margin-top: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.buk-verdict b {
+  color: var(--primary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .buk-owl.pulse,
+  .buk-panel {
+    animation: none;
+  }
+  .buk-owl.pulse {
+    box-shadow: 0 0 0 4px var(--primary-soft);
+  }
+}
+
+/* ── Маскот ──────────────────────────────────────────────────────────────── */
+
+.mascot {
+  position: fixed;
+  right: 12px;
+  bottom: calc(76px + var(--safe-b));
+  z-index: 25;
+  pointer-events: none;
+  animation: float 3.2s ease-in-out infinite;
+}
+.mascot .bubble {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 8px 12px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  max-width: 190px;
+  text-align: right;
+  margin-bottom: 6px;
+  box-shadow: var(--shadow);
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+.mascot.dance {
+  animation: dance 0.6s ease-in-out 3;
+}
+
+/* ── Плавающий БУК: перетаскивание, тап и сворачивание (2026-10-04) ──────────
+   `interactive` ставится только плавающему экземпляру: в магазине, в церемонии
+   сундука и на экране результатов карточки БУК остаётся картинкой.            */
+.mascot.interactive {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: auto;
+  /* пока палец ведёт БУКа, страница не должна прокручиваться */
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.mascot.interactive:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 18px;
+}
+/* Во время жеста «плавание» выключено: иначе transform анимации уводит БУКа
+   от координат, которые мы пишем в left/top. */
+.mascot.is-dragging {
+  animation: none;
+  cursor: grabbing;
+}
+.mascot.is-dragging .bubble {
+  opacity: 0.6;
+}
+/* Пузырь — реплика, а не кнопка: тянуть и гладить можно только саму сову,
+   поэтому реплика не перехватывает касания по контенту под ней. */
+.mascot.interactive .bubble {
+  pointer-events: none;
+}
+/* Баннер внизу (обновление/установка) — БУК встаёт выше него, пока его не сдвинули */
+.mascot.raised {
+  bottom: calc(148px + var(--safe-b));
+}
+/* Кнопки БУКа — столбиком у правого края, над пузырём и совой */
+.mascot-actions {
+  align-self: flex-end;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.mascot-fold,
+.mascot-home {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink-3);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+/* Кнопки растянуты до 44 px в касании (WCAG 2.5.5): сам кружок остаётся 28 px */
+.mascot-fold::after,
+.mascot-home::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+.mascot-fold:active,
+.mascot-home:active {
+  transform: scale(0.94);
+}
+.mascot-home {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+/* Автоскрытие при прокрутке: БУК уезжает за правый край, но остаётся на экране
+   краешком — чтобы было видно, что он вернётся, и его можно было вернуть тапом. */
+.mascot.interactive.hidden {
+  transform: translateX(64%);
+  opacity: 0.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot.interactive.hidden {
+    transform: none;
+    opacity: 0.3;
+  }
+}
+/* Свёрнутый БУК: маленький значок в кружке, без реплик и без «плавания» */
+.mascot.folded {
+  animation: none;
+  padding: 2px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  opacity: 0.95;
+}
+/* «Погладили»: короткое сжатие-подпрыгивание. Перезапускается сменой класса. */
+.mascot.poke {
+  animation: poke 0.7s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+@keyframes poke {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(1.1, 0.9) translateY(3px);
+  }
+  60% {
+    transform: scale(0.95, 1.07) translateY(-6px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+/* Секрет удержания: сова кружится на месте */
+.mascot.spin {
+  animation: bukSpin 0.8s ease-in-out;
+}
+@keyframes bukSpin {
+  0% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(360deg) scale(1.06);
+  }
+  100% {
+    transform: rotate(720deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot.poke,
+  .mascot.spin {
+    animation: none;
+  }
+}
+@keyframes dance {
+  0%,
+  100% {
+    transform: rotate(0) translateY(0);
+  }
+  25% {
+    transform: rotate(-9deg) translateY(-10px);
+  }
+  75% {
+    transform: rotate(9deg) translateY(-8px);
+  }
+}
+
+/* ── Разное ──────────────────────────────────────────────────────────────── */
+
+.stars {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  font-size: 40px;
+}
+.star.off {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+.pop {
+  animation: pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.kv {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.kv:last-child {
+  border-bottom: none;
+}
+.kv b {
+  font-weight: 800;
+}
+
+/* Лист словарика: прокручивается, если карточка выше экрана, и не ломает
+   прокрутку страницы за собой. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  background: rgba(20, 16, 32, 0.5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sheet {
+  width: 100%;
+  max-width: 420px;
+}
+.wcard-modal .word-big {
+  font-size: 34px;
+}
+
+.wordlist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.word-chip {
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  background: var(--card);
+  cursor: pointer;
+}
+.word-chip.weak {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-soft);
+}
+.word-chip.mid {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: var(--orange-soft);
+}
+.word-chip.good {
+  border-color: var(--green);
+  color: #12a04a;
+  background: var(--green-soft);
+}
+
+.banner {
+  background: var(--primary-soft);
+  border: 2px solid var(--primary);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+/* «Прогресс не сохраняется» — сообщение о сбое записи, а не подсказка:
+   ребёнок не должен заниматься впустую, не зная, что результат не пишется. */
+.banner.danger-banner {
+  background: var(--wrong-soft, #ffe9e9);
+  border-color: var(--wrong, #e05252);
+  color: var(--wrong-strong, #a32b2b);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.banner.danger-banner .btn {
+  align-self: flex-start;
+}
+
+/* «Браузер перекрашивает страницу» — объяснение для родителя, а не для
+   ребёнка: серый экран выглядит как поломка приложения, и без этой плашки
+   родитель не поймёт, что перекрашивает именно браузер. */
+.banner.theme-banner {
+  align-self: center;
+  width: calc(100% - 32px);
+  max-width: var(--screen-max);
+  margin: calc(8px + var(--safe-t)) auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  background: var(--orange-soft);
+  border-color: var(--orange);
+  color: var(--orange-ink);
+  font-weight: 600;
+}
+
+.banner.theme-banner .btn {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.theme-banner-hint {
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+
+/* Неработающее сохранение — подпись в карточке родителя. */
+.warn {
+  color: var(--wrong-strong, #a32b2b);
+}
+
+.input {
+  width: 100%;
+  border: 3px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  font-size: var(--fs-md);
+  font-family: inherit;
+  background: var(--card);
+  color: var(--ink);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.avatars {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.avatar-pick {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  background: var(--card);
+  font-size: 28px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.avatar-pick.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.center {
+  text-align: center;
+}
+.mt {
+  margin-top: 16px;
+}
+/* Строка чипов внутри карточки: переносится и центрируется, но не растягивает
+   слово — слоги должны читаться как отдельный слой под словом. */
+.row.wrap-center {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+}
+.mb {
+  margin-bottom: 16px;
+}
+.big-emoji {
+  font-size: 64px;
+  line-height: 1;
+}
+
+/* ── V-labs: промо-блок и внутренний раздел ────────────────────────────── */
+
+.vlabs-promo {
+  border: 2px solid var(--primary) !important;
+  background:
+    radial-gradient(120% 100% at 100% 0%, var(--promo-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 90% at 0% 100%, var(--promo-glow-2) 0%, transparent 60%),
+    var(--card) !important;
+  box-shadow: var(--shadow);
+  transition: transform 0.08s ease, border-color 0.15s ease;
+}
+.vlabs-promo:active { transform: translateY(1px); }
+.vlabs-promo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: var(--primary);
+  color: #fff;
+  flex: none;
+}
+.vlabs-promo-title {
+  font-weight: 800;
+  font-size: var(--fs-md);
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.vlabs-hero {
+  border: 2px solid var(--primary) !important;
+  background:
+    radial-gradient(150% 80% at 0% 0%, var(--promo-glow-1) 0%, transparent 60%),
+    radial-gradient(120% 80% at 100% 100%, var(--promo-glow-2) 0%, transparent 65%),
+    var(--card) !important;
+}
+.vlabs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.vlabs-brand {
+  color: var(--primary);
+}
+.vlabs-tagline {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+.vlabs-proof-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.vlabs-proof {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  background: var(--card);
+  border: 2px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.vlabs-scratch {
+  background:
+    radial-gradient(130% 80% at 100% 0%, var(--scratch-glow) 0%, transparent 55%),
+    var(--card) !important;
+  border-color: #f59e0b !important;
+}
+.vlabs-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  background: #fff7ed;
+  border: 2px solid #fed7aa;
+  flex: none;
+}
+.vlabs-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #d97706;
+}
+.vlabs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.vlabs-chip {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: #fff;
+  border: 2px solid #fde68a;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 800;
+}
+.vlabs-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.vlabs-list li { margin: 4px 0; }
+.vlabs-list li::marker { color: #f59e0b; }
+
+.vlabs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (min-width: 460px) {
+  .vlabs-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.vlabs-mini {
+  border: 2px solid var(--line);
+  background: var(--bg-2);
+  border-radius: var(--r-md);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.vlabs-mini-ico { font-size: 24px; line-height: 1; }
+.vlabs-mini b { font-size: var(--fs-sm); line-height: 1.2; }
+.vlabs-more {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--primary-soft);
+  border: 2px dashed var(--line);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  text-align: center;
+  font-weight: 600;
+}
+
+.vlabs-why { display: flex; flex-direction: column; gap: 12px; }
+.vlabs-why-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.vlabs-why-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: var(--primary-soft);
+  border: 2px solid var(--line);
+  flex: none;
+}
+.vlabs-cta { border-color: var(--green) !important; }
+.vlabs-cta h3 { color: var(--ink); }
+
+/* ── Экран диагностики (?diag=1) ───────────────────────────────────────── */
+.diag-screen .kv {
+  gap: 12px;
+  align-items: flex-start;
+}
+.diag-screen .kv span {
+  color: var(--ink-2);
+}
+.diag-screen .kv b {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.diag-ok { color: var(--green); }
+.diag-warn { color: var(--orange); }
+.diag-error { color: var(--red); }
+.diag-snapshots {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.diag-snapshot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.diag-snapshot:last-child { border-bottom: 0; }
+.diag-snapshot span:nth-child(even) { text-align: right; }
+.diag-snapshot .diag-error { grid-column: 1 / -1; text-align: left !important; }
+.diag-notice { text-align: center; margin: -4px 0 12px; }
+.diag-copy summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.diag-copy pre {
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--ink-2);
+}
+
+/* ── Костюмные пазлы (engine/puzzles.ts) ─────────────────────────────────── */
+.costume-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+/* Костюм ещё не собран. Раньше здесь стояло filter: grayscale(1) + opacity .5,
+   и ребёнок видел ряд серых силуэтов: выбрать «тот самый» костюм было нельзя,
+   цвета были видны только у уже собранного. Теперь рисунок всегда в полном цвете,
+   а «ещё не надет» показывает только замок на иконке — рамка карточки остаётся
+   обычной (пунктир пробовали, он спорит с рисунком и ничего не добавляет).
+   Замок стоит в углу иконки ПОВЕРХ совы: подпись «ещё не собран» должна
+   читаться, а не выглядывать из-за крыла (см. сброс z-index у `.shop-icon .mascot`). */
+.pz-locked {
+  position: relative;
+}
+.pz-locked::after {
+  content: '🔒';
+  position: absolute;
+  right: -2px;
+  bottom: 0;
+  z-index: 1;
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  border: 1px solid rgba(124, 92, 255, 0.28);
+  /* тень отделяет плашку от разноцветного костюма под ней */
+  box-shadow: 0 1px 3px rgba(36, 31, 54, 0.2);
+}
+/* ── Палитра купленной вещи (тюнинг цвета, engine/tints.ts) ───────────────── */
+.tint-panel {
+  width: 100%;
+  margin-top: 2px;
+  text-align: center;
+}
+/* 44 px — не «на глаз»: зона касания по WCAG 2.5.5, как у кнопок БУКа */
+.tint-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+}
+.tint-swatch {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tint-swatch.paid {
+  border-style: dashed;
+  opacity: 0.85;
+}
+/* выбранный оттенок виден и без цвета: кольцо + галочка */
+.tint-swatch.on {
+  border-color: var(--primary);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.45),
+    0 0 0 2px var(--primary);
+}
+.tint-swatch.on::after {
+  content: '✓';
+  font-size: 16px;
+  text-shadow: 0 1px 2px rgba(20, 16, 34, 0.55);
+}
+.tint-swatch:active {
+  transform: scale(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tint-swatch:active {
+    transform: none;
+  }
+}
+
+/* то, что собирается прямо сейчас, подсвечено — правило
+   .shop-item.current живёт в блоке магазина выше. */
+.pz-dots {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin: 6px 0 8px;
+}
+.pz-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--primary-soft);
+  border: 1px solid rgba(124, 92, 255, 0.28);
+}
+.pz-dot.on {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.puzzle-win {
+  border: 2px dashed rgba(124, 92, 255, 0.45);
+  text-align: center;
+}
+.puzzle-win .row {
+  margin-bottom: 2px;
+}
+/* БУК в праздничной карточке «костюм надет» стоит в потоке карточки, а не
+   «плавает» в углу экрана (сброс базового `.mascot`, как в `.shop-icon`).
+   Танец сохраняем: карточка показывается в момент награды. */
+.puzzle-win .mascot {
+  position: static;
+  z-index: auto;
+  animation: none;
+}
+.puzzle-win .mascot.dance {
+  animation: dance 0.6s ease-in-out 3;
+}
+/* мягкий акцент готовности: не мигаем бесконечно (WCAG 2.3.3, как у сундука) */
+@keyframes questGlint {
+  0% {
+    transform: scale(1);
+  }
+  55% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.shop-item.current .btn.primary:not(:disabled) {
+  animation: questGlint 0.45s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-item.current .btn.primary:not(:disabled) {
+    animation: none;
+  }
+}
+
+/* ── Дополнительные сундуки и недельные награды ─────────────────────────── */
+.bonus-chest-note {
+  margin: 10px 4px 0;
+}
+.weekly-reward-bar {
+  height: 10px;
+  overflow: hidden;
+  margin: -2px 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+}
+.weekly-reward-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #39c9bd, #8b74ff);
+  transition: width 180ms ease-out;
+}
+.weekly-reward-milestones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.weekly-reward-milestone {
+  min-width: 0;
+  padding: 8px 7px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+}
+.weekly-reward-milestone .row {
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 12px;
+}
+.weekly-reward-milestone .tiny {
+  margin-top: 3px;
+  line-height: 1.25;
+}
+.weekly-reward-milestone.reached {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.weekly-reward-milestone.awarded {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.weekly-reward-note {
+  margin: 10px 2px 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .weekly-reward-bar span {
+    transition: none;
+  }
+}
+
+/* ── Узкие Android-экраны: родительский раздел и карточки урока ─────────────
+   У родителя допустима вертикальная прокрутка, но ни один контрол не должен
+   расширять viewport по X. В уроке наоборот: это один шаг с одним действием,
+   поэтому весь шаг остаётся в динамической высоте экрана без прокрутки. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.grow {
+  min-width: 0;
+}
+
+/* Урок — это отдельный «экран действия», а не длинная страница. Сначала
+   задаём обычный vh для старых iOS, затем svh — минимальную стабильную видимую
+   высоту. Это важнее dvh: при появлении адресной строки Safari ни кнопка, ни
+   клавиатура не должны оказаться за нижним краем. */
+.lesson-screen {
+  /* Горизонтальный отступ экрана и отступ до нижнего края — переменными:
+     их же использует полоса вердикта, которая теперь стоит в потоке и
+     «достаёт» до краёв экрана (раньше она была fixed и перекрывала задание,
+     ради чего приходилось резервировать место отступом-заглушкой). */
+  --lesson-pad-x: 16px;
+  --lesson-pad-b: calc(12px + var(--safe-b));
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
+  max-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding: calc(10px + var(--safe-t)) var(--lesson-pad-x) var(--lesson-pad-b);
+}
+.lesson-header {
+  flex: none;
+  min-width: 0;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.lesson-header .grow {
+  min-width: 28px;
+}
+.lesson-header .stat-pill {
+  flex: none;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+.lesson-screen > .buk-panel {
+  flex: none;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+}
+.lesson-screen > .buk-panel .buk-panel-text {
+  margin-bottom: 6px;
+}
+/* Обёртка задания. В обычном режиме её нет как коробки (display: contents):
+   .task остаётся прямым флекс-элементом экрана ровно так же, как раньше —
+   ни один из отлаженных размеров картинок и клавиатуры не меняется. */
+.lesson-task {
+  display: contents;
+}
+/* Вердикт: задание остаётся на экране, но перестаёт быть живым. */
+.lesson-task.is-frozen {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+/* Внутрь «замороженной» карточки тап не проходит. Именно у самого задания, а
+   не у обёртки: обёртка остаётся прокручиваемой — на коротком экране ответ
+   можно докрутить, но случайным касанием ничего не нажимается. */
+.lesson-task.is-frozen > .task {
+  flex: 1 0 auto;
+  pointer-events: none;
+}
+/* Мёртвая клавиатура под полосой вердикта только занимает место. */
+.lesson-task.is-frozen .keyboard {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-task.is-frozen {
+    transition: none;
+  }
+}
+
+.lesson-screen .task {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: center;
+  gap: clamp(8px, 1.7dvh, 14px);
+  padding-bottom: 2px;
+}
+.lesson-screen .prompt {
+  margin: 0;
+  font-size: clamp(18px, 5.6vw, 22px);
+  line-height: 1.25;
+}
+.lesson-screen .word-big {
+  font-size: clamp(30px, 9vw, 38px);
+}
+.lesson-screen .sentence {
+  padding: 8px 10px;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.lesson-screen .task .banner {
+  padding: 8px 10px;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+}
+.lesson-screen .task > .row {
+  min-width: 0;
+}
+.lesson-screen .task > .row .btn.wide {
+  min-width: 0;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+.lesson-screen .syllable {
+  min-width: 54px;
+  padding: 8px 10px;
+  font-size: 24px;
+}
+.lesson-screen .options {
+  gap: 8px;
+}
+.lesson-screen .option {
+  min-height: 54px;
+  font-size: 20px;
+}
+.lesson-screen .slot,
+.lesson-screen .letter {
+  width: 44px;
+  height: 52px;
+  font-size: 23px;
+}
+.lesson-screen .keyboard {
+  gap: 6px;
+  padding-bottom: 0;
+}
+.lesson-screen .kb-row {
+  gap: 4px;
+}
+.lesson-screen .key {
+  height: 46px;
+  font-size: 19px;
+}
+.lesson-screen .clue {
+  gap: 8px;
+}
+.lesson-screen .clue-hint {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  line-height: 1.25;
+}
+/* «Напиши» и «Зрительный диктант»: картинка сверху, пример и подсказка под ней,
+   всё по центру — тот же порядок, что у карточки слова. Снизу экранная клавиатура,
+   поэтому место ограничено: квадрат снимка берёт размер из токена --art-clue
+   (он уже учитывает высоту экрана), а текст под ним занимает ровно свою высоту.
+   Раньше здесь была строка «снимок слева — пример справа»: на узком экране она
+   сжимала рисунок и выводила его за левый край. */
+.lesson-screen .task-write > .clue,
+.lesson-screen .task-visual > .clue {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: center;
+}
+.lesson-screen .task-write > .clue > .word-art-frame,
+.lesson-screen .task-visual > .clue > .word-art-frame {
+  flex: none;
+  align-self: center;
+  width: var(--art-clue);
+  height: var(--art-clue);
+  max-width: 100%;
+  /* Поле как у фотокарточки: 12% воздуха съедали четверть рисунка. */
+  padding: var(--sp-3);
+}
+
+/* «Собери» и «Исправь»: вместо маленькой иконки слева — карточка образа.
+   Снимок стоит над примером и растёт на свободную высоту задания, но остаётся
+   квадратом: база 0 + grow/shrink по главной оси, ширина выводится из высоты
+   через aspect-ratio. Раньше здесь было `flex: 0 1 auto` с `height: auto` —
+   тот же конфликт осей, что починен в 0.11.5 для фотокарточки: flex сжимал
+   только высоту, ширина оставалась почти полной, и object-fit: contain
+   уменьшал рисунок внутри широкой полоски. Потолок --art-clue-hero не даёт
+   снимку раздуться на всю высоту. */
+.lesson-screen .clue-hero {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: center;
+}
+.lesson-screen .clue-hero > .word-art-frame {
+  flex: 1 1 0%;
+  align-self: center;
+  width: auto;
+  height: auto;
+  min-height: 88px;
+  max-width: 100%;
+  max-height: var(--art-clue-hero);
+  aspect-ratio: 1;
+}
+.lesson-screen .clue-hero > .clue-body {
+  flex: none;
+}
+
+/* ── Знакомство: снимок-герой карточки ─────────────────────────────────────
+ *
+ * На широком экране это квадрат во всю ширину паспарту (~330 px на iPhone),
+ * на коротком — тоже квадрат, но размер заранее ограничен высотой viewport.
+ * Важно задавать обе стороны и не разрешать flex-shrink: раньше flex ужимал
+ * только высоту, оставляя ширину полной. Получалась широкая полоска; картинка
+ * с object-fit: contain уменьшалась внутри неё до маленькой миниатюры — именно
+ * поэтому рамка могла выглядеть большой, а рисунок на актуальном релизе всё ещё
+ * оставался маленьким.
+ *
+ * Размер для коротких экранов задан отдельным токеном, а не сжатием «на глаз»:
+ * квадрат остаётся квадратом, слово/слоги/пример и кнопки остаются в кадре,
+ * экран урока по-прежнему не прокручивается.
+ */
+.lesson-screen .task-intro {
+  width: 100%;
+}
+.lesson-intro-card.wcard-photo {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Экран высокий — остаток места делится поровну сверху и снизу, и карточка
+     не висит «шапкой» с пустым низом. */
+  justify-content: center;
+  padding: var(--sp-3) var(--sp-3) var(--sp-4);
+}
+.lesson-intro-card.wcard-photo > .wcard-art {
+  flex: 0 0 var(--art-lesson-size);
+  align-self: center;
+  width: min(100%, var(--art-lesson-size));
+  height: var(--art-lesson-size);
+  aspect-ratio: 1;
+}
+.lesson-intro-card.wcard-photo > .wcard-main {
+  flex: none;
+  padding-top: var(--sp-3);
+  gap: var(--sp-2);
+}
+.lesson-intro-card.wcard-photo .wcard-body {
+  gap: var(--sp-2);
+}
+.lesson-intro-card.wcard-photo .word-big {
+  font-size: clamp(26px, 8.4vw, 36px);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.lesson-intro-card .intro-syllables {
+  gap: 6px;
+}
+.lesson-intro-card .chip {
+  min-height: 32px;
+  padding: 4px 9px;
+  font-size: 14px;
+}
+.lesson-intro-card .sentence {
+  padding: 6px 10px;
+  line-height: 1.25;
+}
+
+/* В режиме вердикта задание остаётся на экране, но заморожено
+   (.lesson-task.is-frozen), а полоса вердикта стоит в потоке — резервировать
+   место под неё отступом-заглушкой больше не нужно. Класс .has-verdict
+   оставлен как явная метка состояния экрана. */
+.lesson-screen.has-verdict .lesson-header {
+  margin-bottom: 4px;
+}
+
+/* ── Раздел «Родителям» ───────────────────────────────────────────────────
+   Перестроен 2026-10-14: вместо одной длинной простыни — четыре раздела
+   (обзор, прогресс, настройки, приложение). Обоснование и правила —
+   docs/parent-section-redesign.md. Здесь только оформление.
+
+   Особенности, которые важно не потерять:
+   • это текст для взрослых: базовые 15 px и подписи 13.5 px вместо 11–12 px —
+     мелкий шрифт в разделе для родителей читать некому;
+   • ничего не переносится за край экрана: горизонтальной прокрутки в разделе
+     нет ни на одном чипе или строке;
+   • разрушительное действие («Сбросить прогресс») визуально отделено. */
+.parent-screen {
+  overflow-x: hidden;
+  overflow-x: clip;
+  font-size: var(--fs-sm);
+}
+.parent-screen .card,
+.parent-screen .row,
+.parent-screen .kv,
+.parent-screen .setting-copy {
+  min-width: 0;
+}
+
+.parent-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.parent-head h1 {
+  margin: 0;
+}
+
+/* Кто именно занимается: профиль крупно и без кнопок «переключить» —
+   дети переключаются в отдельном экране «Дети», чтобы не промахнуться. */
+.parent-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.parent-child-name {
+  font-weight: 800;
+  font-size: var(--fs-md);
+}
+
+/* Вкладки разделов: липкая полоса, чтобы после длинного отчёта не искать
+   переключатель в самом низу. */
+.seg-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  margin: 0 -16px 12px;
+  padding: 8px 16px;
+  background: var(--bg);
+  border-bottom: 2px solid var(--line);
+}
+.seg-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.seg-tab-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+.seg-tab.on {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.seg-tab:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.parent-panel {
+  animation: fadeIn 0.2s ease;
+}
+.parent-panel:focus {
+  outline: none;
+}
+.parent-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Крупные цифры: сначала главное, потом пояснение. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.study-today-lines {
+  margin-top: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.study-today-lines .kv {
+  gap: 8px;
+  padding: 5px 0;
+}
+.study-today-lines .kv b {
+  text-align: right;
+}
+.study-today-errors {
+  margin-top: 10px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
+}
+.study-today-errors .wordlist {
+  margin-top: 8px;
+}
+.word-chip.study-error {
+  border-color: var(--orange);
+  color: var(--ink-2);
+  background: var(--orange-soft);
+}
+.study-session-list {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.study-session-list-title {
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+.study-session {
+  border-bottom: 1px solid var(--line);
+}
+.study-session summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  cursor: pointer;
+  list-style-position: inside;
+}
+.study-session summary > span:first-of-type {
+  display: inline-flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.study-session summary small {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.study-session-score {
+  flex-shrink: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  text-align: right;
+}
+.study-session-detail {
+  display: grid;
+  gap: 6px;
+  padding: 0 10px 12px 25px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.study-session-recovered {
+  color: var(--green);
+  font-weight: 700;
+}
+.study-today-streak {
+  margin-top: 10px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+@media (max-width: 360px) {
+  .study-session summary {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .study-session-score {
+    padding-left: 18px;
+    text-align: left;
+  }
+}
+.stat-tile {
+  padding: 10px 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  text-align: center;
+}
+.stat-tile.good {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.stat-tile.warn {
+  border-color: var(--orange);
+  background: var(--orange-soft);
+}
+.stat-tile-value {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.stat-tile-label {
+  margin-top: 2px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.stat-tile-hint {
+  margin-top: 4px;
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+/* Календарь недели: столбик на день, высота — XP относительно лучшего дня. */
+.week-chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.week-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.week-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 74px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.week-bar {
+  width: 100%;
+  min-height: 3px;
+  border-radius: 8px 8px 0 0;
+  background: var(--primary-soft);
+  transition: height 220ms ease;
+}
+.week-bar.filled {
+  background: linear-gradient(180deg, var(--primary-2), var(--primary));
+}
+.week-day {
+  color: var(--ink-3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.week-xp {
+  font-size: 13px;
+  font-weight: 700;
+}
+.week-col.today .week-day {
+  color: var(--primary);
+}
+.week-col.today .week-xp {
+  color: var(--primary);
+}
+
+/* Достижения: сетка карточек, у неполученных — приглушение и описание цели. */
+.ach-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.ach {
+  padding: 10px 8px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  text-align: center;
+}
+.ach.on {
+  border-style: solid;
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.ach-emoji {
+  font-size: 26px;
+  line-height: 1.1;
+  filter: grayscale(0.9);
+  opacity: .55;
+}
+.ach.on .ach-emoji {
+  filter: none;
+  opacity: 1;
+}
+.ach-title {
+  margin-top: 2px;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+}
+
+/* Строка настройки: подпись с объяснением + управление. */
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.setting-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.setting-row:first-of-type {
+  padding-top: 4px;
+}
+.setting-title {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.setting-hint {
+  margin-top: 3px;
+  color: var(--ink-3);
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+/* Помощь по цветам доступна из ярлыка без адресной строки. */
+.theme-help {
+  padding: 4px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.theme-help summary {
+  min-height: 44px;
+  padding: 11px 0;
+  color: var(--primary);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.theme-help summary:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.theme-help .setting-hint {
+  margin: 4px 0 10px;
+  color: var(--ink-2);
+}
+.theme-help .btn {
+  max-width: 100%;
+  white-space: normal;
+}
+.setting-copy {
+  flex: 1 1 55%;
+}
+.setting-control {
+  flex: 0 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+.group-title {
+  margin-bottom: 6px;
+}
+.group-title h3 {
+  margin: 0;
+}
+.group-title .setting-hint {
+  margin-top: 2px;
+}
+
+/* Выбор варианта: сегменты прижимаются вправо и переносятся, а не режутся. */
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.choice-item {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.choice-item.on {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.choice-item:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Переключатель вкл/выкл: видно состояние, а не «какая из двух кнопок нажата». */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 12px 4px 4px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink-3);
+  font: inherit;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.switch-knob {
+  width: 44px;
+  height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  position: relative;
+  transition: background 160ms ease;
+}
+.switch-knob::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(36, 31, 54, .35);
+  transition: transform 160ms ease;
+}
+.switch.on {
+  border-color: var(--green);
+  color: var(--ink);
+}
+.switch.on .switch-knob {
+  background: var(--green);
+}
+.switch.on .switch-knob::after {
+  transform: translateX(18px);
+}
+
+/* Частые дела из обзора: короткий путь к копии и ссылке вместо поисков
+   по разделам (принцип «распознавание вместо припоминания»). */
+.quick-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Опасная зона: сброс прогресса отделён от рабочих кнопок. */
+.danger-zone {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.parent-summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.parent-screen .word-chip {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.parent-screen .kv {
+  gap: 12px;
+}
+.parent-screen .kv > :first-child {
+  min-width: 0;
+}
+.parent-screen .kv > :last-child:not(button) {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* Замок «только для взрослых»: пример читается сразу, ошибка — на месте. */
+.unlock-task {
+  margin: 12px 0;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.unlock-error {
+  margin-top: 8px;
+  color: var(--red);
+  font-weight: 700;
+}
+.input-error {
+  border-color: var(--red);
+}
+
+@media (max-width: 480px) {
+  .parent-head {
+    align-items: center;
+  }
+  .seg-tab {
+    flex-direction: column;
+    gap: 1px;
+    font-size: 12.5px;
+    padding: 6px 2px;
+  }
+  .stat-grid {
+    gap: 6px;
+  }
+  .stat-tile {
+    padding: 8px 4px;
+  }
+  .stat-tile-value {
+    font-size: 21px;
+  }
+  .stat-tile-hint {
+    font-size: 12px;
+  }
+  /* На узком экране управление уходит под подпись: подписи не сжимаются в столбик
+     в две буквы, а сегменты получают всю ширину. */
+  .setting-row {
+    display: block;
+  }
+  .setting-control,
+  .choice {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+  .choice-item {
+    padding: 7px 10px;
+    font-size: 14px;
+  }
+}
+
+
+@media (max-height: 680px) {
+  :root {
+    /* На коротком экране уменьшаем сразу квадрат, а не только его высоту. */
+    --art-lesson-size: min(var(--art-lesson-cap), 34svh);
+    /* На iPhone SE две строки слотов и букв важнее вертикального hero-вида. */
+    --art-clue-hero: 96px;
+    /* Там же и подсказка под клавиатурой: потолок ниже, иначе снимок вытеснит
+       поле ввода. Размер по-прежнему считает flex — от остатка высоты. */
+    --art-clue: 104px;
+  }
+  .lesson-screen {
+    /* Через переменную: по ней же считается отрицательный отступ полосы
+       вердикта, иначе она «уезжала» бы за нижний край экрана. */
+    --lesson-pad-b: calc(8px + var(--safe-b));
+    padding-top: calc(8px + var(--safe-t));
+  }
+  .lesson-header {
+    margin-bottom: 4px;
+  }
+  .lesson-screen .task {
+    gap: 8px;
+  }
+  .lesson-screen .task .banner {
+    padding: 6px 8px;
+  }
+  .lesson-screen .key {
+    height: 44px;
+  }
+  .lesson-screen .clue-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .lesson-screen {
+    --lesson-pad-x: 12px;
+  }
+  .lesson-header {
+    gap: 6px;
+  }
+  .lesson-header .stat-pill {
+    padding-right: 6px;
+    padding-left: 6px;
+    font-size: 13px;
+  }
+  .lesson-screen .syllables {
+    gap: 6px;
+  }
+  .lesson-screen .syllable {
+    min-width: 50px;
+  }
+}
+
+/* Музыкальная коллекция БУКа: записи Kevin MacLeod (CC BY 4.0) из public/audio/ */
+.music-choice {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.music-choice.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.music-choice b,
+.music-choice small {
+  display: block;
+}
+.music-choice small {
+  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+.music-emoji {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 23px;
+}
+.music-store-note {
+  padding: 10px 12px;
+  margin: 0 0 10px;
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+/* Полки музыкального магазина: спокойный фон (занятия, меню) отдельно от
+   весёлой коллекции — у каждой мелодии своё место в игре. */
+.music-shelf + .music-shelf { margin-top: var(--sp-5); }
+.music-shelf-title { margin: 0; font-size: var(--fs-sm); }
+.music-grid {
+  align-items: stretch;
+}
+.music-item {
+  min-width: 0;
+  padding: 9px;
+  gap: 6px;
+}
+.music-cover {
+  width: 100%;
+  height: 74px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8b6bff, #ff88b7 55%, #ffc857);
+}
+.music-cover::before,
+.music-cover::after {
+  content: '';
+  position: absolute;
+  width: 78px;
+  height: 78px;
+  border: 1px solid rgba(255, 255, 255, .34);
+  border-radius: 50%;
+}
+.music-cover::before { transform: translate(-36px, 27px); }
+.music-cover::after { transform: translate(42px, -27px); }
+.music-cover span {
+  z-index: 1;
+  font-size: 34px;
+  filter: drop-shadow(0 2px 3px rgba(20, 10, 50, .2));
+}
+.music-cover i {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  color: rgba(255, 255, 255, .8);
+  font-size: 21px;
+  font-style: normal;
+}
+.music-item .shop-title {
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  line-height: 1.15;
+}
+.music-item .shop-desc {
+  min-height: 30px;
+}
+.music-item .btn {
+  min-height: 36px;
+  padding-right: 4px;
+  padding-left: 4px;
+  font-size: var(--fs-xs);
+}
+@media (min-width: 420px) {
+  .music-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .music-cover { height: 86px; }
+}
+
+/* Магазин → «Звуки» (0.17.0): наборы мелодий правильного ответа и ошибки.
+   Карточка — музыкальная, но обложка своя, и под названием две кнопки
+   «послушать»: ✓ верный ответ и ✗ ошибка. */
+.sound-cover {
+  background: linear-gradient(135deg, #34c3a0, #5b8cff 55%, #a77bff);
+}
+.sound-try {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.sound-try .btn {
+  min-width: 0;
+  white-space: nowrap;
+}
+.music-item .sound-try .btn {
+  min-height: 32px;
+}
+
+/* «Авторы и лицензии»: атрибуция музыки CC BY — доступна из приложения */
+.credits-row {
+  margin-top: var(--sp-3);
+}
+.credits-card {
+  margin-top: var(--sp-3);
+  text-align: left;
+}
+.credits-heading {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+}
+.credits {
+  display: grid;
+  gap: var(--sp-2);
+}
+.credits p {
+  margin: 0;
+  line-height: 1.45;
+}
+.credits a {
+  color: var(--primary);
+  word-break: break-word;
+}
+.credits-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--sp-2);
+}
+.credits-item {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+}
+.credits-title {
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+/* ── Стиль оформления: неоновая аркада ─────────────────────────────────────
+   Палитра задана токенами в tokens.css. Здесь — элементы, которым нужны
+   характерные для ссылки Луи Брайля сетка, подсветка и тёмный текст на ярких
+   розово-голубых кнопках. Классическая тема остаётся без переопределений. */
+:root[data-theme-style='neon'] .app {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(90deg, var(--neon-grid-x) 1px, transparent 1px),
+    linear-gradient(var(--neon-grid-y) 1px, transparent 1px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 40px 40px, 40px 40px, auto, auto;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
+}
+
+:root[data-theme-style='neon'] .card:not(.flat),
+:root[data-theme-style='neon'] .dialog,
+:root[data-theme-style='neon'] .clue-hero {
+  backdrop-filter: blur(10px);
+}
+
+:root[data-theme-style='neon'] .home-hero {
+  border: 1px solid var(--line);
+  box-shadow: 0 0 18px var(--neon-primary-glow), 0 6px 0 var(--primary);
+}
+:root[data-theme-style='neon'] .home-hero:active {
+  box-shadow: 0 0 12px var(--neon-primary-glow), 0 3px 0 var(--primary);
+}
+
+:root[data-theme-style='neon'] .btn.primary,
+:root[data-theme-style='neon'] .home-hero-cta,
+:root[data-theme-style='neon'] .choice-item.on,
+:root[data-theme-style='neon'] .chip.on {
+  color: var(--neon-primary-ink);
+}
+:root[data-theme-style='neon'] .btn.primary {
+  box-shadow: 0 0 16px var(--neon-primary-glow), 0 5px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .btn.primary:active {
+  box-shadow: 0 0 10px var(--neon-primary-glow), 0 2px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .home-hero-cta {
+  box-shadow: 0 0 16px var(--neon-primary-glow), 0 4px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .home-hero:active .home-hero-cta {
+  box-shadow: 0 0 10px var(--neon-primary-glow), 0 2px 0 var(--neon-primary-depth);
+}
+:root[data-theme-style='neon'] .choice-item.on {
+  box-shadow: 0 0 12px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] .tab.on {
+  text-shadow: 0 0 10px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] h1,
+:root[data-theme-style='neon'] h2 {
+  text-shadow: 0 0 10px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] .tabs {
+  backdrop-filter: blur(12px);
+  box-shadow: 0 -4px 18px var(--neon-primary-glow);
+}
+:root[data-theme-style='neon'] .btn.green,
+:root[data-theme-style='neon'] .option.ok,
+:root[data-theme-style='neon'] .syllable.done,
+:root[data-theme-style='neon'] .ring-check {
+  color: var(--neon-success-ink);
+}
+:root[data-theme-style='neon'] .option.bad {
+  color: var(--neon-danger-ink);
+}
+:root[data-theme-style='neon'] .goal-over,
+:root[data-theme-style='neon'] .stat-pill.fire,
+:root[data-theme-style='neon'] .stat-pill.repair {
+  color: var(--orange-ink);
+}
+:root[data-theme-style='neon'] .word-chip.good,
+:root[data-theme-style='neon'] .slot.ok {
+  color: var(--green);
+}
+:root[data-theme-style='neon'] .chest {
+  color: var(--neon-primary-ink);
+}
+
+/* ── Витрина «Фоны»: выбор общего оформления приложения ──────────────────── */
+.background-theme-grid {
+  align-items: stretch;
+}
+.background-theme-card {
+  min-width: 0;
+  padding: 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+.background-theme-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: var(--shadow), 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.background-theme-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  height: 88px;
+  padding: 6px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--line) 30%, transparent);
+  overflow: hidden;
+}
+.background-theme-pane {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--preview-light);
+}
+.background-theme-pane.dark {
+  background: var(--preview-dark);
+}
+.background-theme-pane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, var(--preview-secondary), transparent 58%);
+  opacity: 0.34;
+}
+.background-theme-pane.dark::before {
+  opacity: 0.42;
+}
+.background-theme-mini-card {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 7px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--preview-accent) 32%, transparent);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.background-theme-mini-card::before {
+  content: '';
+  display: block;
+  width: 45%;
+  height: 4px;
+  margin: 7px 0 0 6px;
+  border-radius: 5px;
+  background: var(--preview-accent);
+  box-shadow: 0 7px 0 color-mix(in srgb, var(--preview-secondary) 78%, white);
+}
+.background-theme-pane.dark .background-theme-mini-card {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+}
+.background-theme-pane.dark .background-theme-mini-card::before {
+  box-shadow: 0 7px 0 var(--preview-secondary);
+}
+.background-theme-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  line-height: 1.15;
+}
+.background-theme-desc {
+  flex: 1;
+  min-height: 54px;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+.background-theme-label {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 700;
+}
+.background-theme-card .btn {
+  min-height: 42px;
+  padding: 8px;
+  font-size: var(--fs-xs);
+}
+
+/* У других оформлений свой фоновой мотив; токены управляют цветами всех экранов. */
+:root[data-theme-style='space'] .app {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 18% 22%, var(--space-star) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 18%, var(--space-star) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 48% 78%, var(--space-star) 0 1px, transparent 1.6px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 110px 130px, 170px 160px, 220px 210px, auto, auto;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat;
+}
+:root[data-theme-style='ocean'] .app {
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(168deg, transparent 0 38px, var(--ocean-wave) 39px 41px, transparent 42px 84px),
+    radial-gradient(120% 60% at 15% 0%, var(--bg-glow-1) 0%, transparent 55%),
+    radial-gradient(100% 55% at 100% 0%, var(--bg-glow-2) 0%, transparent 60%);
+  background-size: 180px 180px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
+
+/* Яркие акценты тёмных вариантов получают тёмный текст на заливках. */
+:root[data-theme='dark'][data-theme-style='space'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='space'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='space'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='space'] .chip.on,
+:root[data-theme='dark'][data-theme-style='space'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='space'] .vlabs-badge,
+:root[data-theme='dark'][data-theme-style='forest'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='forest'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='forest'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='forest'] .chip.on,
+:root[data-theme='dark'][data-theme-style='forest'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='forest'] .vlabs-badge,
+:root[data-theme='dark'][data-theme-style='ocean'] .btn.primary,
+:root[data-theme='dark'][data-theme-style='ocean'] .home-hero-cta,
+:root[data-theme='dark'][data-theme-style='ocean'] .choice-item.on,
+:root[data-theme='dark'][data-theme-style='ocean'] .chip.on,
+:root[data-theme='dark'][data-theme-style='ocean'] .vlabs-promo-icon,
+:root[data-theme='dark'][data-theme-style='ocean'] .vlabs-badge {
+  color: var(--theme-primary-ink);
+}
+:root[data-theme='dark'][data-theme-style='space'] .btn.green,
+:root[data-theme='dark'][data-theme-style='space'] .option.ok,
+:root[data-theme='dark'][data-theme-style='space'] .syllable.done,
+:root[data-theme='dark'][data-theme-style='space'] .ring-check,
+:root[data-theme='dark'][data-theme-style='forest'] .btn.green,
+:root[data-theme='dark'][data-theme-style='forest'] .option.ok,
+:root[data-theme='dark'][data-theme-style='forest'] .syllable.done,
+:root[data-theme='dark'][data-theme-style='forest'] .ring-check,
+:root[data-theme='dark'][data-theme-style='ocean'] .btn.green,
+:root[data-theme='dark'][data-theme-style='ocean'] .option.ok,
+:root[data-theme='dark'][data-theme-style='ocean'] .syllable.done,
+:root[data-theme='dark'][data-theme-style='ocean'] .ring-check {
+  color: var(--theme-success-ink);
+}
+:root[data-theme='dark'][data-theme-style='space'] .option.bad,
+:root[data-theme='dark'][data-theme-style='forest'] .option.bad,
+:root[data-theme='dark'][data-theme-style='ocean'] .option.bad {
+  color: var(--theme-danger-ink);
+}
+
+/* One side at a time: both textures share an aligned silhouette and rotate as
+   a rigid card. Backface visibility prevents the reverse side bleeding through. */
+.phone-view {
+  aspect-ratio: 1;
+  perspective: 900px;
+}
+.phone-rotate {
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.phone-rotate:focus-visible {
+  outline: 3px solid var(--accent, #8065c9);
+  outline-offset: 3px;
+}
+.phone-turntable {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+  transition: transform 650ms cubic-bezier(.2,.7,.25,1);
+}
+.phone-turntable.is-front { transform: rotateY(180deg); }
+.phone-face {
+  display: block;
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.phone-face-front { transform: rotateY(180deg); }
+.phone-face > img { display: block; width: 100%; height: auto; user-select: none; }
+.phone-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--phone-tint);
+  mix-blend-mode: color;
+  opacity: .72;
+  mask: var(--phone-mask) center / 100% 100% no-repeat;
+  -webkit-mask: var(--phone-mask) center / 100% 100% no-repeat;
+}
+.phone-rotate-hint { text-align: center; margin: 4px 0 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .phone-turntable { transition: none; }
+}

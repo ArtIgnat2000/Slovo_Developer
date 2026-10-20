@@ -1,0 +1,26 @@
+node_modules/
+dist/
+dev-dist/
+.DS_Store
+*.local
+.env
+.env.*
+# временная сборка смоук-теста и проверки QR (скрипты убирают её сами)
+.smoke
+.qr-check
+# временные артефакты отладки (svg-листы маскота и т.п.)
+.tmp-art
+# исходники картинок слов (в репозиторий идут только public/words/*.webp)
+images-src
+# превью-сборка для показа на телефоне/в браузере (не в git, но живёт между ходами)
+preview
+image-search/
+
+# кэш инкрементальной сборки tsc (служебный, машина создаёт его сама)
+tsconfig.tsbuildinfo
+
+# записи лаборатории для разбора качества
+recordings/
+
+# Local image-processing environment
+.venv/

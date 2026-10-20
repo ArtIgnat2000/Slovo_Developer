@@ -1,0 +1,470 @@
+import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
+import { plural, type Chest, type ChestKind } from '../engine/quests';
+import { haptic } from '../platform/haptics';
+import { sfx } from '../platform/sound';
+import { ChestIllustration, KeySymbol } from './ChestArt';
+import { skinById, type ChestSkinId } from '../engine/chests';
+import { Mascot, type Look } from './Mascot';
+import { nudge, prefersReducedMotion } from './motion';
+
+const UNLOCK_FEEDBACK_MS = 1_560;
+const REWARD_REVEAL_MS = 2_550;
+const CELEBRATION_MS = 4_350;
+const BALANCE_COUNT_MS = 620;
+
+type Phase = 'waiting' | 'showing' | 'reward' | 'final';
+
+/**
+ * «Разбуди сундук»: пока сундук закрыт, по нему можно тапать.
+ *
+ * Ребёнок ждёт, что тап повлияет на награду, и это надо поддержать делом, но
+ * без автомата с призами: платим один раз за разбуженный сундук (см.
+ * `CHEST_WAKE_TAPS`/`CHEST_WAKE_GEMS` в `engine/quests.ts`). Состояние тапов
+ * живёт у родителя (карточка заданий), потому что будить можно и на главной,
+ * и в самой сцене — а награда одна.
+ */
+export interface ChestWake {
+  /** Сколько тапов уже сделано (0..target) */
+  taps: number;
+  /** Сколько тапов нужно, чтобы сундук проснулся */
+  target: number;
+  /** Надбавка за разогрев — для подписи «+N 💎» */
+  bonus: number;
+  /** Можно ли ещё будить этот сундук: надбавку за него ещё не платили */
+  available: boolean;
+  /** Тап по сундуку */
+  onTap: () => void;
+}
+
+interface Props {
+  reward: Chest;
+  kind?: ChestKind;
+  /** Облик сундука, который выбрал ребёнок (src/engine/chests.ts). */
+  skinId?: ChestSkinId;
+  /** Ближайший неоткрытый облик — строка «что дальше» в чеке награды. */
+  nextSkin?: { title: string; left: number } | null;
+  balance: number;
+  look: Look;
+  stage: number;
+  learnerName?: string;
+  /** false для повторного просмотра чека: он открывается сразу, без повтора шоу. */
+  celebrate: boolean;
+  onClose: () => void;
+  wake?: ChestWake;
+}
+
+function GemIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={`ceremony-gem-icon ${className}`} viewBox="0 0 52 52" aria-hidden="true" focusable="false">
+      <path d="M7 14 16 5h20l9 9-4 14-15 19L10 28 4 18z" fill="url(#ceremony-gem-icon-fill)" stroke="#fff0bd" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M7 14h38M16 5l9 9 11-9M16 5l9 21 11-21M4 18l21 8 20-12M10 28l15-2 16 2M25 26v21M7 14l18 33 20-33" fill="none" stroke="#f5ffff" strokeWidth="1.65" strokeLinejoin="round" opacity=".86" />
+      <path d="M42 2v7M38.5 5.5h7" stroke="#fff7ce" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="9" cy="8" r="1.6" fill="#fff7ce" />
+      <defs>
+        <linearGradient id="ceremony-gem-icon-fill" x1=".05" y1=".95" x2=".98" y2=".08">
+          <stop offset="0" stopColor="#48d6e8" />
+          <stop offset=".36" stopColor="#56a9ff" />
+          <stop offset=".68" stopColor="#9673ff" />
+          <stop offset="1" stopColor="#ff74be" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+function ExtraRewards({ reward }: { reward: Chest }) {
+  const wake = reward.wakeBonus ?? 0;
+  if (reward.xp <= 0 && reward.freezes <= 0 && wake <= 0) return null;
+  return (
+    <div className="ceremony-extra-rewards">
+      {reward.xp > 0 && <span>⚡ +{reward.xp} XP</span>}
+      {reward.freezes > 0 && (
+        <span>
+          🧊 +{reward.freezes} {plural(reward.freezes, 'заморозка', 'заморозки', 'заморозок')}
+        </span>
+      )}
+      {wake > 0 && (
+        <span>
+          🌟 +{wake} {plural(wake, 'кристалл', 'кристалла', 'кристаллов')} — разбудил сундук
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Реплики БУКа на тапы: короткие, без обещаний конкретной награды до пробуждения. */
+const WAKE_LINES = [
+  'Ой! Я просыпаюсь…',
+  'Ещё тапчик!',
+  'Уже искрится!',
+  'Последний тап!',
+];
+
+/**
+ * Короткая сцена открытия сундука. Состояние награды уже сохранено стором;
+ * эта компонента отвечает только за представление и не выдаёт валюту.
+ */
+export function ChestCelebration({
+  reward,
+  kind = 'daily',
+  skinId = 'travel',
+  nextSkin = null,
+  balance,
+  look,
+  stage,
+  learnerName,
+  celebrate,
+  onClose,
+  wake,
+}: Props) {
+  const skin = skinById(skinId);
+  const [reducedMotion, setReducedMotion] = useState(prefersReducedMotion);
+  const [phase, setPhase] = useState<Phase>(() =>
+    celebrate && !prefersReducedMotion() ? 'waiting' : 'final',
+  );
+  const unlockTimerRef = useRef<number | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
+  const finishTimerRef = useRef<number | null>(null);
+  const feedbackPlayedRef = useRef(false);
+  const countStartedRef = useRef(false);
+  const sequenceStartedRef = useRef(false);
+  const [displayBalance, setDisplayBalance] = useState(() =>
+    celebrate && !prefersReducedMotion() ? Math.max(0, balance - reward.gems) : balance,
+  );
+  const skipRef = useRef<HTMLButtonElement>(null);
+  const openRef = useRef<HTMLButtonElement>(null);
+  const doneRef = useRef<HTMLButtonElement>(null);
+  const wakeRef = useRef<HTMLButtonElement>(null);
+  const shakerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(query.matches);
+    if (query.addEventListener) query.addEventListener('change', update);
+    else query.addListener(update);
+    return () => {
+      if (query.removeEventListener) query.removeEventListener('change', update);
+      else query.removeListener(update);
+    };
+  }, []);
+
+  const clearSequenceTimers = () => {
+    if (unlockTimerRef.current !== null) window.clearTimeout(unlockTimerRef.current);
+    if (revealTimerRef.current !== null) window.clearTimeout(revealTimerRef.current);
+    if (finishTimerRef.current !== null) window.clearTimeout(finishTimerRef.current);
+    unlockTimerRef.current = null;
+    revealTimerRef.current = null;
+    finishTimerRef.current = null;
+  };
+
+  const playUnlockFeedback = () => {
+    if (feedbackPlayedRef.current) return;
+    feedbackPlayedRef.current = true;
+    sfx.chestOpen();
+    haptic.chestOpen();
+  };
+
+  useEffect(() => () => clearSequenceTimers(), []);
+
+  useEffect(() => {
+    if (!celebrate || !reducedMotion) return;
+    clearSequenceTimers();
+    playUnlockFeedback();
+    setDisplayBalance(balance);
+    setPhase('final');
+  }, [celebrate, reducedMotion, balance]);
+
+  useEffect(() => {
+    if (!celebrate || reducedMotion || phase === 'final') {
+      setDisplayBalance(balance);
+      return;
+    }
+    if (phase !== 'reward' || countStartedRef.current) return;
+
+    countStartedRef.current = true;
+    const startBalance = Math.max(0, balance - reward.gems);
+    const startedAt = window.performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / BALANCE_COUNT_MS);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayBalance(Math.round(startBalance + (balance - startBalance) * eased));
+      if (progress < 1) frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [phase, celebrate, reducedMotion, balance, reward.gems]);
+
+  /**
+   * Тап по сундуку: дрожь становится заметнее с каждым тапом. Анимацию гоняем
+   * через Web Animations API, а не сменой класса: тогда разметка сундука не
+   * перемонтируется на каждый тап (в jsdom `animate` может отсутствовать —
+   * тогда остаётся звук, вибрация и счётчик тапов).
+   */
+  const shakeChest = (strength: number, awake: boolean) => {
+    nudge(shakerRef.current, {
+      amplitude: awake ? 9 : 2 + strength,
+      durationMs: awake ? 520 : 280,
+      awake,
+    });
+  };
+
+  const wakeTarget = wake?.target ?? 0;
+  const wakeTaps = wake ? Math.max(0, wake.taps) : 0;
+  const awake = wakeTarget > 0 && wakeTaps >= wakeTarget;
+  const waitingForAction = phase === 'waiting' && celebrate && !reducedMotion;
+  const canWake = waitingForAction && !!wake && wake.available && !awake;
+  const showWakePanel = !!wake && wakeTarget > 0 && (waitingForAction || awake) && (wake.available || awake);
+  const animationActive = (phase === 'showing' || phase === 'reward') && celebrate && !reducedMotion;
+  const showSequence = waitingForAction || animationActive;
+  const introducing = phase === 'showing' && animationActive;
+  const hideResult = waitingForAction || introducing;
+  const sceneClass = waitingForAction ? 'is-waiting' : animationActive ? 'is-showing' : 'is-final';
+  const firstName = learnerName?.trim().split(/\s+/)[0];
+
+  const handleWakeTap = () => {
+    if (!canWake || !wake) return;
+    shakeChest(wakeTaps + 1, wakeTaps + 1 >= wakeTarget);
+    wake.onTap();
+  };
+
+  const title = waitingForAction
+    ? kind === 'daily'
+      ? firstName ? `${firstName}, открываем?` : 'Три ключа готовы!'
+      : firstName ? `${firstName}, открываем бонусный сундук?` : 'Бонусный сундук готов!'
+    : introducing
+      ? kind === 'daily'
+        ? firstName ? `Все три ключа на месте, ${firstName}!` : 'Все три ключа на месте!'
+        : firstName ? `Награда за урок, ${firstName}!` : 'Награда за урок!'
+      : 'Сундук открыт!';
+  const bukLine = phase === 'final'
+    ? firstName ? `Ура, ${firstName}!` : 'Вот это команда!'
+    : waitingForAction
+      ? awake
+        ? firstName ? `Разбудил! +${wake?.bonus ?? 0} 💎` : 'Проснулся!'
+        : wake && wakeTaps > 0
+          ? WAKE_LINES[Math.min(wakeTaps, WAKE_LINES.length) - 1]
+          : firstName ? `${firstName}, жми!` : 'Откроем вместе!'
+      : 'Открываем!';
+  const gems = reward.gems;
+
+  const description = waitingForAction
+    ? awake
+      ? `Сундук проснулся — награда больше на ${wake?.bonus ?? 0} 💎. ${kind === 'daily' ? 'Повернём ключи!' : 'Откроем его!'}`
+      : canWake
+        ? `Тапни по сундуку ${wakeTarget} раз — разбудишь его, и награда станет больше. А потом ${
+            kind === 'daily' ? 'повернём ключи вместе!' : 'откроем его вместе!'
+          }`
+        : kind === 'daily'
+          ? 'Нажми на кнопку — повернём ключи вместе!'
+          : 'Нажми на кнопку — откроем бонусный сундук!'
+    : introducing
+      ? kind === 'daily' ? 'Ключи поворачиваются — сундук просыпается!' : 'БУК открывает награду за урок!'
+      : kind === 'daily' ? 'Три задания — выполнены. Вот твоя награда:' : 'Урок пройден — вот твоя награда:';
+
+  /** Tab ходит по действиям сцены и не выходит из диалога. */
+  const focusOrder = (): (HTMLButtonElement | null)[] => {
+    if (phase === 'final') return [doneRef.current];
+    return [canWake ? wakeRef.current : null, openRef.current, skipRef.current];
+  };
+
+  const focusCycle = (backwards: boolean) => {
+    const order = focusOrder().filter((el): el is HTMLButtonElement => !!el);
+    if (!order.length) return;
+    const active = document.activeElement as HTMLButtonElement | null;
+    const index = active ? order.indexOf(active) : -1;
+    const next = backwards
+      ? order[(index <= 0 ? order.length : index) - 1]
+      : order[(index + 1) % order.length];
+    next?.focus();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      focusCycle(event.shiftKey);
+      return;
+    }
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    if (phase !== 'final') skip();
+    else onClose();
+  };
+
+  const startSequence = () => {
+    if (phase !== 'waiting' || sequenceStartedRef.current) return;
+    sequenceStartedRef.current = true;
+    setPhase('showing');
+    sfx.tap();
+    haptic.tap();
+    unlockTimerRef.current = window.setTimeout(() => {
+      unlockTimerRef.current = null;
+      playUnlockFeedback();
+    }, UNLOCK_FEEDBACK_MS);
+    revealTimerRef.current = window.setTimeout(() => {
+      revealTimerRef.current = null;
+      setPhase((current) => current === 'showing' ? 'reward' : current);
+    }, REWARD_REVEAL_MS);
+    finishTimerRef.current = window.setTimeout(() => {
+      finishTimerRef.current = null;
+      setPhase('final');
+    }, CELEBRATION_MS);
+  };
+
+  const skip = () => {
+    clearSequenceTimers();
+    feedbackPlayedRef.current = true;
+    setDisplayBalance(balance);
+    setPhase('final');
+  };
+
+  useEffect(() => {
+    const target = phase === 'waiting'
+      ? wakeRef.current ?? openRef.current
+      : phase === 'final'
+        ? doneRef.current
+        : skipRef.current;
+    target?.focus();
+  }, [phase]);
+
+  /**
+   * Сундук проснулся — кнопки «тап» больше нет, и фокус нельзя оставлять в
+   * пустоте: переводим его на главное действие («Повернуть ключи»).
+   */
+  useEffect(() => {
+    if (awake && waitingForAction) openRef.current?.focus();
+  }, [awake, waitingForAction]);
+
+  const sceneStyle = { '--wake-progress': wakeTarget ? Math.min(1, wakeTaps / wakeTarget) : 0 } as CSSProperties;
+
+  return (
+    <div className={`chest-ceremony ${sceneClass} ${awake ? 'is-awake' : ''}`} style={sceneStyle}>
+      <section
+        className="chest-ceremony-stage"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chest-ceremony-title"
+        aria-describedby="chest-ceremony-description"
+        onKeyDown={handleKeyDown}
+      >
+        <div className="ceremony-spotlight" aria-hidden="true" />
+
+        {showSequence && (
+          <button ref={skipRef} className="chest-ceremony-skip" onClick={skip}>
+            Пропустить <span aria-hidden="true">›</span>
+          </button>
+        )}
+
+        <div className="chest-ceremony-content">
+          <div className="chest-ceremony-kicker" aria-hidden="true">
+            <span className="ceremony-kicker-rule" />
+            {kind === 'daily' ? 'ПРАЗДНИК ТРЁХ КЛЮЧЕЙ' : 'НАГРАДА ЗА УРОК'}
+            <span className="ceremony-kicker-rule" />
+          </div>
+
+          <div className="chest-ceremony-copy">
+            <h2 id="chest-ceremony-title">{title}</h2>
+            <p id="chest-ceremony-description">{description}</p>
+          </div>
+
+          <div className="chest-ceremony-scene">
+            <div className="ceremony-stage-halo" aria-hidden="true" />
+            <div className="chest-ceremony-buk" aria-hidden="true">
+              <div className="chest-ceremony-speech">{bukLine}</div>
+              <Mascot mood={celebrate ? (phase === 'final' ? 'dance' : 'excited') : 'happy'} look={look} stage={stage} size={118} />
+            </div>
+            <div className="chest-wake-shaker" ref={shakerRef}>
+              <ChestIllustration skinId={skin.id} />
+            </div>
+            {canWake && (
+              <button
+                ref={wakeRef}
+                type="button"
+                className="chest-wake-tap"
+                onClick={handleWakeTap}
+                aria-label={`Разбудить сундук: тап ${wakeTaps + 1} из ${wakeTarget}`}
+              />
+            )}
+            <div className="ceremony-confetti" aria-hidden="true">
+              {Array.from({ length: 18 }, (_, index) => (
+                <span key={index} className={`ceremony-confetti-piece piece-${index + 1}`} />
+              ))}
+            </div>
+          </div>
+
+          {showWakePanel && (
+            <div className={`chest-wake-panel ${awake ? 'awake' : ''}`}>
+              <div className="chest-wake-dots" aria-hidden="true">
+                {Array.from({ length: Math.max(wakeTarget, 1) }, (_, index) => (
+                  <span key={index} className={`chest-wake-dot ${index < wakeTaps ? 'on' : ''}`} />
+                ))}
+              </div>
+              <div className="chest-wake-caption">
+                {awake
+                  ? `Сундук проснулся! +${wake?.bonus ?? 0} ${plural(wake?.bonus ?? 0, 'кристалл', 'кристалла', 'кристаллов')} уже в награде 🌟`
+                  : wakeTaps > 0
+                    ? `Тапни по сундуку — ${wakeTaps} из ${wakeTarget}`
+                    : `Тапни по сундуку ${wakeTarget} раз — он проснётся и даст больше 💎`}
+              </div>
+            </div>
+          )}
+
+          <div className={`chest-ceremony-result ${hideResult ? 'waiting' : 'revealed'}`} aria-hidden={hideResult}>
+            <div className="chest-ceremony-result-label">ТВОЯ НАГРАДА</div>
+            <div className="chest-ceremony-total">
+              <span>+{gems}</span>
+              <GemIcon />
+            </div>
+            <div className="chest-ceremony-balance">
+              Теперь у тебя <strong>{displayBalance.toLocaleString('ru-RU')}</strong>{' '}
+              {plural(displayBalance, 'кристалл', 'кристалла', 'кристаллов')}
+            </div>
+            <ExtraRewards reward={reward} />
+            {/* Облик — часть награды: ребёнок видит, какой сундук открыл и что
+                ждёт его в коллекции дальше. */}
+            <div className="chest-ceremony-skin">
+              🎨 {skin.title}
+              {nextSkin ? ` · до «${nextSkin.title}» — ${nextSkin.left}` : ' · вся полка открыта ✨'}
+            </div>
+          </div>
+
+          {waitingForAction ? (
+            <button ref={openRef} className="btn lg wide chest-ceremony-open" onClick={startSequence}>
+              <KeySymbol lit />
+              <span>{kind === 'daily' ? 'Повернуть ключи!' : 'Открыть сундук!'}</span>
+              <span className="chest-ceremony-open-spark" aria-hidden="true">✦</span>
+            </button>
+          ) : animationActive ? (
+            <div className="chest-ceremony-wait" aria-hidden="true">
+              {introducing ? 'Раз, два, три — ключи повернулись!' : 'Награда уже твоя!'}
+            </div>
+          ) : (
+            <button ref={doneRef} className="btn green wide lg chest-ceremony-done" onClick={onClose}>
+              Здорово!
+            </button>
+          )}
+        </div>
+
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {waitingForAction
+            ? awake
+              ? `Сундук проснулся, награда больше на ${wake?.bonus ?? 0} ${plural(wake?.bonus ?? 0, 'кристалл', 'кристалла', 'кристаллов')}. Нажми «${
+                  kind === 'daily' ? 'Повернуть ключи' : 'Открыть сундук'
+                }».`
+              : canWake
+                ? `Сундук спит. Тапни по сундуку ${wakeTarget} раз, чтобы разбудить его: сделано тапов ${wakeTaps} из ${wakeTarget}.`
+                : kind === 'daily'
+                  ? `Все три ключа готовы${firstName ? `, ${firstName}` : ''}. Нажми «Повернуть ключи», чтобы открыть сундук.`
+                  : `Бонусный сундук готов${firstName ? `, ${firstName}` : ''}. Нажми «Открыть сундук», чтобы увидеть награду.`
+            : introducing
+              ? 'Ключи поворачиваются, БУК открывает сундук.'
+              : `Сундук открыт. Получено ${gems} ${plural(gems, 'кристалл', 'кристалла', 'кристаллов')}${
+                  reward.wakeBonus ? `, включая ${reward.wakeBonus} за разогрев` : ''
+                }. Теперь у тебя ${balance} ${plural(balance, 'кристалл', 'кристалла', 'кристаллов')}.`}
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -1,0 +1,565 @@
+:root {
+  /* Не разрешаем Auto Dark Theme браузера перекрашивать светлую палитру. */
+  color-scheme: only light;
+  --bg: #fff8ec;
+  --bg-2: #fff;
+  --ink: #241f36;
+  --ink-2: #6b6480;
+  --ink-3: #9c95ad;
+
+  --primary: #7c5cff;
+  --primary-2: #9b84ff;
+  --primary-soft: #ece7ff;
+  --green: #22c55e;
+  --green-soft: #dcfce7;
+  --orange: #ff9f0a;
+  --orange-soft: #ffedd5;
+  --red: #f43f5e;
+  /* Тёмный оттенок оранжевого для текста на --orange-soft: у чистого #ff9f0a
+     контраст с подложкой ~1.9:1 и буква «растворяется». */
+  --orange-ink: #b45309;
+  --red-soft: #ffe4e6;
+  --blue: #3b82f6;
+  --pink: #ff6fb5;
+
+  --card: #ffffff;
+  --line: #efe9dd;
+  --bg-glow-1: #ffe9c7;
+  --bg-glow-2: #e6e0ff;
+  --promo-glow-1: #ece7ff;
+  --promo-glow-2: #fff2d6;
+  --scratch-glow: #fef3c7;
+  --shadow: 0 6px 0 rgba(36, 31, 54, 0.06), 0 10px 24px rgba(36, 31, 54, 0.07);
+  --shadow-lg: 0 12px 40px rgba(36, 31, 54, 0.16);
+
+  /* ── Витрина-бутик (0.19.0): арки, подсветка, подиумы и бирки ─────────────
+     Магазин — мягкая витрина детского бутика: лавандовые ниши-арки, тёплая
+     лампа сверху, вещь на круглом подиуме, цена — бумажная бирка. Цвета
+     выведены из акцента темы: витрина остаётся «своей» и в неоне, и в
+     космосе, и в тёмной схеме, без десяти ручных палитр. */
+  --case-wall: color-mix(in srgb, var(--primary-soft) 42%, var(--bg));
+  --case-wall-2: color-mix(in srgb, var(--primary-soft) 20%, var(--bg));
+  --case-card: color-mix(in srgb, var(--bg-2) 86%, var(--primary-soft));
+  --case-card-on: color-mix(in srgb, var(--primary-soft) 72%, var(--bg-2));
+  --case-arch-top: color-mix(in srgb, var(--primary-soft) 82%, var(--bg-2));
+  --case-arch-bottom: color-mix(in srgb, var(--primary-soft) 52%, var(--bg-2));
+  --case-line: color-mix(in srgb, var(--primary) 24%, transparent);
+  --case-line-soft: color-mix(in srgb, var(--primary) 15%, transparent);
+  --case-lamp: #fff2c2;
+  --case-lamp-glow: rgba(255, 226, 140, 0.5);
+  --case-plinth-top: color-mix(in srgb, var(--primary) 30%, var(--bg-2));
+  --case-plinth-bottom: color-mix(in srgb, var(--primary) 48%, var(--bg));
+  /* Три арки сцены техники — как в референсе: мятная, голубая,
+     лавандовая (лаванда — это сам `--case-arch-*`). */
+  --case-mint-top: #e4f8ee;
+  --case-mint-bottom: #c9efdd;
+  --case-mint-plinth: #b6e8d1;
+  --case-mint-deep: #93d9bb;
+  --case-sky-top: #e5f4ff;
+  --case-sky-bottom: #c9e7ff;
+  --case-sky-plinth: #b3dcfb;
+  --case-sky-deep: #8fc9f4;
+  --tag-bg: #fff8e6;
+  --tag-ink: #8a4b0b;
+  --tag-line: rgba(138, 75, 11, 0.28);
+  /* Сцена витрины техники (0.19.0): небо, пол, дерево, вода, рамы арок. */
+  --stage-sky: color-mix(in srgb, var(--primary-soft) 46%, #efe6ff);
+  --stage-sky-2: color-mix(in srgb, var(--primary-soft) 22%, #f4ecff);
+  --stage-sky-top: #ddf2ff;
+  --stage-sky-mid: #b7e2f8;
+  --stage-cloud: rgba(255, 255, 255, 0.82);
+  --stage-floor: #f8e9d5;
+  --stage-floor-2: #eed8bd;
+  --stage-wood: #dfba8e;
+  --stage-wood-2: #c2935f;
+  --stage-leaf: #a9d8a2;
+  --stage-leaf-2: #8acb8a;
+  --stage-leaf-3: #6fae72;
+  --stage-water: #8fd2f2;
+  --stage-water-2: #63b8e6;
+  --stage-mint-frame: #a9e2c9;
+  --stage-mint-frame-2: #7fcfae;
+  --stage-ship-frame: #a9dcf7;
+  --stage-ship-frame-2: #7cc7ee;
+  --stage-lav-frame: color-mix(in srgb, var(--primary) 26%, var(--primary-soft));
+  --stage-lav-frame-2: color-mix(in srgb, var(--primary) 42%, var(--primary-soft));
+
+  --r-sm: 14px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-pill: 999px;
+
+  /* ── Шаг сетки 4/8/12/16/20/24/32 ───────────────────────────────────────────
+     Один масштаб на всё приложение. Материал требует 8dp-сетку, Duolingo держит
+     4/8/12/16/24/32, Apple — 8pt. Для 7–9 лет воздух важнее плотности: у детей
+     хуже мелкая моторика и внимание к деталям, поэтому «склеенные» блоки
+     читаются как одна каша (см. docs/word-cards-design.md). */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+
+  /* ── Карточка слова ────────────────────────────────────────────────────────
+     Плита под картинку: картинка никогда не касается рамки и букв. Внутренний
+     отступ — доля от размера плиты (безопасная зона иллюстрации), а не жёсткие
+     пиксели: иначе на большом экране поле выглядит точкой, а на маленьком — дырой. */
+  --art-safe: 0.12;
+  --art-plate: #fffdf7;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: var(--line);
+  /* Плита-герой варианта A «Плита» (не основной с 2026-10-06, включается
+     /?cards=plate): растёт вместе с экраном, но ограничена и по ширине, и по
+     высоте. 46vw — ширина, 24dvh — высота: на коротких экранах (iPhone SE,
+     568 px) картинка не выдавливает кнопку «Запомнил» за пределы экрана.
+     Замеры — docs/word-cards-design.md. */
+  --art-hero: clamp(136px, min(46vw, 24dvh), 184px);
+  /* «Фотокарточка» (основной вариант B): снимок занимает всю ширину паспарту.
+     Ограничение по ширине экрана ему больше не нужно — ширину задаёт сама
+     карточка (и `width: min(100%, …)` в .word-art-fill), а ограничение по
+     высоте здесь только вредило бы: снимок становился бы уже паспарту и
+     «плавал» квадратом по центру — то есть вариант B терял бы смысл.
+     Два шага размера — это переключатель /?art=compact|base:
+       compact — как плита-герой A: до 220px, квадрат по центру паспарту,
+       base    — во всю карточку (по умолчанию). */
+  --art-photo: 100%;
+  --art-photo-compact: clamp(136px, min(56vw, 24dvh), 220px);
+  /* ── Картинка в уроке ──────────────────────────────────────────────────────
+     Карточка урока не прокручивается (100svh + overflow: hidden). Размер
+     снимка ограничен шириной паспарту И высотой экрана, причём ширина и высота
+     берутся из одного токена: flex-shrink не должен сплющивать квадрат в
+     широкую полоску, в которой object-fit: contain снова уменьшает рисунок.
+     На iPhone 14 снимок занимает всю ширину паспарту (~330 px); на коротком
+     экране токен отдельно уменьшается в @media (max-height: 680px). */
+  --screen-max: 620px;
+  /* Горизонтальные поля: экран 2×16, карточка 2×12, рамка карточки 2×2. */
+  --art-lesson-cap: calc(min(100vw, var(--screen-max)) - 60px);
+  --art-lesson-size: min(var(--art-lesson-cap), 40svh);
+  /* Картинка-подсказка в упражнениях — это смысловой образ, а не иконка.
+     Оба токена теперь задают ПОТОЛОК, а не размер: сам размер считает flex —
+     снимок забирает ту высоту, которая осталась в задании после примера, поля
+     ввода, клавиатуры и кнопок (см. app.css, блоки .task-write > .clue и
+     .clue-hero). Числом картинку больше не прибиваем: именно прибитая плита
+     144px выглядела на айфоне иконкой рядом с фотокарточкой повторения.
+     Под клавиатурой («Напиши», «Диктант») компоновка горизонтальная, поэтому
+     потолок ограничен ещё и долей ширины экрана — иначе примеру не останется
+     места. В «Собери» и «Исправь» клавиатуры нет: там hero-потолок выше. */
+  --art-clue: clamp(104px, min(46vw, 30svh), 192px);
+  --art-clue-hero: clamp(128px, min(56vw, 25svh), 220px);
+  /* Паспарту «фотокарточки» остаётся светлым и в тёмной теме: снимок должен
+     выглядеть напечатанным, а не «вырезанным стикером» на тёмном стекле. */
+  --photo-paper: #fffdf7;
+  --photo-edge: rgba(36, 31, 54, 0.14);
+  --wcard-gap-art: var(--sp-5);
+  --wcard-gap-word: var(--sp-4);
+  --wcard-pad: var(--sp-5);
+
+  --fs-xs: 13px;
+  --fs-sm: 15px;
+  --fs-md: 18px;
+  --fs-lg: 22px;
+  --fs-xl: 30px;
+  --fs-xxl: 40px;
+
+  --tap: 52px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+[data-theme='dark'] {
+  /* Тёмные системные элементы при нашей тёмной палитре. Некоторые режимы
+     принудительного затемнения Samsung Internet всё равно игнорируют это
+     объявление и могут перекрасить страницу ещё раз. */
+  color-scheme: only dark;
+  --bg: #171426;
+  --bg-2: #1f1b33;
+  --ink: #f4f1ff;
+  --ink-2: #b7b0cd;
+  --ink-3: #8b84a3;
+  --card: #241f3a;
+  --line: #322c4d;
+  --bg-glow-1: rgba(255, 159, 10, 0.12);
+  --bg-glow-2: rgba(124, 92, 255, 0.18);
+  --promo-glow-1: rgba(124, 92, 255, 0.22);
+  --promo-glow-2: rgba(255, 159, 10, 0.14);
+  --scratch-glow: rgba(245, 158, 11, 0.18);
+  --primary-soft: #32285c;
+  --green-soft: #1c3a2a;
+  --orange-soft: #3d2c12;
+  --red-soft: #45192a;
+  --orange-ink: #fbbf24;
+  --art-plate: #2b2544;
+  --art-plate-glow: #3a3360;
+  --art-frame-line: #453d70;
+  /* Паспарту «фотокарточки» остаётся светлым: картинка выглядит напечатанной,
+     а не «вырезанным стикером» на тёмном фоне. */
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.35);
+  --shadow: 0 6px 0 rgba(0, 0, 0, 0.25), 0 10px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+  /* Витрина в тёмной теме: ниши глубже, лампа — только тёплый блик,
+     бумажные бирки остаются светящимися подписями, а не белыми пятнами. */
+  --case-wall: color-mix(in srgb, var(--primary-soft) 62%, var(--bg));
+  --case-wall-2: color-mix(in srgb, var(--primary-soft) 32%, var(--bg));
+  --case-card: color-mix(in srgb, var(--bg-2) 92%, var(--primary-soft));
+  --case-arch-top: color-mix(in srgb, var(--primary-soft) 78%, var(--bg-2));
+  --case-arch-bottom: color-mix(in srgb, var(--primary-soft) 46%, var(--bg-2));
+  --case-lamp-glow: rgba(255, 226, 140, 0.22);
+  --case-plinth-top: color-mix(in srgb, var(--primary) 42%, var(--bg-2));
+  --case-mint-top: color-mix(in srgb, #93d9bb 26%, var(--bg-2));
+  --case-mint-bottom: color-mix(in srgb, #93d9bb 38%, var(--bg-2));
+  --case-mint-plinth: color-mix(in srgb, #93d9bb 46%, var(--bg-2));
+  --case-mint-deep: color-mix(in srgb, #93d9bb 58%, var(--bg));
+  --case-sky-top: color-mix(in srgb, #8fc9f4 26%, var(--bg-2));
+  --case-sky-bottom: color-mix(in srgb, #8fc9f4 38%, var(--bg-2));
+  --case-sky-plinth: color-mix(in srgb, #8fc9f4 46%, var(--bg-2));
+  --case-sky-deep: color-mix(in srgb, #8fc9f4 58%, var(--bg));
+  --tag-bg: #3a2c14;
+  --tag-ink: #ffd98a;
+  --tag-line: rgba(255, 217, 138, 0.3);
+  --stage-sky: color-mix(in srgb, var(--primary-soft) 26%, var(--bg));
+  --stage-sky-2: color-mix(in srgb, var(--primary-soft) 14%, var(--bg-2));
+  --stage-sky-top: color-mix(in srgb, #ddf2ff 22%, var(--bg-2));
+  --stage-sky-mid: color-mix(in srgb, #b7e2f8 30%, var(--bg-2));
+  --stage-cloud: rgba(255, 255, 255, 0.1);
+  --stage-floor: color-mix(in srgb, #f8e9d5 20%, var(--bg-2));
+  --stage-floor-2: color-mix(in srgb, #eed8bd 30%, var(--bg));
+  --stage-wood: color-mix(in srgb, #dfba8e 40%, var(--bg-2));
+  --stage-wood-2: color-mix(in srgb, #c2935f 52%, var(--bg));
+  --stage-leaf: color-mix(in srgb, #a9d8a2 34%, var(--bg-2));
+  --stage-leaf-2: color-mix(in srgb, #8acb8a 40%, var(--bg-2));
+  --stage-leaf-3: color-mix(in srgb, #6fae72 46%, var(--bg));
+  --stage-water: color-mix(in srgb, #8fd2f2 34%, var(--bg-2));
+  --stage-water-2: color-mix(in srgb, #63b8e6 44%, var(--bg));
+  --stage-mint-frame: color-mix(in srgb, #bfe9d7 42%, var(--bg-2));
+  --stage-mint-frame-2: color-mix(in srgb, #8fd6b9 54%, var(--bg));
+  --stage-ship-frame: color-mix(in srgb, #a9dcf7 44%, var(--bg-2));
+  --stage-ship-frame-2: color-mix(in srgb, #7cc7ee 54%, var(--bg));
+  --stage-lav-frame: color-mix(in srgb, var(--primary-soft) 68%, var(--bg-2));
+  --stage-lav-frame-2: color-mix(in srgb, var(--primary) 40%, var(--bg));
+}
+
+/*
+ * Неоновая аркада — отдельный стиль поверх любой цветовой схемы.
+ * Светлый вариант повторяет розово-голубую палитру проекта «Луи Брайль»,
+ * тёмный — его исходный почти чёрный фон, сетку и яркий неоновый акцент.
+ */
+[data-theme-style='neon'] {
+  --bg: #f0f4ff;
+  --bg-2: rgba(255, 255, 255, 0.84);
+  --ink: #1a1a2e;
+  --ink-2: #4a4a6a;
+  --ink-3: #717797;
+
+  --primary: #d600d6;
+  --primary-2: #0080ff;
+  --primary-soft: rgba(214, 0, 214, 0.11);
+  --green: #117a45;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #e69a00;
+  --orange-soft: rgba(255, 159, 10, 0.16);
+  --orange-ink: #875200;
+  --red: #d9365b;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #0080ff;
+  --pink: #d600d6;
+
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(214, 0, 214, 0.32);
+  --bg-glow-1: rgba(214, 0, 214, 0.09);
+  --bg-glow-2: rgba(0, 128, 255, 0.09);
+  --promo-glow-1: rgba(214, 0, 214, 0.12);
+  --promo-glow-2: rgba(0, 128, 255, 0.09);
+  --scratch-glow: rgba(255, 159, 10, 0.16);
+  --shadow: 0 6px 0 rgba(26, 26, 46, 0.04), 0 0 18px rgba(214, 0, 214, 0.12);
+  --shadow-lg: 0 12px 40px rgba(26, 26, 46, 0.16), 0 0 24px rgba(214, 0, 214, 0.12);
+
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 20px;
+  --art-plate: #ffffff;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(214, 0, 214, 0.48);
+  --font: 'Comic Sans MS', 'Segoe UI Rounded', 'Trebuchet MS', system-ui, sans-serif;
+
+  --neon-grid-x: rgba(214, 0, 214, 0.06);
+  --neon-grid-y: rgba(0, 128, 255, 0.07);
+  --neon-primary-ink: #000000;
+  --neon-primary-depth: #980098;
+  --neon-primary-glow: rgba(214, 0, 214, 0.38);
+  --neon-success-ink: #ffffff;
+  --neon-danger-ink: #3d0c19;
+
+}
+
+[data-theme='dark'][data-theme-style='neon'] {
+  color-scheme: only dark;
+  --bg: #0d0d1a;
+  --bg-2: rgba(20, 20, 40, 0.86);
+  --ink: #e0ffff;
+  --ink-2: #a0c0ff;
+  --ink-3: #8d9abb;
+
+  --primary: #ff00ff;
+  --primary-2: #00ffff;
+  --primary-soft: rgba(255, 0, 255, 0.15);
+  --green: #2ecc71;
+  --green-soft: rgba(46, 204, 113, 0.17);
+  --orange: #ffd166;
+  --orange-soft: rgba(255, 209, 102, 0.15);
+  --orange-ink: #ffd166;
+  --red: #ff5c7c;
+  --red-soft: rgba(255, 92, 124, 0.17);
+  --blue: #00ffff;
+  --pink: #ff6bff;
+
+  --card: rgba(20, 20, 40, 0.88);
+  --line: rgba(255, 0, 255, 0.42);
+  --bg-glow-1: rgba(255, 0, 255, 0.12);
+  --bg-glow-2: rgba(0, 255, 255, 0.1);
+  --promo-glow-1: rgba(255, 0, 255, 0.17);
+  --promo-glow-2: rgba(0, 255, 255, 0.1);
+  --scratch-glow: rgba(255, 209, 102, 0.17);
+  --shadow: 0 0 20px rgba(255, 0, 255, 0.2), 0 8px 22px rgba(0, 255, 255, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 28px rgba(255, 0, 255, 0.2);
+
+  --art-plate: #141428;
+  --art-plate-glow: #22203a;
+  --art-frame-line: rgba(0, 255, 255, 0.5);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+
+  --neon-grid-x: rgba(255, 0, 255, 0.08);
+  --neon-grid-y: rgba(0, 255, 255, 0.08);
+  --neon-primary-ink: #0d0d1a;
+  --neon-primary-depth: #980098;
+  --neon-primary-glow: rgba(255, 0, 255, 0.48);
+  --neon-success-ink: #10291c;
+  --neon-danger-ink: #350813;
+
+}
+
+/* Космос: прохладное индиго с голубыми звёздными акцентами. */
+[data-theme-style='space'] {
+  --bg: #f2efff;
+  --bg-2: rgba(255, 255, 255, 0.86);
+  --ink: #211b3b;
+  --ink-2: #625b82;
+  --ink-3: #8b83a8;
+  --primary: #6846db;
+  --primary-2: #39bde8;
+  --primary-soft: rgba(104, 70, 219, 0.11);
+  --green: #168650;
+  --green-soft: rgba(46, 204, 113, 0.14);
+  --orange: #d88d12;
+  --orange-soft: rgba(255, 191, 71, 0.18);
+  --orange-ink: #80500d;
+  --red: #d9365b;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #248fe0;
+  --pink: #c45cff;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(104, 70, 219, 0.3);
+  --bg-glow-1: rgba(120, 87, 255, 0.13);
+  --bg-glow-2: rgba(54, 216, 255, 0.1);
+  --promo-glow-1: rgba(120, 87, 255, 0.13);
+  --promo-glow-2: rgba(54, 216, 255, 0.1);
+  --scratch-glow: rgba(255, 191, 71, 0.16);
+  --shadow: 0 6px 0 rgba(33, 27, 59, 0.04), 0 0 18px rgba(104, 70, 219, 0.1);
+  --shadow-lg: 0 12px 40px rgba(33, 27, 59, 0.16), 0 0 22px rgba(104, 70, 219, 0.12);
+  --art-plate: #ffffff;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(104, 70, 219, 0.4);
+  --space-star: rgba(104, 70, 219, 0.24);
+
+}
+
+[data-theme='dark'][data-theme-style='space'] {
+  --bg: #101027;
+  --bg-2: rgba(25, 23, 54, 0.88);
+  --ink: #eff3ff;
+  --ink-2: #bec4ef;
+  --ink-3: #929ac3;
+  --primary: #a78bfa;
+  --primary-2: #36d8ff;
+  --primary-soft: rgba(120, 87, 255, 0.18);
+  --theme-primary-ink: #171229;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.16);
+  --orange: #ffd166;
+  --orange-soft: rgba(255, 209, 102, 0.15);
+  --orange-ink: #ffd166;
+  --red: #ff6d87;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --blue: #56c7ff;
+  --pink: #d39aff;
+  --card: rgba(25, 23, 54, 0.9);
+  --line: rgba(167, 139, 250, 0.36);
+  --bg-glow-1: rgba(120, 87, 255, 0.2);
+  --bg-glow-2: rgba(54, 216, 255, 0.12);
+  --promo-glow-1: rgba(120, 87, 255, 0.21);
+  --promo-glow-2: rgba(54, 216, 255, 0.12);
+  --scratch-glow: rgba(255, 209, 102, 0.16);
+  --shadow: 0 0 20px rgba(120, 87, 255, 0.18), 0 8px 22px rgba(54, 216, 255, 0.07);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.48), 0 0 26px rgba(120, 87, 255, 0.2);
+  --art-plate: #191936;
+  --art-plate-glow: #292653;
+  --art-frame-line: rgba(54, 216, 255, 0.5);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+  --space-star: rgba(255, 255, 255, 0.42);
+
+}
+
+/* Лесная сказка: ясный зелёный и янтарные солнечные детали. */
+[data-theme-style='forest'] {
+  --bg: #f1f8e9;
+  --bg-2: rgba(255, 255, 255, 0.86);
+  --ink: #1e3225;
+  --ink-2: #526b58;
+  --ink-3: #809483;
+  --primary: #238452;
+  --primary-2: #55b96e;
+  --primary-soft: rgba(35, 132, 82, 0.12);
+  --green: #16834c;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #b87400;
+  --orange-soft: rgba(255, 191, 71, 0.18);
+  --orange-ink: #80500d;
+  --red: #ce3d54;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #3b82a5;
+  --pink: #df7193;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(35, 132, 82, 0.25);
+  --bg-glow-1: rgba(126, 190, 91, 0.17);
+  --bg-glow-2: rgba(255, 191, 71, 0.11);
+  --promo-glow-1: rgba(126, 190, 91, 0.15);
+  --promo-glow-2: rgba(255, 191, 71, 0.12);
+  --scratch-glow: rgba(255, 191, 71, 0.18);
+  --shadow: 0 6px 0 rgba(30, 50, 37, 0.04), 0 0 18px rgba(35, 132, 82, 0.1);
+  --shadow-lg: 0 12px 40px rgba(30, 50, 37, 0.16), 0 0 22px rgba(35, 132, 82, 0.11);
+  --art-plate: #fbfff8;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(35, 132, 82, 0.36);
+
+}
+
+[data-theme='dark'][data-theme-style='forest'] {
+  --bg: #11231d;
+  --bg-2: rgba(25, 48, 38, 0.9);
+  --ink: #eef8e7;
+  --ink-2: #bdd4bd;
+  --ink-3: #91ad96;
+  --primary: #55cf8e;
+  --primary-2: #f4bb48;
+  --primary-soft: rgba(55, 155, 93, 0.2);
+  --theme-primary-ink: #0e2616;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.17);
+  --orange: #f4bb48;
+  --orange-soft: rgba(244, 187, 72, 0.16);
+  --orange-ink: #ffd166;
+  --red: #ff7182;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --blue: #69c8c2;
+  --pink: #f19aba;
+  --card: rgba(25, 48, 38, 0.9);
+  --line: rgba(116, 202, 136, 0.34);
+  --bg-glow-1: rgba(74, 155, 92, 0.19);
+  --bg-glow-2: rgba(244, 187, 72, 0.1);
+  --promo-glow-1: rgba(74, 155, 92, 0.21);
+  --promo-glow-2: rgba(244, 187, 72, 0.12);
+  --scratch-glow: rgba(244, 187, 72, 0.16);
+  --shadow: 0 0 20px rgba(74, 155, 92, 0.18), 0 8px 22px rgba(244, 187, 72, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.46), 0 0 26px rgba(74, 155, 92, 0.18);
+  --art-plate: #1a3126;
+  --art-plate-glow: #244633;
+  --art-frame-line: rgba(116, 202, 136, 0.46);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+
+}
+
+/* Океан: чистые голубые поверхности и бирюзовый акцент. */
+[data-theme-style='ocean'] {
+  --bg: #ecf8ff;
+  --bg-2: rgba(255, 255, 255, 0.88);
+  --ink: #17303d;
+  --ink-2: #4d6b79;
+  --ink-3: #7995a1;
+  --primary: #067a98;
+  --primary-2: #36b8c7;
+  --primary-soft: rgba(7, 135, 168, 0.11);
+  --green: #16834c;
+  --green-soft: rgba(46, 204, 113, 0.15);
+  --orange: #b87500;
+  --orange-soft: rgba(255, 191, 71, 0.18);
+  --orange-ink: #80500d;
+  --red: #ce3d54;
+  --red-soft: rgba(231, 76, 110, 0.14);
+  --blue: #1976c9;
+  --pink: #d96094;
+  --card: rgba(255, 255, 255, 0.9);
+  --line: rgba(7, 135, 168, 0.27);
+  --bg-glow-1: rgba(72, 199, 216, 0.16);
+  --bg-glow-2: rgba(77, 163, 229, 0.11);
+  --promo-glow-1: rgba(72, 199, 216, 0.15);
+  --promo-glow-2: rgba(77, 163, 229, 0.11);
+  --scratch-glow: rgba(255, 191, 71, 0.16);
+  --shadow: 0 6px 0 rgba(23, 48, 61, 0.04), 0 0 18px rgba(7, 135, 168, 0.1);
+  --shadow-lg: 0 12px 40px rgba(23, 48, 61, 0.16), 0 0 22px rgba(7, 135, 168, 0.12);
+  --art-plate: #ffffff;
+  --art-plate-glow: #ffffff;
+  --art-frame-line: rgba(7, 135, 168, 0.4);
+  --ocean-wave: rgba(7, 135, 168, 0.06);
+
+}
+
+[data-theme='dark'][data-theme-style='ocean'] {
+  --bg: #0b2030;
+  --bg-2: rgba(17, 43, 59, 0.9);
+  --ink: #e7f8ff;
+  --ink-2: #b2d5e4;
+  --ink-3: #84aab9;
+  --primary: #48c7d8;
+  --primary-2: #4d9fe5;
+  --primary-soft: rgba(30, 139, 164, 0.2);
+  --theme-primary-ink: #081e2b;
+  --theme-success-ink: #10291c;
+  --theme-danger-ink: #350813;
+  --green: #55d995;
+  --green-soft: rgba(46, 204, 113, 0.16);
+  --orange: #ffd166;
+  --orange-soft: rgba(255, 209, 102, 0.15);
+  --orange-ink: #ffd166;
+  --red: #ff7182;
+  --red-soft: rgba(255, 92, 124, 0.16);
+  --blue: #69bdff;
+  --pink: #f18bb1;
+  --card: rgba(17, 43, 59, 0.9);
+  --line: rgba(72, 199, 216, 0.34);
+  --bg-glow-1: rgba(72, 199, 216, 0.17);
+  --bg-glow-2: rgba(77, 159, 229, 0.15);
+  --promo-glow-1: rgba(72, 199, 216, 0.19);
+  --promo-glow-2: rgba(77, 159, 229, 0.14);
+  --scratch-glow: rgba(255, 209, 102, 0.16);
+  --shadow: 0 0 20px rgba(72, 199, 216, 0.16), 0 8px 22px rgba(77, 159, 229, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.46), 0 0 26px rgba(72, 199, 216, 0.18);
+  --art-plate: #112b3b;
+  --art-plate-glow: #174154;
+  --art-frame-line: rgba(72, 199, 216, 0.48);
+  --photo-paper: #f2ece1;
+  --photo-edge: rgba(0, 0, 0, 0.42);
+  --ocean-wave: rgba(72, 199, 216, 0.08);
+
+}
