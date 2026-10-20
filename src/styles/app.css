@@ -6488,3 +6488,70 @@ p {
 @media (prefers-reduced-motion: reduce) {
   .phone-turntable { transition: none; }
 }
+
+/* «Мой мир» (0.26.0): три слота выбранных вещей и список купленных для выбора.
+   Оформление — как у ангара: --stage-*, --case-*, --tag-*. */
+.world-screen { padding-bottom: 96px; }
+.world-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.world-slot {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  min-height: 176px;
+  padding: 10px 8px 12px;
+  border: 2px solid var(--case-line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--stage-sky), var(--stage-sky-2));
+  text-align: center;
+}
+.world-slot.empty {
+  place-content: center;
+  border-style: dashed;
+  background: var(--card);
+  color: var(--ink-2);
+  font: inherit;
+  cursor: pointer;
+}
+.world-slot-plus { font-size: 30px; line-height: 1; font-weight: 800; color: var(--primary); }
+.world-slot-art { display: grid; place-items: center; min-height: 92px; }
+.world-slot-title { font-size: 12px; line-height: 1.2; }
+.world-picker { margin-top: 4px; }
+.world-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.world-pick-item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.world-pick-item.on {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+.world-pick-item > i {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--primary);
+  font-style: normal;
+  font-weight: 800;
+}
+.world-pick-art { display: grid; place-items: center; min-height: 58px; }
+.world-pick-title { line-height: 1.2; }

@@ -32,6 +32,7 @@ import { dayKey, dayPlan, ENDLESS_GEMS, setEndlessGemsForTests, useApp } from '.
 import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
+import { normalizeWorld, toggleWorldPick } from '../src/engine/world';
 import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { CHEST_SKINS } from '../src/engine/chests';
@@ -777,6 +778,46 @@ async function main() {
   check('после ангара видна главная', !document.querySelector('.hangar') && has('Мой путь'), '');
   click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab'))!);
   await sleep(60);
+
+  // ── Мой мир (0.26.0): вкладка с тремя выбранными вещами ───────────────
+  // Чистая логика: до трёх мест, только купленное, без повторов.
+  check('«Мой мир»: в третье место нельзя поставить четвёртую вещь', toggleWorldPick(['cap', 'bow', 'scarf'], 'glasses', ['cap', 'bow', 'scarf', 'glasses']).result === 'full', '');
+  check('«Мой мир»: некупленную вещь не ставим', toggleWorldPick([], 'x', []).result === 'locked', '');
+  check(
+    '«Мой мир»: при загрузке отбрасываются повторы, чужие и некупленные вещи',
+    JSON.stringify(normalizeWorld(['car-racer', 'car-racer', 'zz', 'phone-pro'], ['car-racer', 'phone-pro'])) ===
+      JSON.stringify(['car-racer', 'phone-pro']),
+    '',
+  );
+  const worldTab = buttons().find((b) => b.className.includes('tab') && (b.textContent ?? '').includes('Мой мир'));
+  check('в нижнем ряду есть вкладка «Мой мир»', !!worldTab, '');
+  click(worldTab);
+  await sleep(60);
+  check('вкладка «Мой мир» открывается', has('Мой мир') && document.querySelectorAll('.world-slot').length === 3, '');
+  const worldCount = (useApp.getState().profiles[0].shop?.world ?? []).length;
+  check(
+    'пустые места — это свободные из трёх',
+    document.querySelectorAll('.world-slot.empty').length === 3 - worldCount,
+    `пустых: ${document.querySelectorAll('.world-slot.empty').length}, выбрано: ${worldCount}`,
+  );
+  click(document.querySelector('.world-slot.empty'));
+  await sleep(40);
+  check('«Выбрать» открывает список купленных вещей', !!document.querySelector('.world-picker') && document.querySelectorAll('.world-pick-item').length > 0, '');
+  click(document.querySelector('.world-pick-item[aria-label^="Болид"]'));
+  await sleep(40);
+  check(
+    'вещь из списка попадает в «Мой мир» и на сцену',
+    (useApp.getState().profiles[0].shop?.world ?? []).includes('car-racer') && !!document.querySelector('.world-slot .world-slot-title') && has('Болид'),
+    JSON.stringify(useApp.getState().profiles[0].shop?.world),
+  );
+  click(document.querySelector('.world-slot [class*="btn"]'));
+  await sleep(40);
+  check('«Убрать» возвращает вещь в список', !(useApp.getState().profiles[0].shop?.world ?? []).includes('car-racer'), '');
+  click(btnText('Готово'));
+  await sleep(30);
+  // Возвращаем вкладку БУК: дальнейшие блоки ждут её экран.
+  click(buttons().find((b) => b.className.includes('tab') && (b.textContent ?? '').includes('БУК')));
+  await sleep(40);
 
   // Возвращаем профиль к покупкам с нуля: следующие блоки считают покупки
   // нарядов, музыки и звуков так же, как у новичка (стартовые наборы открыты).

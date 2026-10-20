@@ -133,6 +133,8 @@ export interface ShopState {
   tuning?: ShopTuning;
   /** Список желаемых товаров («Мечты 🤍», фаза 2 магазина): id вещей, костюмов или мелодий. */
   wishlist?: string[];
+  /** «Мой мир» (0.26.0): до трёх купленных вещей для отдельной вкладки, см. engine/world.ts. */
+  world?: string[];
 }
 
 /**

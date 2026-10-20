@@ -25,6 +25,7 @@ import {
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice, SHOP_ITEMS } from '../engine/shop';
+import { normalizeWorld, toggleWorldPick, type WorldToggle } from '../engine/world';
 import { migrateMusicShop, MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from '../engine/music';
 import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, SOUND_PACKS, STARTER_SOUND_IDS } from '../engine/sounds';
 import { COSTUME_PALETTES, normalizeTuning, recolor, TINT_PALETTES, type RecolorOutcome } from '../engine/tints';
@@ -211,6 +212,7 @@ function readShop(p: Profile): ShopState {
     // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
     tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
     wishlist: normalizeWishlist(p.shop?.wishlist, owned, assembled, music.musicOwned),
+    world: normalizeWorld(p.shop?.world, owned),
   };
 }
 
@@ -291,6 +293,7 @@ function newProfile(name: string, avatar: string): Profile {
       soundOwned: [...STARTER_SOUND_IDS],
       soundPack: DEFAULT_SOUND_PACK,
       wishlist: [],
+      world: [],
     },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   });
@@ -356,6 +359,7 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined, openLegacy =
         ...normalizeSoundShop(raw.shop),
         tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
         wishlist: normalizeWishlist(raw.shop?.wishlist, owned, puzzle.assembled, music.musicOwned),
+        world: normalizeWorld(raw.shop?.world, owned),
       },
       puzzle,
     };
@@ -452,6 +456,8 @@ interface AppState {
   sellItem: (id: string) => boolean;
   /** Добавить/убрать предмет из списка «Мечты 🤍» (Wishlist). Возвращает true, если добавлен. */
   toggleWishlist: (id: string) => boolean;
+  /** «В Мой мир» (0.26.0): добавить/убрать купленную вещь из трёх мест на вкладке. */
+  toggleWorld: (id: string) => WorldToggle;
   /** Купить мелодию из музыкального магазина (однократно; открытый трек остаётся в профиле). */
   buyMusicTrack: (id: string) => boolean;
   /** Выбрать купленную мелодию для БУКа; null — выключить музыку. */
@@ -1065,6 +1071,22 @@ export const useApp = create<AppState>()(
           }),
         );
         return true;
+      },
+
+      toggleWorld: (id) => {
+        const p = getActive(get());
+        if (!p) return 'locked';
+        const shop = readShop(p);
+        const next = toggleWorldPick(shop.world, id, shop.owned);
+        if (next.result === 'added' || next.result === 'removed') {
+          set((s) =>
+            patchActive(s, (prof) => ({
+              ...prof,
+              shop: { ...readShop(prof), world: next.world },
+            })),
+          );
+        }
+        return next.result;
       },
 
       toggleWishlist: (id) => {

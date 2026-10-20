@@ -11,6 +11,7 @@ import { ParentScreen } from './ui/screens/ParentScreen';
 import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
+import { WorldScreen } from './ui/screens/WorldScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
 import { HangarScene } from './ui/HangarScene';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
@@ -22,7 +23,7 @@ import { setHapticsEnabled } from './platform/haptics';
 import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
 import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
-type Tab = 'home' | 'words' | 'shop' | 'parent';
+type Tab = 'home' | 'words' | 'shop' | 'world' | 'parent';
 
 function diagnosticsRequested(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
@@ -277,6 +278,8 @@ export default function App() {
         <WordsScreen />
       ) : tab === 'shop' ? (
         <ShopScreen />
+      ) : tab === 'world' ? (
+        <WorldScreen />
       ) : (
         <ParentScreen
           unlocked={parentUnlocked}
@@ -346,6 +349,10 @@ export default function App() {
         <button className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`} onClick={() => switchTab('shop')}>
           <span className="ico">🎩</span>
           БУК
+        </button>
+        <button className={`tab ${!profilesOpen && tab === 'world' ? 'on' : ''}`} onClick={() => switchTab('world')}>
+          <span className="ico">🌍</span>
+          Мой мир
         </button>
         <button className={`tab ${!profilesOpen && tab === 'parent' ? 'on' : ''}`} onClick={() => switchTab('parent')}>
           <span className="ico">👨‍👩‍👧</span>
