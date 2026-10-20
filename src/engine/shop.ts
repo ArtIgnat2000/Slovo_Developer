@@ -34,6 +34,39 @@ export interface ShopItem {
   toy?: ToyKind;
   /** Эмодзи для диалогов и тостов (у нарядов её нет — там 🎩). */
   emoji?: string;
+  /** Тип вещи. Без поля тип считается по цене (см. rarityOf). */
+  rarity?: ItemRarity;
+}
+
+/** Тип вещи: обычный, крутой, легендарный или ТОПОВЫЙ. */
+export type ItemRarity = 'common' | 'cool' | 'legendary' | 'top';
+
+export const RARITY_LABEL: Record<ItemRarity, string> = {
+  common: 'Обычный',
+  cool: 'Крутой',
+  legendary: 'Легендарный',
+  top: 'ТОПОВЫЙ',
+};
+
+/**
+ * Тип по цене в кристаллах: чем дороже, тем выше тип.
+ * обычный — до 30 💎, крутой — 31–60, легендарный — 61–85, ТОПОВЫЙ — от 86.
+ */
+export function rarityOf(item: ShopItem): ItemRarity {
+  if (item.rarity) return item.rarity;
+  if (item.price >= 86) return 'top';
+  if (item.price >= 61) return 'legendary';
+  if (item.price >= 31) return 'cool';
+  return 'common';
+}
+
+/** Порядок типов от низшего к высшему: обычный → крутой → легендарный → ТОПОВЫЙ. */
+export const RARITY_ORDER: ItemRarity[] = ['common', 'cool', 'legendary', 'top'];
+
+/** Сортировка по типу по возрастанию, при равном типе — по цене. */
+export function compareByRarity(a: ShopItem, b: ShopItem): number {
+  const byRarity = RARITY_ORDER.indexOf(rarityOf(a)) - RARITY_ORDER.indexOf(rarityOf(b));
+  return byRarity || a.price - b.price;
 }
 
 export const SLOT_TITLE: Record<ShopSlot, string> = {

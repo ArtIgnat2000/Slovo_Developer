@@ -6607,9 +6607,6 @@ p {
   font-size: 12px;
   cursor: pointer;
 }
-.world-pick-item.world-tone-car { background: linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom)); }
-.world-pick-item.world-tone-ship { background: linear-gradient(180deg, var(--stage-sky-top), var(--stage-water)); }
-.world-pick-item.world-tone-phone { background: linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom)); }
 .world-pick-item.on {
   border-color: var(--primary);
   box-shadow: inset 0 0 0 2px var(--primary);
@@ -6629,3 +6626,77 @@ p {
   min-height: 84px;
 }
 .world-pick-title { line-height: 1.2; text-align: center; }
+
+/* Тип вещи (0.27.0): обычный, крутой, легендарный, ТОПОВЫЙ. Бейдж — в углу карточки
+   магазина, мелкий — в ангаре и на «Моём мире», в подробном листе — под названием. */
+.rarity-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 2px solid var(--rarity-line, #b0bec5);
+  border-radius: var(--r-pill);
+  background: var(--rarity-bg, #eceff1);
+  color: var(--rarity-ink, #455a64);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.rarity-common { --rarity-bg: #eceff1; --rarity-ink: #455a64; --rarity-line: #b0bec5; }
+.rarity-cool { --rarity-bg: #e3f2fd; --rarity-ink: #0d47a1; --rarity-line: #64b5f6; }
+.rarity-legendary { --rarity-bg: #f3e5f5; --rarity-ink: #6a1b9a; --rarity-line: #ba68c8; }
+.rarity-top {
+  --rarity-bg: linear-gradient(90deg, #fff3c4, #ffd54f);
+  --rarity-ink: #5d3a00;
+  --rarity-line: #ffb300;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #ffb300 22%, transparent);
+  text-transform: uppercase;
+}
+.rarity-chip.rarity-top { background: linear-gradient(90deg, #fff3c4, #ffd54f); }
+.shop-rarity {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+}
+.rarity-chip-detail { margin: 2px 0 6px; }
+.rarity-chip-mini { margin-top: 4px; font-size: 9px; padding: 1px 6px; }
+
+/* Фон вещи по типу (0.27.1): обычный — серый, крутой — голубой, легендарный — фиолетовый,
+   ТОПОВЫЙ — золотой. Класс tier-<тип> ставится на карточку магазина, вещь ангара,
+   слот и карточку списка «Моего мира»; переменные задают фон и свечение. */
+.tier-common { --tier-top: #ffffff; --tier-bottom: #e3e8eb; --tier-glow: rgba(120, 144, 156, 0.38); }
+.tier-cool { --tier-top: #eaf6ff; --tier-bottom: #a9d8fa; --tier-glow: rgba(33, 150, 243, 0.38); }
+.tier-legendary { --tier-top: #f6ecff; --tier-bottom: #cfa6f0; --tier-glow: rgba(156, 39, 176, 0.38); }
+.tier-top { --tier-top: #fff8d9; --tier-bottom: #ffc93c; --tier-glow: rgba(255, 179, 0, 0.55); }
+/* Карточка магазина: фон витрины — цвет типа вместо общего. */
+.shop-item.tier-common .shop-case,
+.shop-item.tier-cool .shop-case,
+.shop-item.tier-legendary .shop-case,
+.shop-item.tier-top .shop-case {
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--tier-glow), transparent 74%),
+    linear-gradient(180deg, var(--tier-top), var(--tier-bottom));
+}
+/* Вещь ангара: мягкое свечение цвета типа под ней (★ важнее — см. .hangar-item.star). */
+.hangar-item.tier-common,
+.hangar-item.tier-cool,
+.hangar-item.tier-legendary,
+.hangar-item.tier-top {
+  background: radial-gradient(closest-side, var(--tier-glow), transparent 100%);
+}
+/* «Мой мир»: свечение под вещью, рамка слота и фон карточки списка — по типу. */
+.world-slot-halo {
+  position: absolute;
+  z-index: 1;
+  top: 46%;
+  left: 50%;
+  width: 230px;
+  height: 230px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--tier-glow), transparent 100%);
+  pointer-events: none;
+}
+.world-slot[class*="tier-"] { border-color: var(--tier-bottom); }
+.world-pick-item[class*="tier-"] { background: linear-gradient(180deg, var(--tier-top), var(--tier-bottom)); }

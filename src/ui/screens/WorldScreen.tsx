@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ITEM_BY_ID, growthStage, isOwned, SHOP_ITEMS, type ShopItem } from '../../engine/shop';
+import { compareByRarity, ITEM_BY_ID, growthStage, isOwned, rarityOf, SHOP_ITEMS, type ShopItem } from '../../engine/shop';
 import { normalizeWorld, WORLD_SLOTS } from '../../engine/world';
 import { haptic } from '../../platform/haptics';
 import { sfx } from '../../platform/sound';
@@ -7,6 +7,7 @@ import { masteredCount, useActiveProfile, useApp } from '../../state/store';
 import { Mascot } from '../Mascot';
 import { BayDecor } from '../TechScene';
 import { ToyArt } from '../ToyArt';
+import { RarityChip } from '../RarityChip';
 
 /**
  * «Мой мир» (0.26.0): вкладка с выбранными вещами ребёнка.
@@ -27,7 +28,9 @@ export function WorldScreen() {
   const world = normalizeWorld(profile.shop?.world, owned);
   const tuning = profile.shop?.tuning;
   const growth = growthStage(masteredCount(profile));
-  const ownedItems = SHOP_ITEMS.filter((item) => isOwned(owned, item.id));
+  // Типы идут по возрастанию: обычный → крутой → легендарный → ТОПОВЫЙ (слоты и список).
+  const shown = world.slice().sort((a, b) => compareByRarity(ITEM_BY_ID[a], ITEM_BY_ID[b]));
+  const ownedItems = SHOP_ITEMS.filter((item) => isOwned(owned, item.id)).sort(compareByRarity);
 
   const tap = (id: string) => {
     sfx.tap();
@@ -58,7 +61,7 @@ export function WorldScreen() {
 
       <div className="world-slots">
         {Array.from({ length: WORLD_SLOTS }, (_, index) => {
-          const id = world[index];
+          const id = shown[index];
           const item = id ? ITEM_BY_ID[id] : undefined;
           if (!id || !item) {
             return (
@@ -76,14 +79,16 @@ export function WorldScreen() {
           }
           const tone = toneOf(item);
           return (
-            <div key={id} className={`world-slot world-tone-${tone}`}>
+            <div key={id} className={`world-slot world-tone-${tone} tier-${rarityOf(item)}`}>
               <span className={`hangar-panel ${tone === 'outfit' ? 'world-panel-outfit' : `hangar-panel-${tone}`}`} aria-hidden="true">
                 {tone !== 'outfit' && <BayDecor tone={tone} />}
               </span>
+              <span className="world-slot-halo" aria-hidden="true" />
               <div className="world-slot-art">{art(item, 132)}</div>
               <span className="world-slot-plinth" aria-hidden="true" />
               <div className="world-slot-foot">
                 <b className="world-slot-title">{item.title}</b>
+                <RarityChip item={item} className="rarity-chip-mini" />
                 <button type="button" className="btn sm ghost" onClick={() => tap(id)}>
                   Убрать
                 </button>
@@ -118,13 +123,14 @@ export function WorldScreen() {
                   <button
                     key={item.id}
                     type="button"
-                    className={`world-pick-item world-tone-${tone}${on ? ' on' : ''}`}
+                    className={`world-pick-item world-tone-${tone} tier-${rarityOf(item)}${on ? ' on' : ''}`}
                     aria-pressed={on}
                     aria-label={`${item.title}${on ? ' — в Моём мире. Убрать' : '. Поставить в Мой мир'}`}
                     onClick={() => tap(item.id)}
                   >
                     <span className="world-pick-art">{art(item, 84)}</span>
                     <span className="world-pick-title">{item.title}</span>
+                    <RarityChip item={item} className="rarity-chip-mini" />
                     {on && <i aria-hidden="true">✓</i>}
                   </button>
                 );

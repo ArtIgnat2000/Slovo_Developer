@@ -34,7 +34,7 @@ import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
 import { normalizeWorld, toggleWorldPick } from '../src/engine/world';
-import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
+import { compareByRarity, ITEM_BY_ID, RARITY_LABEL, SHOP_ITEMS, TOY_ITEMS, growthStage, rarityOf, sellPrice } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { CHEST_SKINS } from '../src/engine/chests';
 import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
@@ -783,6 +783,31 @@ async function main() {
   // ── Мой мир (0.26.0): вкладка с тремя выбранными вещами ───────────────
   // Чистая логика: до трёх мест, только купленное, без повторов.
   check('«Мой мир»: в третье место нельзя поставить четвёртую вещь', toggleWorldPick(['cap', 'bow', 'scarf'], 'glasses', ['cap', 'bow', 'scarf', 'glasses']).result === 'full', '');
+  // Тип вещи (0.27.0): каждой вещи назначен один из четырёх типов по цене.
+  const rarities = SHOP_ITEMS.map((item) => rarityOf(item));
+  check(
+    'каждая вещь магазина имеет тип: обычный, крутой, легендарный или ТОПОВЫЙ',
+    rarities.every((r) => r in RARITY_LABEL) && SHOP_ITEMS.length > 0,
+    rarities.join(','),
+  );
+  check(
+    'типы по цене: кепка — обычный, Болид — крутой, Бык — легендарный, авианосец — ТОПОВЫЙ',
+    rarityOf(ITEM_BY_ID['cap']) === 'common' &&
+      rarityOf(ITEM_BY_ID['car-racer']) === 'cool' &&
+      rarityOf(ITEM_BY_ID['car-lambo']) === 'legendary' &&
+      rarityOf(ITEM_BY_ID['ship-carrier']) === 'top' &&
+      RARITY_LABEL.top === 'ТОПОВЫЙ',
+    `${rarityOf(ITEM_BY_ID['cap'])}, ${rarityOf(ITEM_BY_ID['car-racer'])}, ${rarityOf(ITEM_BY_ID['car-lambo'])}, ${rarityOf(ITEM_BY_ID['ship-carrier'])}`,
+  );
+  check(
+    '«Мой мир»: типы идут по возрастанию — обычный, крутой, легендарный, ТОПОВЫЙ',
+    ['car-bugatti', 'cap', 'car-lambo', 'car-racer']
+      .map((id) => ITEM_BY_ID[id])
+      .sort(compareByRarity)
+      .map((item) => item.id)
+      .join(',') === 'cap,car-racer,car-lambo,car-bugatti',
+    '',
+  );
   // Картинки техники имеют явный размер в слотах и в списке (иначе рисунок схлопывается).
   const worldCss = readFileSync('src/styles/app.css', 'utf8');
   check(
@@ -813,6 +838,16 @@ async function main() {
   check('«Выбрать» открывает список купленных вещей', !!document.querySelector('.world-picker') && document.querySelectorAll('.world-pick-item').length > 0, '');
   click(document.querySelector('.world-pick-item[aria-label^="Болид"]'));
   await sleep(40);
+  check(
+    'на слоте «Моего мира» виден тип вещи: Болид — «Крутой»',
+    document.querySelector('.world-slot .rarity-chip')?.textContent === 'Крутой',
+    document.querySelector('.world-slot .rarity-chip')?.textContent ?? 'нет бейджа',
+  );
+  check(
+    'на слоте «Моего мира» есть класс типа (фон по типу)',
+    !!document.querySelector('.world-slot.tier-cool'),
+    '',
+  );
   check(
     'вещь из списка попадает в «Мой мир» и на сцену',
     (useApp.getState().profiles[0].shop?.world ?? []).includes('car-racer') && !!document.querySelector('.world-slot .world-slot-title') && has('Болид'),

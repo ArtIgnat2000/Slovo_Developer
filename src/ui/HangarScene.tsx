@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ITEM_BY_ID, growthStage, isOwned, toysByShelf, type ShopItem, type ToyKind } from '../engine/shop';
+import { ITEM_BY_ID, growthStage, isOwned, rarityOf, toysByShelf, type ShopItem, type ToyKind } from '../engine/shop';
 import { haptic } from '../platform/haptics';
 import { sfx } from '../platform/sound';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../state/store';
 import { Mascot } from './Mascot';
+import { RarityChip } from './RarityChip';
 import { BayDecor } from './TechScene';
 import { ToyArt } from './ToyArt';
 
@@ -123,7 +124,7 @@ export function HangarScene({ onClose }: { onClose: () => void }) {
                   <button
                     key={item.id}
                     type="button"
-                    className={`hangar-item${favoriteId === item.id ? ' star' : ''}`}
+                    className={`hangar-item tier-${rarityOf(item)}${favoriteId === item.id ? ' star' : ''}`}
                     aria-label={itemAria(item)}
                     onClick={() => tapItem(item)}
                   >
@@ -131,6 +132,7 @@ export function HangarScene({ onClose }: { onClose: () => void }) {
                     <span className="hangar-item-plinth" aria-hidden="true" />
                     <span className="hangar-tag">
                       <b>{favoriteId === item.id ? `★ ${item.title}` : item.title}</b>
+                      <RarityChip item={item} className="rarity-chip-mini" />
                     </span>
                   </button>
                 ))}

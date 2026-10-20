@@ -43,7 +43,8 @@ import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
 import { SOUND_PACKS, type SoundCue, type SoundPack } from '../../engine/sounds';
 import { haptic } from '../../platform/haptics';
-import type { ShopItem } from '../../engine/shop';
+import { rarityOf, type ItemRarity, type ShopItem } from '../../engine/shop';
+import { RarityChip, RarityLabel } from '../RarityChip';
 import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
 import { playMusic } from '../../platform/music';
 import { MusicCreditsToggle } from '../Credits';
@@ -129,6 +130,8 @@ interface TintTarget {
  */
 function ShopCard(props: {
   badge?: string;
+  /** Тип вещи (обычный … ТОПОВЫЙ): бейдж в углу карточки */
+  rarity?: ItemRarity;
   art: ReactNode;
   title: string;
   desc?: string;
@@ -148,7 +151,7 @@ function ShopCard(props: {
 }) {
   return (
     <article
-      className={`shop-item${props.cardCls ? ` ${props.cardCls}` : ''}`}
+      className={`shop-item${props.cardCls ? ` ${props.cardCls}` : ''}${props.rarity ? ` tier-${props.rarity}` : ''}`}
       role="button"
       tabIndex={0}
       aria-label={props.title}
@@ -158,6 +161,7 @@ function ShopCard(props: {
       }}
     >
       {props.badge && <span className="shop-badge">{props.badge}</span>}
+      {props.rarity && <RarityLabel rarity={props.rarity} className="shop-rarity" />}
       {/* Ниша витрины: лампа, вещь на подиуме (0.19.0) */}
       <div className="shop-case">
         <span className="shop-case-lamp" aria-hidden="true" />
@@ -560,6 +564,7 @@ export function ShopScreen() {
         }
         title={item.title}
         desc={item.desc}
+        rarity={rarityOf(item)}
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
         cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
@@ -826,6 +831,7 @@ export function ShopScreen() {
           </div>
           {isRotatingPhone(item.id) && <p className="tiny muted phone-rotate-hint">↻ Нажми на телефон — он повернётся</p>}
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
+          <RarityChip item={item} className="rarity-chip-detail" />
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
           {(carKind(item.id) || shipKind(item.id)) && (
             <p className="tiny muted">
