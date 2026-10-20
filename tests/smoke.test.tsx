@@ -24,7 +24,7 @@ import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
 import { LESSONS, WORDS } from '../src/content/words';
-import { MUSIC_TRACKS } from '../src/engine/music';
+import { MUSIC_TRACKS, STARTER_TRACK_IDS } from '../src/engine/music';
 import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
@@ -34,6 +34,8 @@ import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
 import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
+import { CHEST_SKINS } from '../src/engine/chests';
+import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
 import { runStudyEngineChecks } from './study.test';
@@ -306,6 +308,18 @@ async function main() {
     useApp.getState().profiles[0].gems === 100000,
     String(useApp.getState().profiles[0].gems),
   );
+  {
+    // Всё открыто с первого запуска: наряды, техника, костюмы, музыка, звуки, облики сундука
+    const fresh = useApp.getState().profiles[0];
+    const everything =
+      (fresh.shop?.owned ?? []).length === SHOP_ITEMS.length &&
+      (fresh.shop?.musicOwned ?? []).length === MUSIC_TRACKS.length &&
+      (fresh.shop?.soundOwned ?? []).length === SOUND_PACKS.length &&
+      (fresh.puzzle?.assembled ?? []).length === COSTUMES.length &&
+      Object.values(fresh.puzzle?.pieces ?? {}).every((n) => n === PUZZLE_SIZE) &&
+      (fresh.chestSkins ?? []).length === CHEST_SKINS.length;
+    check('всё открыто с первого запуска: вещи, костюмы, музыка, звуки, облики сундука', everything, '');
+  }
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
 
@@ -551,6 +565,14 @@ async function main() {
     useApp.getState().settings.themeStyle === originalThemeStyle && document.documentElement.dataset.themeStyle === originalThemeStyle,
   );
 
+  // Всё открыто с первого запуска, поэтому сценарий техники начинаем без уже купленной
+  // техники: проверяем покупку, слот и ангар так же, как в пустом магазине.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId
+      ? { ...p, shop: { ...p.shop!, owned: (p.shop?.owned ?? []).filter((id) => ITEM_BY_ID[id]?.kind !== 'toy'), equipped: { ...p.shop?.equipped, toy: undefined } } }
+      : p)),
+  }));
+  await sleep(30);
   // ── Полка «Техника»: отдельные разделы авто, кораблей и телефонов ──────
   const toyShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Техника'));
   check('в витрине есть полка «Техника»', !!toyShelf, '');
@@ -624,7 +646,6 @@ async function main() {
   // Покупка вещи кладёт её в слот `toy` — с 0.22.0 это «любимая вещь на
   // главном подиуме ангара»; на БУКе техника больше не рисуется.
   const gemsBeforeToy = useApp.getState().profiles[0].gems;
-  const ownedBeforeToy = [...(useApp.getState().profiles[0].shop?.owned ?? [])];
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: Math.max(p.gems, 35) } : p)),
   }));
@@ -706,10 +727,25 @@ async function main() {
   click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab'))!);
   await sleep(60);
 
-  // Возвращаем профиль: следующие блоки считают покупки нарядов с нуля.
+  // Возвращаем профиль к покупкам с нуля: следующие блоки считают покупки
+  // нарядов, музыки и звуков так же, как у новичка (стартовые наборы открыты).
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) =>
-      p.id === s.activeId ? { ...p, gems: gemsBeforeToy, shop: { ...p.shop!, owned: ownedBeforeToy, equipped: {} } } : p,
+      p.id === s.activeId
+        ? {
+            ...p,
+            gems: gemsBeforeToy,
+            shop: {
+              ...p.shop!,
+              owned: [],
+              equipped: {},
+              musicOwned: [...STARTER_TRACK_IDS],
+              soundOwned: [...STARTER_SOUND_IDS],
+              soundPack: 'classic',
+              tuning: { current: {}, unlocked: {} },
+            },
+          }
+        : p,
     ),
   }));
   await sleep(30);

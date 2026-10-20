@@ -80,6 +80,12 @@ export async function runChestSkinsUiChecks(): Promise<void> {
   await toHome();
   store().createProfile('Облики', '🎨');
   await sleep(80);
+  // Новый профиль теперь открывает все облики сразу (см. smoke: «всё открыто»).
+  // Здесь проверяем путь с нуля: ни один облик не записан, сундуков не открыто.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, chestSkins: [] } : p)),
+  }));
+  await sleep(30);
   await openRewardsSheet();
 
   // Полка доступна из листа наград и у новичка полна смысла.

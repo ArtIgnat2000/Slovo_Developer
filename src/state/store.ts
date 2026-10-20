@@ -24,19 +24,20 @@ import {
   type ChestKind,
   type PlannedQuest,
 } from '../engine/quests';
-import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice } from '../engine/shop';
-import { migrateMusicShop, MUSIC_BY_ID, STARTER_TRACK_IDS } from '../engine/music';
-import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, STARTER_SOUND_IDS } from '../engine/sounds';
-import { normalizeTuning, recolor, type RecolorOutcome } from '../engine/tints';
+import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice, SHOP_ITEMS } from '../engine/shop';
+import { migrateMusicShop, MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from '../engine/music';
+import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, SOUND_PACKS } from '../engine/sounds';
+import { COSTUME_PALETTES, normalizeTuning, recolor, TINT_PALETTES, type RecolorOutcome } from '../engine/tints';
 import {
   COSTUMES,
+  PUZZLE_SIZE,
   awardLessonPiece,
   chooseCollecting,
   normalizePuzzle,
   toggleWorn,
   type PuzzleAward,
 } from '../engine/puzzles';
-import { activeChestSkin, skinById, skinState, type ChestSkinId } from '../engine/chests';
+import { activeChestSkin, CHEST_SKINS, skinById, skinState, type ChestSkinId } from '../engine/chests';
 import { DEFAULT_LESSON_SIZE } from '../engine/scheduler';
 import { normalizeStudySessions, STUDY_SESSION_RETENTION_DAYS } from '../engine/study';
 import {
@@ -217,6 +218,14 @@ function readShop(p: Profile): ShopState {
 export const STARTING_GEMS = 100_000;
 
 function newProfile(name: string, avatar: string): Profile {
+  // Всё открыто с первого запуска: каждая вещь, костюм, мелодия, набор звуков,
+  // оттенок и облик сундука. Выбор по умолчанию (стартовая мелодия, классика,
+  // базовый облик сундука) не меняется.
+  const costumeIds = COSTUMES.map((c) => c.id);
+  const tintUnlocked: Record<string, string[]> = {};
+  for (const [targetId, palette] of [...Object.entries(TINT_PALETTES), ...Object.entries(COSTUME_PALETTES)]) {
+    if (palette.extra.length) tintUnlocked[targetId] = palette.extra.map((tint) => tint.id);
+  }
   return {
     id: `p_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     name,
@@ -236,18 +245,25 @@ function newProfile(name: string, avatar: string): Profile {
     lessonSize: DEFAULT_LESSON_SIZE,
     daily: { day: dayKey(), claimed: [], chestsToday: 0, bonusChestsClaimed: 0, chestsTotal: 0 },
     weekly: { week: weekStartKey(), claimed: [] },
-    // Новому профилю — стартовая мелодия: музыка играет с первого дня,
-    // а «Тишина» остаётся одним нажатием в коллекции БУКа.
+    // Музыка по умолчанию — стартовая мелодия, а «Тишина» остаётся одним
+    // нажатием в коллекции БУКа.
+    chestSkins: CHEST_SKINS.map((skin) => skin.id),
     shop: {
-      owned: [],
+      owned: SHOP_ITEMS.map((item) => item.id),
       equipped: {},
-      musicOwned: [...STARTER_TRACK_IDS],
+      musicOwned: MUSIC_TRACKS.map((track) => track.id),
       musicTrack: STARTER_TRACK_IDS[0],
-      soundOwned: [...STARTER_SOUND_IDS],
+      soundOwned: SOUND_PACKS.map((pack) => pack.id),
       soundPack: DEFAULT_SOUND_PACK,
+      tuning: { current: {}, unlocked: tintUnlocked },
       wishlist: [],
     },
-    puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
+    puzzle: {
+      pieces: Object.fromEntries(costumeIds.map((id) => [id, PUZZLE_SIZE])),
+      collecting: null,
+      assembled: costumeIds,
+      worn: null,
+    },
   };
 }
 

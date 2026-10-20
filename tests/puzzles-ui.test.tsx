@@ -50,7 +50,11 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   store().createProfile('Тест пазлов', '🦉');
   await sleep(60);
   await goTab('Уроки');
-  check('пазлы: у нового профиля пустая коллекция', (active().puzzle?.assembled.length ?? -1) === 0);
+  // С первого запуска все костюмы уже собраны (см. smoke: «всё открыто»); для пути
+  // «урок → фрагмент → костюм» возвращаем коллекцию к пустой.
+  check('пазлы: у нового профиля все костюмы открыты', (active().puzzle?.assembled.length ?? -1) === COSTUMES.length);
+  seedPuzzle({ pieces: {}, collecting: null, assembled: [], worn: null });
+  check('пазлы: для сценария коллекция пустая', (active().puzzle?.assembled.length ?? -1) === 0);
 
   // 8 фрагментов первого костюма — следующий завершённый урок его собирает
   seedPuzzle({ pieces: { [COSTUMES[0].id]: PUZZLE_SIZE - 1 }, collecting: COSTUMES[0].id, assembled: [], worn: null });
@@ -207,7 +211,11 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   // иконка живёт внутри плитки `.shop-wear-icon`, а не «плавает» по экрану.
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
   await sleep(40);
-  const wearRows = Array.from(document.querySelectorAll('.shop-wear'));
+  // Строки костюмов (наряды в гардеробе рисуются эмодзи и сюда не относятся)
+  const costumeTitles = COSTUMES.map((c) => c.title);
+  const wearRows = Array.from(document.querySelectorAll('.shop-wear')).filter((row) =>
+    costumeTitles.includes(row.getAttribute('aria-label') ?? ''),
+  );
   check(
     'пазлы: собранный костюм попадает в строки гардероба',
     wearRows.some((row) => (row.textContent ?? '').includes(COSTUMES[0].title)),
@@ -344,8 +352,11 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   await sleep(30);
 
   // Покупка новой вещи не должна перезаписывать гардероб без уже открытых красок.
+  // Всё открыто с первого запуска: для тестовой покупки кепку сначала «не покупаем»
   useApp.setState((s) => ({
-    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 50 } : p)),
+    profiles: s.profiles.map((p) => (p.id === s.activeId
+      ? { ...p, gems: 50, shop: { ...p.shop!, owned: (p.shop?.owned ?? []).filter((id) => id !== 'cap') } }
+      : p)),
   }));
   await sleep(30);
   check('акцент: тестовая покупка аксессуара доступна', useApp.getState().buyItem('cap'), '');
