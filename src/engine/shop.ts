@@ -60,6 +60,15 @@ export function rarityOf(item: ShopItem): ItemRarity {
   return 'common';
 }
 
+/** Порядок типов от низшего к высшему: обычный → крутой → легендарный → ТОПОВЫЙ. */
+export const RARITY_ORDER: ItemRarity[] = ['common', 'cool', 'legendary', 'top'];
+
+/** Сортировка по типу по возрастанию, при равном типе — по цене. */
+export function compareByRarity(a: ShopItem, b: ShopItem): number {
+  const byRarity = RARITY_ORDER.indexOf(rarityOf(a)) - RARITY_ORDER.indexOf(rarityOf(b));
+  return byRarity || a.price - b.price;
+}
+
 export const SLOT_TITLE: Record<ShopSlot, string> = {
   head: 'Головные уборы',
   face: 'Очки',

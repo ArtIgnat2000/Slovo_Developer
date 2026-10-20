@@ -6607,9 +6607,6 @@ p {
   font-size: 12px;
   cursor: pointer;
 }
-.world-pick-item.world-tone-car { background: linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom)); }
-.world-pick-item.world-tone-ship { background: linear-gradient(180deg, var(--stage-sky-top), var(--stage-water)); }
-.world-pick-item.world-tone-phone { background: linear-gradient(180deg, var(--case-arch-top), var(--case-arch-bottom)); }
 .world-pick-item.on {
   border-color: var(--primary);
   box-shadow: inset 0 0 0 2px var(--primary);
@@ -6664,3 +6661,42 @@ p {
 }
 .rarity-chip-detail { margin: 2px 0 6px; }
 .rarity-chip-mini { margin-top: 4px; font-size: 9px; padding: 1px 6px; }
+
+/* Фон вещи по типу (0.27.1): обычный — серый, крутой — голубой, легендарный — фиолетовый,
+   ТОПОВЫЙ — золотой. Класс tier-<тип> ставится на карточку магазина, вещь ангара,
+   слот и карточку списка «Моего мира»; переменные задают фон и свечение. */
+.tier-common { --tier-top: #ffffff; --tier-bottom: #e3e8eb; --tier-glow: rgba(120, 144, 156, 0.38); }
+.tier-cool { --tier-top: #eaf6ff; --tier-bottom: #a9d8fa; --tier-glow: rgba(33, 150, 243, 0.38); }
+.tier-legendary { --tier-top: #f6ecff; --tier-bottom: #cfa6f0; --tier-glow: rgba(156, 39, 176, 0.38); }
+.tier-top { --tier-top: #fff8d9; --tier-bottom: #ffc93c; --tier-glow: rgba(255, 179, 0, 0.55); }
+/* Карточка магазина: фон витрины — цвет типа вместо общего. */
+.shop-item.tier-common .shop-case,
+.shop-item.tier-cool .shop-case,
+.shop-item.tier-legendary .shop-case,
+.shop-item.tier-top .shop-case {
+  background:
+    radial-gradient(54% 34% at 50% 4%, var(--tier-glow), transparent 74%),
+    linear-gradient(180deg, var(--tier-top), var(--tier-bottom));
+}
+/* Вещь ангара: мягкое свечение цвета типа под ней (★ важнее — см. .hangar-item.star). */
+.hangar-item.tier-common,
+.hangar-item.tier-cool,
+.hangar-item.tier-legendary,
+.hangar-item.tier-top {
+  background: radial-gradient(closest-side, var(--tier-glow), transparent 100%);
+}
+/* «Мой мир»: свечение под вещью, рамка слота и фон карточки списка — по типу. */
+.world-slot-halo {
+  position: absolute;
+  z-index: 1;
+  top: 46%;
+  left: 50%;
+  width: 230px;
+  height: 230px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--tier-glow), transparent 100%);
+  pointer-events: none;
+}
+.world-slot[class*="tier-"] { border-color: var(--tier-bottom); }
+.world-pick-item[class*="tier-"] { background: linear-gradient(180deg, var(--tier-top), var(--tier-bottom)); }

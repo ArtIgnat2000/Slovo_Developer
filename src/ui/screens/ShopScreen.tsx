@@ -151,7 +151,7 @@ function ShopCard(props: {
 }) {
   return (
     <article
-      className={`shop-item${props.cardCls ? ` ${props.cardCls}` : ''}`}
+      className={`shop-item${props.cardCls ? ` ${props.cardCls}` : ''}${props.rarity ? ` tier-${props.rarity}` : ''}`}
       role="button"
       tabIndex={0}
       aria-label={props.title}

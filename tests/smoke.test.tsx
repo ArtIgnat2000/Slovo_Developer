@@ -34,7 +34,7 @@ import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
 import { normalizeWorld, toggleWorldPick } from '../src/engine/world';
-import { ITEM_BY_ID, RARITY_LABEL, SHOP_ITEMS, TOY_ITEMS, growthStage, rarityOf, sellPrice } from '../src/engine/shop';
+import { compareByRarity, ITEM_BY_ID, RARITY_LABEL, SHOP_ITEMS, TOY_ITEMS, growthStage, rarityOf, sellPrice } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { CHEST_SKINS } from '../src/engine/chests';
 import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
@@ -799,6 +799,15 @@ async function main() {
       RARITY_LABEL.top === 'ТОПОВЫЙ',
     `${rarityOf(ITEM_BY_ID['cap'])}, ${rarityOf(ITEM_BY_ID['car-racer'])}, ${rarityOf(ITEM_BY_ID['car-lambo'])}, ${rarityOf(ITEM_BY_ID['ship-carrier'])}`,
   );
+  check(
+    '«Мой мир»: типы идут по возрастанию — обычный, крутой, легендарный, ТОПОВЫЙ',
+    ['car-bugatti', 'cap', 'car-lambo', 'car-racer']
+      .map((id) => ITEM_BY_ID[id])
+      .sort(compareByRarity)
+      .map((item) => item.id)
+      .join(',') === 'cap,car-racer,car-lambo,car-bugatti',
+    '',
+  );
   // Картинки техники имеют явный размер в слотах и в списке (иначе рисунок схлопывается).
   const worldCss = readFileSync('src/styles/app.css', 'utf8');
   check(
@@ -833,6 +842,11 @@ async function main() {
     'на слоте «Моего мира» виден тип вещи: Болид — «Крутой»',
     document.querySelector('.world-slot .rarity-chip')?.textContent === 'Крутой',
     document.querySelector('.world-slot .rarity-chip')?.textContent ?? 'нет бейджа',
+  );
+  check(
+    'на слоте «Моего мира» есть класс типа (фон по типу)',
+    !!document.querySelector('.world-slot.tier-cool'),
+    '',
   );
   check(
     'вещь из списка попадает в «Мой мир» и на сцену',
