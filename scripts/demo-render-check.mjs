@@ -93,14 +93,14 @@ expect('Звезда', 'карточка флагманского седана')
 expect('Молния', 'карточка гиперкара');
 expect('Ближайшая покупка', 'подсказка о ближайшей покупке');
 expect('Болид', 'карточка гоночной машины');
-if (document.querySelectorAll('.shop-item.toy-item').length !== 10) problems.push('раздел авто должен показывать только десять машин');
-if (document.querySelectorAll('.shop-item.toy-item img[src*="/cars/"]').length !== 10) problems.push('не у всех машин отдельный рисунок');
+if (document.querySelectorAll('.shop-item.toy-item').length !== 14) problems.push('раздел авто должен показывать четырнадцать машин');
+if (document.querySelectorAll('.shop-item.toy-item img[src*="/cars/"]').length !== 14) problems.push('не у всех машин отдельный рисунок');
 for (const brand of ['БМВ', 'Мерседес', 'Брабус', 'Майбах', 'Роллс-Ройс', 'Ламборджини', 'Бугати', 'BMW', 'Mercedes', 'Brabus', 'Maybach', 'Rolls', 'Lamborghini', 'Bugatti']) {
   if (text().includes(brand)) problems.push('бренд в витрине: ' + brand);
 }
 if (!document.querySelector('.shop-boutique .shop-case-lamp')) problems.push('нет лампы в нише витрины');
 if (!document.querySelector('.shop-boutique .shop-case-podium')) problems.push('нет подиума под вещью');
-if (document.querySelectorAll('.shop-boutique .shop-case').length !== 10) problems.push('не все автомобили стоят в своих нишах');
+if (document.querySelectorAll('.shop-boutique .shop-case').length !== 14) problems.push('не все автомобили стоят в своих нишах');
 
 tap('Корабли');
 await new Promise((r) => setTimeout(r, 100));

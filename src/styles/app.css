@@ -1976,8 +1976,8 @@ p {
 
 /* ── Машины: цветные карандашные рисунки настоящих моделей (0.21.0; цвет — 0.21.1)
    У каждой машины — свой цветной лист: прозрачный фон, собственная тень под
-   колёсами и общая линия «пола» (низ рисунка у всех десяти машин на одной
-   высоте). Поэтому в любом месте рисунок сам стоит на подиуме и не требует
+   колёсами и общая линия «пола» (низ рисунка у всех машин на одной высоте).
+   Поэтому в любом месте рисунок сам стоит на подиуме и не требует
    подгонки координат — только размера. Размер задаёт контекст. */
 .car-art {
   position: relative;
@@ -2061,6 +2061,12 @@ p {
 .shop-wear-icon > .car-art,
 .shop-wear-icon > .ship-art,
 .shop-wear-icon > .electronics-art { max-width: 52px; }
+.shop-wear-icon > .building-wardrobe-art {
+  width: 52px;
+  height: 39px;
+  border-radius: 7px;
+  object-fit: cover;
+}
 .wishlist-card-art > .car-art,
 .wishlist-card-art > .ship-art,
 .wishlist-card-art > .electronics-art,
@@ -6490,10 +6496,74 @@ p {
 }
 
 
-/* «Мой мир» (0.26.0): выбранные вещи на сценах и список для выбора.
+/* «Мой мир»: выбранная база задаёт пейзаж экрана, вещи занимают три слота.
    Сцены — те же панели, что в ангаре (гараж, пристань, полка); наряды — мягкий фон.
    Маскот БУКа в наряде не должен быть фиксированным (см. базовый .mascot). */
 .world-screen { padding-bottom: 96px; }
+.world-screen.has-world-base {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg) 30%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 42%, transparent) 42%,
+      var(--bg) 100%
+    ),
+    var(--world-base-image);
+  background-size: 100% 460px, 100% auto;
+  background-position: top center, top center;
+  background-repeat: no-repeat, no-repeat;
+}
+.world-base-current {
+  display: grid;
+  grid-template-columns: minmax(92px, 34%) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.world-base-current-art {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(145deg, var(--stage-sky), var(--stage-sky-2));
+}
+.world-base-current-art > span { font-size: 38px; }
+.world-base-preview-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 96px;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  object-fit: cover;
+}
+.world-base-current-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+.world-base-kicker {
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.world-base-current-copy > b { font-size: var(--fs-sm); line-height: 1.2; }
+.world-base-current-copy > small { color: var(--ink-2); font-size: 11px; line-height: 1.3; }
+.world-base-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.world-base-actions .btn { min-height: 34px; padding: 5px 9px; font-size: 11px; }
 .world-slots {
   display: grid;
   gap: 14px;
@@ -6588,6 +6658,51 @@ p {
   box-shadow: 0 4px 8px color-mix(in srgb, var(--ink) 14%, transparent);
 }
 .world-picker { margin-top: 4px; }
+.world-base-picker-group,
+.world-items-picker-group { margin-top: 12px; }
+.world-picker-heading {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 8px;
+}
+.world-picker-heading > b { font-size: var(--fs-sm); }
+.world-picker-heading > small { color: var(--ink-2); font-size: 11px; }
+.world-base-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 9px;
+}
+.world-base-pick-item {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 2px solid var(--line);
+  border-radius: 15px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+.world-base-pick-item > .world-base-pick-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.world-base-pick-item > span { font-weight: 800; }
+.world-base-pick-item > small { color: var(--ink-2); font-size: 10px; }
+.world-base-pick-item.on {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary), 0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.world-base-pick-item.on > small { color: var(--primary); font-weight: 800; }
 .world-pick {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
@@ -6700,3 +6815,129 @@ p {
 }
 .world-slot[class*="tier-"] { border-color: var(--tier-bottom); }
 .world-pick-item[class*="tier-"] { background: linear-gradient(180deg, var(--tier-top), var(--tier-bottom)); }
+
+/* ── Здания на витрине БУКа ────────────────────────────────────────────────
+   Детализированные WebP-иллюстрации показывают отдельные биомы и четыре
+   научные базы. Большая сцена показывает выбранную постройку на участке;
+   карточки используют тот же арочный бутик, что и остальные вещи магазина. */
+.building-section { padding-bottom: 12px; }
+.building-plot {
+  overflow: hidden;
+  margin: 0 0 18px;
+  border: 2px solid var(--case-line);
+  border-radius: 26px;
+  background:
+    radial-gradient(70% 34% at 50% 0%, var(--case-lamp-glow), transparent 78%),
+    linear-gradient(145deg, var(--case-wall), var(--case-wall-2));
+  box-shadow: var(--shadow);
+}
+.building-plot-art {
+  display: block;
+  width: min(100%, 520px);
+  height: auto;
+  aspect-ratio: 4 / 3;
+  margin-inline: auto;
+  object-fit: cover;
+}
+.building-plot-caption {
+  display: grid;
+  gap: 4px;
+  padding: 11px 14px 5px;
+}
+.building-plot-caption > b {
+  color: var(--ink);
+  font-size: var(--fs-md);
+  line-height: 1.2;
+}
+.building-plot-caption > span:last-child {
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+.building-plot-kicker {
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .06em;
+}
+.building-plot-count {
+  display: inline-flex;
+  margin: 5px 14px 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--case-line);
+  border-radius: var(--r-pill);
+  background: var(--case-card);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 800;
+}
+.building-plot-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  min-height: 190px;
+  padding: 18px;
+  background:
+    radial-gradient(50% 55% at 50% 15%, rgba(255, 255, 255, .6), transparent 76%),
+    linear-gradient(180deg, var(--case-sky-top), var(--case-sky-bottom));
+  color: var(--ink-2);
+  text-align: center;
+}
+.building-plot-empty > span { font-size: 46px; line-height: 1; }
+.building-plot-empty b { color: var(--ink); font-size: var(--fs-md); }
+.building-plot-empty small { max-width: 260px; font-size: var(--fs-xs); }
+.building-catalog-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 2px 8px;
+}
+.building-catalog-heading h3 { margin: 0; font-size: var(--fs-md); }
+.building-art {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+.shop-boutique .building-item .shop-case { height: 132px; }
+.shop-boutique .building-item .shop-icon {
+  height: 94px;
+  margin-bottom: 10px;
+}
+.building-card-art {
+  width: min(100%, 126px);
+  height: 94px;
+  aspect-ratio: 4 / 3;
+  border-radius: 13px;
+  object-fit: cover;
+  filter: drop-shadow(0 4px 5px rgba(36, 31, 54, .16));
+}
+.building-item .shop-title {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  line-height: 1.15;
+}
+.building-item .shop-desc { min-height: 38px; line-height: 1.25; }
+.building-detail-art {
+  padding: 8px;
+  background:
+    radial-gradient(65% 36% at 50% 0%, var(--case-lamp-glow), transparent 76%),
+    linear-gradient(145deg, var(--case-sky-top), var(--case-sky-bottom));
+}
+.building-detail-art > .building-art {
+  width: min(100%, 420px);
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 7px 18px rgba(36, 31, 54, .16);
+}
+@media (max-width: 360px) {
+  .building-catalog-heading { align-items: flex-start; flex-direction: column; gap: 2px; }
+  .building-plot-caption { padding-inline: 11px; }
+  .shop-boutique .building-item .shop-case { height: 118px; }
+  .shop-boutique .building-item .shop-icon { height: 84px; }
+  .building-card-art { height: 84px; }
+}

@@ -50,6 +50,8 @@ import { playMusic } from '../../platform/music';
 import { MusicCreditsToggle } from '../Credits';
 import { THEME_STYLES, type ThemeStyle } from '../../engine/theme-styles';
 import { BackgroundThemeCard } from '../BackgroundThemeCard';
+import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
+import { BuildingArt } from '../BuildingArt';
 
 /**
  * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
@@ -92,11 +94,12 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 type View = 'vitrina' | 'wardrobe';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'toys' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
+type Cat = 'outfits' | 'toys' | 'buildings' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
 
 const CATS: { id: Cat; title: string; emoji: string }[] = [
   { id: 'outfits', title: 'Наряды', emoji: '🎩' },
   { id: 'toys', title: 'Техника', emoji: '🚗' },
+  { id: 'buildings', title: 'Здания', emoji: '🏙️' },
   { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
   { id: 'sounds', title: 'Звуки', emoji: '🔊' },
@@ -106,6 +109,7 @@ const CATS: { id: Cat; title: string; emoji: string }[] = [
 /** Что открылось в подробной карточке (sheet снизу). */
 type Detail =
   | { kind: 'item'; item: ShopItem }
+  | { kind: 'building'; building: BuildingItem }
   | { kind: 'costume'; costume: Costume }
   | { kind: 'track'; track: MusicTrack }
   | { kind: 'sound'; pack: SoundPack };
@@ -246,6 +250,8 @@ export function ShopScreen() {
   const profile = useActiveProfile();
   const look = useLook();
   const buyItem = useApp((s) => s.buyItem);
+  const buyBuilding = useApp((s) => s.buyBuilding);
+  const chooseBuilding = useApp((s) => s.chooseBuilding);
   const sellItem = useApp((s) => s.sellItem);
   const toggleEquip = useApp((s) => s.toggleEquip);
   const choosePuzzleCostume = useApp((s) => s.choosePuzzleCostume);
@@ -266,6 +272,7 @@ export function ShopScreen() {
   const [sheet, setSheet] = useState<Detail | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [ask, setAsk] = useState<ShopItem | null>(null);
+  const [askBuilding, setAskBuilding] = useState<BuildingItem | null>(null);
   const [askSell, setAskSell] = useState<ShopItem | null>(null);
   const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
   const [askSound, setAskSound] = useState<SoundPack | null>(null);
@@ -325,6 +332,9 @@ export function ShopScreen() {
     .reduce<ShopItem | null>((best, item) => (!best || item.price < best.price ? item : best), null);
   const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id));
   const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id));
+  const buildingsOwned = profile.shop?.buildingsOwned ?? [];
+  const activeBuilding = profile.shop?.activeBuilding ?? null;
+  const selectedBuilding = activeBuilding ? BUILDING_BY_ID[activeBuilding] ?? null : null;
 
   const tapWish = (id: string, title: string) => {
     sfx.tap();
@@ -350,6 +360,14 @@ export function ShopScreen() {
     haptic.tap();
     setPaletteOpen(false);
     setSheet(detail);
+  };
+
+  const selectBuilding = (building: BuildingItem) => {
+    if (building.id === activeBuilding) return;
+    if (!chooseBuilding(building.id)) return;
+    sfx.tap();
+    haptic.tap();
+    showToast({ emoji: building.emoji, title: `«${building.title}» теперь на участке!`, text: 'Поставить другое здание можно в любой момент' });
   };
 
   const selectThemeStyle = (style: ThemeStyle) => {
@@ -464,6 +482,22 @@ export function ShopScreen() {
     }
   };
 
+  const confirmBuildingBuy = () => {
+    if (!askBuilding) return;
+    const building = askBuilding;
+    const ok = buyBuilding(building.id);
+    setAskBuilding(null);
+    if (ok) {
+      sfx.reward();
+      haptic.correct();
+      setMood('dance');
+      setTimeout(() => setMood('idle'), 1800);
+      showToast({ emoji: building.emoji, title: `«${building.title}» построено!`, text: 'Теперь оно стоит на твоём участке' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, building.price - gems)} 💎` });
+    }
+  };
+
   const confirmSell = () => {
     if (!askSell) return;
     const item = askSell;
@@ -548,6 +582,7 @@ export function ShopScreen() {
     const affordable = canBuy(item, gems);
     const wished = isWished(wishlist, item.id);
     const toy = isToy(item);
+    const baseStyle = item.baseStyle ? BUILDING_BY_ID[item.baseStyle] : undefined;
     // 0.22.0: техника не «надета» на БУКа — она стоит в ангаре; слот `toy`
     // означает «любимая вещь на главном подиуме ангара» (HangarScene).
     const stateOn = toy ? 'На подиуме ✓' : 'Надето ✓';
@@ -555,6 +590,7 @@ export function ShopScreen() {
     return (
       <ShopCard
         key={item.id}
+        badge={baseStyle?.emoji}
         art={
           toy ? (
             <ToyArt id={item.id} interactive size={82} tuning={profile.shop?.tuning} />
@@ -594,6 +630,52 @@ export function ShopScreen() {
             showToast({
               emoji: '💎',
               title: `До «${item.title}» ещё ${missingGems(item, gems)} 💎`,
+              text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
+            });
+          }
+        }}
+      />
+    );
+  };
+
+  const buildingCard = (building: BuildingItem) => {
+    const owned_ = isBuildingOwned(buildingsOwned, building.id);
+    const selected = activeBuilding === building.id;
+    const affordable = gems >= building.price;
+    const missing = Math.max(0, building.price - gems);
+    return (
+      <ShopCard
+        key={building.id}
+        art={<BuildingArt id={building.id} className="building-card-art" />}
+        rarity={building.rarity}
+        title={building.title}
+        desc={building.desc}
+        cardCls={`building-item${selected ? ' on' : owned_ ? ' owned' : ''}`}
+        priceLabel={selected ? 'На участке ✓' : owned_ ? 'В коллекции ✓' : `💎 ${building.price}`}
+        afford={affordable}
+        actionLabel={
+          owned_
+            ? selected
+              ? 'Выбрано ✓'
+              : 'Поставить'
+            : affordable
+              ? `Купить · 💎${building.price}`
+              : `Ещё ${missing} 💎`
+        }
+        actionTone={selected ? 'green' : owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
+        actionDisabled={selected || (!owned_ && !affordable)}
+        onOpen={() => openSheet({ kind: 'building', building })}
+        onAction={() => {
+          if (owned_) {
+            selectBuilding(building);
+          } else if (affordable) {
+            sfx.tap();
+            setAskBuilding(building);
+          } else {
+            sfx.hint();
+            showToast({
+              emoji: '💎',
+              title: `До «${building.title}» ещё ${missing} 💎`,
               text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
             });
           }
@@ -927,6 +1009,56 @@ export function ShopScreen() {
               </button>
             </>
           )}
+        </>
+      );
+    }
+    if (sheet.kind === 'building') {
+      const building = sheet.building;
+      const owned_ = isBuildingOwned(buildingsOwned, building.id);
+      const selected = activeBuilding === building.id;
+      const affordable = gems >= building.price;
+      const missing = Math.max(0, building.price - gems);
+      return (
+        <>
+          <div className="shop-bigart building-detail-art">
+            <BuildingArt id={building.id} loading="eager" />
+          </div>
+          <h2 style={{ margin: '0 0 2px' }}>{building.title}</h2>
+          <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
+          <p className="tiny muted" style={{ marginTop: 0 }}>{building.desc}</p>
+          <div className="row mb">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
+            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
+              {selected ? 'Уже стоит на участке' : owned_ ? 'В твоей коллекции' : `У тебя ${gems} 💎`}
+            </span>
+          </div>
+          <p className="tiny muted mb">Купленное здание останется у тебя. Можно переставлять его на участок и менять на другое.</p>
+          <div className="row mb">
+            {owned_ ? (
+              <button
+                className={`btn lg grow ${selected ? 'green' : 'primary'}`}
+                disabled={selected}
+                onClick={() => {
+                  selectBuilding(building);
+                  closeSheet();
+                }}
+              >
+                {selected ? 'На участке ✓' : 'Поставить на участок'}
+              </button>
+            ) : (
+              <button
+                className="btn lg grow primary"
+                disabled={!affordable}
+                onClick={() => {
+                  closeSheet();
+                  sfx.tap();
+                  setAskBuilding(building);
+                }}
+              >
+                {affordable ? `Построить · 💎${building.price}` : `Ещё ${missing} 💎`}
+              </button>
+            )}
+          </div>
         </>
       );
     }
@@ -1470,6 +1602,39 @@ export function ShopScreen() {
         </section>
       )}
 
+      {view === 'vitrina' && cat === 'buildings' && (
+        <section className="mt building-section" aria-label="Здания">
+          <div className="mb">
+            <h2 className="mb">Здания для твоего мира</h2>
+            <div className="tiny muted">Четыре научные базы: две легендарные и две топовые, каждая со своим миром и машиной.</div>
+          </div>
+
+          <div className={`building-plot${selectedBuilding ? ' has-building' : ''}`}>
+            {selectedBuilding ? (
+              <BuildingArt id={selectedBuilding.id} className="building-plot-art" loading="eager" />
+            ) : (
+              <div className="building-plot-empty" role="img" aria-label="Свободный участок">
+                <span aria-hidden="true">🏗️</span>
+                <b>Пока свободный участок</b>
+                <small>Выбери здание ниже — оно появится здесь</small>
+              </div>
+            )}
+            <div className="building-plot-caption">
+              <span className="building-plot-kicker">🏡 ТВОЙ УЧАСТОК</span>
+              <b>{selectedBuilding?.title ?? 'Место для первой постройки'}</b>
+              <span>{selectedBuilding?.desc ?? 'Купи или выбери здание, чтобы украсить свой мир'}</span>
+            </div>
+            <div className="building-plot-count">В коллекции: {buildingsOwned.length} из {BUILDINGS.length}</div>
+          </div>
+
+          <div className="building-catalog-heading">
+            <h3>Выбери здание</h3>
+            <span className="tiny muted">Тапни по карточке — подробности</span>
+          </div>
+          <ShowcaseGrid tone="sky">{BUILDINGS.map(buildingCard)}</ShowcaseGrid>
+        </section>
+      )}
+
       {view === 'vitrina' && cat === 'costumes' && (
         <section className="mt" aria-label="Костюмы">
           <div className="mb">
@@ -1656,6 +1821,43 @@ export function ShopScreen() {
                 ),
               )}
             </div>
+          </section>
+
+          {/* Мои здания: участок и выбор купленной постройки. */}
+          <section className="mb" aria-label="Мои здания">
+            <div className="row mb" style={{ alignItems: 'center' }}>
+              <h2 className="grow" style={{ margin: 0 }}>Мои здания</h2>
+              <button
+                type="button"
+                className="btn sm ghost"
+                onClick={() => {
+                  setView('vitrina');
+                  setCat('buildings');
+                }}
+              >
+                Открыть участок ➜
+              </button>
+            </div>
+            {buildingsOwned.length === 0 ? (
+              <div className="card tiny mb" style={{ textAlign: 'center' }}>
+                Пока пусто. Загляни на полку «Здания» в витрине и выбери первую постройку 🏡
+              </div>
+            ) : (
+              <div className="col">
+                {BUILDINGS.filter((building) => isBuildingOwned(buildingsOwned, building.id)).map((building) =>
+                  wardrobeRow(
+                    building.id,
+                    { kind: 'building', building },
+                    <BuildingArt id={building.id} className="building-wardrobe-art" />,
+                    building.title,
+                    activeBuilding === building.id ? 'Стоит на участке' : building.desc,
+                    activeBuilding === building.id,
+                    activeBuilding === building.id ? 'На участке ✓' : 'Поставить',
+                    () => selectBuilding(building),
+                  ),
+                )}
+              </div>
+            )}
           </section>
 
           {/* Мои костюмы: собранное */}
@@ -1962,6 +2164,18 @@ export function ShopScreen() {
           leaveLabel="Не сейчас"
           onStay={confirmSoundBuy}
           onLeave={() => setAskSound(null)}
+        />
+      )}
+
+      {askBuilding && (
+        <ConfirmDialog
+          emoji={askBuilding.emoji}
+          title={`Построить «${askBuilding.title}»?`}
+          text={`Отдашь ${askBuilding.price} 💎 из ${gems}. Здание сразу появится на твоём участке.`}
+          stayLabel={`Построить · 💎${askBuilding.price}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmBuildingBuy}
+          onLeave={() => setAskBuilding(null)}
         />
       )}
 

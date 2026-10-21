@@ -222,6 +222,38 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'white', title: 'Белый', colors: ['#e2e8f0', '#111827', '#94a3b8'] },
     ],
   },
+  'car-atomic-base': {
+    base: { id: BASE_TINT, title: 'Кремовая с бирюзой', colors: ['#e8e2d5', '#263348', '#28b8d6'] },
+    extra: [
+      { id: 'blue', title: 'Космическая синяя', colors: ['#487bd3', '#122043', '#7cddff'] },
+      { id: 'violet', title: 'Сиреневая', colors: ['#a887d6', '#29203d', '#f3bf67'] },
+      { id: 'green', title: 'Изумрудная', colors: ['#5b9d78', '#1c443a', '#d4d968'] },
+    ],
+  },
+  'car-electron-base': {
+    base: { id: BASE_TINT, title: 'Белая с бирюзой', colors: ['#eef5f4', '#204956', '#2dced1'] },
+    extra: [
+      { id: 'blue', title: 'Синяя', colors: ['#387bc3', '#142e4a', '#8be3f3'] },
+      { id: 'green', title: 'Мятная', colors: ['#73bdab', '#244e4a', '#ddc75b'] },
+      { id: 'violet', title: 'Лавандовая', colors: ['#aaa1ce', '#34334e', '#5ed3d4'] },
+    ],
+  },
+  'car-arctic-base': {
+    base: { id: BASE_TINT, title: 'Ледяная с оранжевым', colors: ['#b6d2e0', '#2f5063', '#e98a3a'] },
+    extra: [
+      { id: 'blue', title: 'Полярная синяя', colors: ['#6eabd0', '#193a58', '#d6f5ff'] },
+      { id: 'green', title: 'Хвойная', colors: ['#6b9587', '#223d3d', '#f0a33c'] },
+      { id: 'red', title: 'Красная', colors: ['#c86a62', '#492c37', '#f0c36e'] },
+    ],
+  },
+  'car-moon-base': {
+    base: { id: BASE_TINT, title: 'Лунная серебряная', colors: ['#dce0e3', '#374151', '#c9a44f'] },
+    extra: [
+      { id: 'blue', title: 'Звёздная синяя', colors: ['#708cb5', '#1b2a43', '#e4cb86'] },
+      { id: 'red', title: 'Марсианская', colors: ['#bd786a', '#442d33', '#d8b668'] },
+      { id: 'green', title: 'Морская', colors: ['#75a9a0', '#253c43', '#d9bd72'] },
+    ],
+  },
   'ship-paper': {
     base: { id: BASE_TINT, title: 'Белая с золотом', colors: ['#f8fafc', '#172033', '#c5a45b'] },
     extra: [

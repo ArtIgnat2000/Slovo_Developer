@@ -135,6 +135,12 @@ export interface ShopState {
   wishlist?: string[];
   /** «Мой мир» (0.26.0): до трёх купленных вещей для отдельной вкладки, см. engine/world.ts. */
   world?: string[];
+  /** Коллекция зданий из витрины БУКа; здания не занимают слоты обычного гардероба. */
+  buildingsOwned?: string[];
+  /** База, поставленная в «Мой мир» и задающая фон этой вкладки. */
+  worldBase?: string | null;
+  /** Здание, которое сейчас стоит на участке. */
+  activeBuilding?: string | null;
 }
 
 /**
@@ -249,7 +255,7 @@ export interface Profile {
    * «новый сундук открылся», поэтому он же и есть «о чём уже сказали».
    */
   chestSkins?: string[];
-  /** Все вещи, костюмы, музыка, звуки, оттенки и облики уже открыты (см. store.ts openEverything). */
+  /** Все вещи, здания, костюмы, музыка, звуки, оттенки и облики уже открыты (см. store.ts openEverything). */
   openedAll?: boolean;
 }
 
