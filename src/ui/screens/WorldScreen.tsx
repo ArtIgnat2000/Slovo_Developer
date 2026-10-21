@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
+import { BUILDING_BY_ID, WORLD_BASES } from '../../engine/buildings';
 import { compareByRarity, ITEM_BY_ID, growthStage, isOwned, rarityOf, SHOP_ITEMS, type ShopItem } from '../../engine/shop';
 import { normalizeWorld, WORLD_SLOTS } from '../../engine/world';
 import { haptic } from '../../platform/haptics';
@@ -7,30 +8,37 @@ import { masteredCount, useActiveProfile, useApp } from '../../state/store';
 import { Mascot } from '../Mascot';
 import { BayDecor } from '../TechScene';
 import { ToyArt } from '../ToyArt';
-import { RarityChip } from '../RarityChip';
+import { RarityChip, RarityLabel } from '../RarityChip';
+import { BuildingArt, buildingArtUrl } from '../BuildingArt';
 
 /**
- * «Мой мир» (0.26.0): вкладка с выбранными вещами ребёнка.
- * Каждая вещь стоит на своей сцене: машина — в гараже, корабль — у пристани,
- * телефон — на полке (те же панели, что в ангаре), наряд — на мягком фоне.
- * «Выбрать» открывает список купленных вещей; тап по вещи ставит её в мир или
- * убирает. Техника рисуется картинкой ToyArt, наряды — маскотом БУКа в этом наряде.
+ * «Мой мир»: купленная научная база задаёт пейзаж и фон вкладки, а три слота
+ * остаются для выбранных ребёнком вещей. Техника стоит в своей сцене, наряды —
+ * на мягком фоне. Базы и обычные вещи выбираются в одном окне настройки мира.
  */
 export function WorldScreen() {
   const profile = useActiveProfile();
   const toggleWorld = useApp((s) => s.toggleWorld);
+  const chooseWorldBase = useApp((s) => s.chooseWorldBase);
   const showToast = useApp((s) => s.showToast);
   const [picking, setPicking] = useState(false);
 
   if (!profile) return null;
 
   const owned = profile.shop?.owned ?? [];
+  const buildingsOwned = profile.shop?.buildingsOwned ?? [];
   const world = normalizeWorld(profile.shop?.world, owned);
+  const worldBaseId = profile.shop?.worldBase ?? null;
+  const worldBase = worldBaseId ? BUILDING_BY_ID[worldBaseId] : undefined;
+  const ownedBases = WORLD_BASES.filter((base) => buildingsOwned.includes(base.id));
   const tuning = profile.shop?.tuning;
   const growth = growthStage(masteredCount(profile));
   // Типы идут по возрастанию: обычный → крутой → легендарный → ТОПОВЫЙ (слоты и список).
   const shown = world.slice().sort((a, b) => compareByRarity(ITEM_BY_ID[a], ITEM_BY_ID[b]));
   const ownedItems = SHOP_ITEMS.filter((item) => isOwned(owned, item.id)).sort(compareByRarity);
+  const backdropStyle = worldBase
+    ? ({ '--world-base-image': `url("${buildingArtUrl(worldBase.id)}")` } as CSSProperties)
+    : undefined;
 
   const tap = (id: string) => {
     sfx.tap();
@@ -41,6 +49,15 @@ export function WorldScreen() {
     } else if (result === 'locked') {
       showToast({ emoji: '🔒', title: 'Сначала купите вещь', text: 'В «Мой мир» ставим только купленное' });
     }
+  };
+
+  const setWorldBase = (id: string | null) => {
+    if (!chooseWorldBase(id)) {
+      showToast({ emoji: '🔒', title: 'Сначала купите базу', text: 'В фон мира можно поставить только свою базу из БУКа' });
+      return;
+    }
+    sfx.tap();
+    haptic.tap();
   };
 
   /** Картинка вещи: техника — ToyArt, наряд — маскот БУКа в этом наряде. */
@@ -55,9 +72,42 @@ export function WorldScreen() {
   const toneOf = (item: ShopItem): 'car' | 'ship' | 'phone' | 'outfit' => item.toy ?? 'outfit';
 
   return (
-    <div className="screen world-screen">
+    <div
+      className={`screen world-screen${worldBase ? ' has-world-base' : ''}`}
+      style={backdropStyle}
+    >
       <h2 className="mb">🌍 Мой мир</h2>
-      <p className="tiny muted mb">До {WORLD_SLOTS} вещей, которые вы выбрали сами. Они стоят здесь.</p>
+      <p className="tiny muted mb">База меняет пейзаж мира, а в трёх местах можно расставить любимые вещи.</p>
+
+      <section className={`world-base-current${worldBase ? ' selected' : ''}`} aria-label="База и фон Моего мира">
+        <div className="world-base-current-art">
+          {worldBase ? (
+            <BuildingArt id={worldBase.id} className="world-base-preview-art" loading="eager" decorative />
+          ) : (
+            <span aria-hidden="true">🏗️</span>
+          )}
+        </div>
+        <div className="world-base-current-copy">
+          <span className="world-base-kicker">🌄 ОСНОВА МИРА</span>
+          <b>{worldBase?.title ?? 'База пока не выбрана'}</b>
+          {worldBase && <RarityLabel rarity={worldBase.rarity} className="rarity-chip-mini" />}
+          <small>
+            {worldBase
+              ? 'Пейзаж выбранной базы теперь задаёт фон этой вкладки.'
+              : 'Выбери купленную базу — и фон мира изменится вместе с ней.'}
+          </small>
+          <div className="world-base-actions">
+            <button type="button" className="btn sm" onClick={() => setPicking(true)}>
+              {worldBase ? 'Сменить базу' : 'Выбрать базу'}
+            </button>
+            {worldBase && (
+              <button type="button" className="btn sm ghost" onClick={() => setWorldBase(null)}>
+                Убрать базу
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
 
       <div className="world-slots">
         {Array.from({ length: WORLD_SLOTS }, (_, index) => {
@@ -105,38 +155,76 @@ export function WorldScreen() {
       )}
 
       {picking && (
-        <section className="card world-picker" aria-label="Выбор вещей для Моего мира">
+        <section className="card world-picker" aria-label="Выбор для Моего мира">
           <div className="row mb">
-            <b className="grow">Выберите до {WORLD_SLOTS} · {world.length}/{WORLD_SLOTS}</b>
+            <b className="grow">Настройте мир · вещей {world.length}/{WORLD_SLOTS}</b>
             <button type="button" className="btn sm" onClick={() => setPicking(false)}>
               Готово
             </button>
           </div>
-          {ownedItems.length === 0 ? (
-            <p className="tiny muted">Пока пусто. Купите вещь в БУКе, и она появится здесь.</p>
-          ) : (
-            <div className="world-pick">
-              {ownedItems.map((item) => {
-                const on = world.includes(item.id);
-                const tone = toneOf(item);
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`world-pick-item world-tone-${tone} tier-${rarityOf(item)}${on ? ' on' : ''}`}
-                    aria-pressed={on}
-                    aria-label={`${item.title}${on ? ' — в Моём мире. Убрать' : '. Поставить в Мой мир'}`}
-                    onClick={() => tap(item.id)}
-                  >
-                    <span className="world-pick-art">{art(item, 84)}</span>
-                    <span className="world-pick-title">{item.title}</span>
-                    <RarityChip item={item} className="rarity-chip-mini" />
-                    {on && <i aria-hidden="true">✓</i>}
-                  </button>
-                );
-              })}
+
+          <section className="world-base-picker-group" aria-label="Выбор базы и фона мира">
+            <div className="world-picker-heading">
+              <b>База задаёт фон</b>
+              <small>Выбери одну из купленных научных баз.</small>
             </div>
-          )}
+            {ownedBases.length === 0 ? (
+              <p className="tiny muted">Купи базу на полке «Здания» в магазине БУКа, чтобы поставить её в «Мой мир».</p>
+            ) : (
+              <div className="world-base-pick-grid">
+                {ownedBases.map((base) => {
+                  const on = worldBase?.id === base.id;
+                  return (
+                    <button
+                      key={base.id}
+                      type="button"
+                      className={`world-base-pick-item${on ? ' on' : ''}`}
+                      aria-pressed={on}
+                      aria-label={`${base.title}${on ? ' — фон мира выбран' : '. Поставить фоном мира'}`}
+                      onClick={() => setWorldBase(base.id)}
+                    >
+                      <BuildingArt id={base.id} className="world-base-pick-art" decorative />
+                      <span>{base.title}</span>
+                      <RarityLabel rarity={base.rarity} className="rarity-chip-mini" />
+                      <small>{on ? 'Фон выбран ✓' : 'Поставить фоном'}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="world-items-picker-group" aria-label="Выбор вещей мира">
+            <div className="world-picker-heading">
+              <b>Вещи на сцене · до {WORLD_SLOTS}</b>
+              <small>База не занимает одно из трёх мест.</small>
+            </div>
+            {ownedItems.length === 0 ? (
+              <p className="tiny muted">Пока пусто. Купите вещь в БУКе, и она появится здесь.</p>
+            ) : (
+              <div className="world-pick">
+                {ownedItems.map((item) => {
+                  const on = world.includes(item.id);
+                  const tone = toneOf(item);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`world-pick-item world-tone-${tone} tier-${rarityOf(item)}${on ? ' on' : ''}`}
+                      aria-pressed={on}
+                      aria-label={`${item.title}${on ? ' — в Моём мире. Убрать' : '. Поставить в Мой мир'}`}
+                      onClick={() => tap(item.id)}
+                    >
+                      <span className="world-pick-art">{art(item, 84)}</span>
+                      <span className="world-pick-title">{item.title}</span>
+                      <RarityChip item={item} className="rarity-chip-mini" />
+                      {on && <i aria-hidden="true">✓</i>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </section>
       )}
     </div>

@@ -17,6 +17,8 @@ import { runChestSkinsUiChecks } from './chest-skins-ui.test';
 import { runParentUiChecks } from './parent-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
+import { runBuildingUiChecks } from './buildings-ui.test';
+import './buildings.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
 import { runShareAppChecks } from './share-ui.test';
 import { runThemeChecks } from './theme-ui.test';
@@ -36,6 +38,7 @@ import { questTitle } from '../src/engine/quests';
 import { normalizeWorld, toggleWorldPick } from '../src/engine/world';
 import { compareByRarity, ITEM_BY_ID, RARITY_LABEL, SHOP_ITEMS, TOY_ITEMS, growthStage, rarityOf, sellPrice } from '../src/engine/shop';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
+import { BUILDINGS } from '../src/engine/buildings';
 import { CHEST_SKINS } from '../src/engine/chests';
 import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
 import { THEME_STYLES } from '../src/engine/theme-styles';
@@ -314,16 +317,18 @@ async function main() {
     String(useApp.getState().profiles[0].gems),
   );
   {
-    // Всё открыто с первого запуска: наряды, техника, костюмы, музыка, звуки, облики сундука
+    // Всё открыто с первого запуска: наряды, техника, здания, костюмы, музыка, звуки, облики сундука.
     const fresh = useApp.getState().profiles[0];
     const everything =
       (fresh.shop?.owned ?? []).length === SHOP_ITEMS.length &&
+      (fresh.shop?.buildingsOwned ?? []).length === BUILDINGS.length &&
+      Boolean(fresh.shop?.activeBuilding) &&
       (fresh.shop?.musicOwned ?? []).length === MUSIC_TRACKS.length &&
       (fresh.shop?.soundOwned ?? []).length === SOUND_PACKS.length &&
       (fresh.puzzle?.assembled ?? []).length === COSTUMES.length &&
       Object.values(fresh.puzzle?.pieces ?? {}).every((n) => n === PUZZLE_SIZE) &&
       (fresh.chestSkins ?? []).length === CHEST_SKINS.length;
-    check('всё открыто с первого запуска: вещи, костюмы, музыка, звуки, облики сундука', everything, '');
+    check('всё открыто с первого запуска: вещи, здания, костюмы, музыка, звуки, облики сундука', everything, '');
   }
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
@@ -530,6 +535,7 @@ async function main() {
   );
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
   check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
+  await runBuildingUiChecks();
 
   const backgroundShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны'));
   click(backgroundShelf);
@@ -585,19 +591,19 @@ async function main() {
   await sleep(30);
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
   check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
-  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 10 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
+  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 14 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check(
-    '«Авто»: десять машин с именами-характерами стоят на отдельной полке',
-    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб'].every((title) => has(title)),
+    '«Авто»: десять прежних машин и четыре машины в стиле баз',
+    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход'].every((title) => has(title)),
     '',
   );
   // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
-    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб/;
+    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход/;
     const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
       .filter((el) => carTitles.test(el.textContent ?? ''))
       .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 10 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 14 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
 
@@ -822,11 +828,37 @@ async function main() {
       JSON.stringify(['car-racer', 'phone-pro']),
     '',
   );
+  const worldBaseBefore = useApp.getState().profiles[0].shop?.worldBase ?? null;
   const worldTab = buttons().find((b) => b.className.includes('tab') && (b.textContent ?? '').includes('Мой мир'));
   check('в нижнем ряду есть вкладка «Мой мир»', !!worldTab, '');
   click(worldTab);
   await sleep(60);
   check('вкладка «Мой мир» открывается', has('Мой мир') && document.querySelectorAll('.world-slot').length === 3, '');
+  check('«Мой мир»: есть отдельное место для базы и её фона', !!document.querySelector('.world-base-current') && has('ОСНОВА МИРА'), '');
+  click(btnText('Выбрать базу'));
+  await sleep(40);
+  check('«Мой мир»: можно выбрать только купленные базы', document.querySelectorAll('.world-base-pick-item').length === 4, String(document.querySelectorAll('.world-base-pick-item').length));
+  click(document.querySelector('.world-base-pick-item[aria-label^="Арктическая база"]'));
+  await sleep(40);
+  const worldBaseScreen = document.querySelector('.world-screen') as HTMLElement | null;
+  check(
+    'выбранная арктическая база меняет фон «Моего мира»',
+    useApp.getState().profiles[0].shop?.worldBase === 'arctic-base' &&
+      !!worldBaseScreen?.classList.contains('has-world-base') &&
+      worldBaseScreen?.style.getPropertyValue('--world-base-image').includes('arctic-base.webp') === true,
+    worldBaseScreen?.style.getPropertyValue('--world-base-image') ?? 'фон не задан',
+  );
+  check('база мира показывается отдельной сценой и не занимает один из трёх слотов', !!document.querySelector('.world-base-current-art img[alt=""]') && document.querySelectorAll('.world-slot').length === 3);
+  check('неизвестное здание нельзя поставить вместо научной базы фоном мира', useApp.getState().chooseWorldBase('unknown-building') === false, '');
+  click(btnText('Убрать базу'));
+  await sleep(40);
+  check(
+    'базу можно убрать, вернув обычный фон',
+    useApp.getState().profiles[0].shop?.worldBase === null && !document.querySelector('.world-screen')?.classList.contains('has-world-base'),
+    '',
+  );
+  click(btnText('Готово'));
+  await sleep(30);
   const worldCount = (useApp.getState().profiles[0].shop?.world ?? []).length;
   check(
     'пустые места — это свободные из трёх',
@@ -874,6 +906,7 @@ async function main() {
               ...p.shop!,
               owned: [],
               equipped: {},
+              worldBase: worldBaseBefore,
               musicOwned: [...STARTER_TRACK_IDS],
               soundOwned: [...STARTER_SOUND_IDS],
               soundPack: 'classic',

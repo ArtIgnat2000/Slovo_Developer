@@ -25,6 +25,15 @@ import {
   type PlannedQuest,
 } from '../engine/quests';
 import { ITEM_BY_ID, isOwned, normalizeWishlist, sellPrice, SHOP_ITEMS } from '../engine/shop';
+import {
+  BUILDINGS,
+  BUILDING_BY_ID,
+  DEFAULT_BUILDING_ID,
+  isBuildingOwned,
+  normalizeActiveBuilding,
+  normalizeBuildingsOwned,
+  normalizeWorldBase,
+} from '../engine/buildings';
 import { normalizeWorld, toggleWorldPick, type WorldToggle } from '../engine/world';
 import { migrateMusicShop, MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from '../engine/music';
 import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, SOUND_PACKS, STARTER_SOUND_IDS } from '../engine/sounds';
@@ -202,6 +211,7 @@ function readShop(p: Profile): ShopState {
   const assembled = p.puzzle?.assembled ?? [];
   // Музыкальная часть — через миграцию: покупки старого каталога не теряются.
   const music = migrateMusicShop(p.shop);
+  const buildingsOwned = normalizeBuildingsOwned(p.shop?.buildingsOwned);
   return {
     owned,
     equipped: p.shop?.equipped ?? {},
@@ -213,6 +223,9 @@ function readShop(p: Profile): ShopState {
     tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
     wishlist: normalizeWishlist(p.shop?.wishlist, owned, assembled, music.musicOwned),
     world: normalizeWorld(p.shop?.world, owned),
+    buildingsOwned,
+    worldBase: normalizeWorldBase(p.shop?.worldBase, buildingsOwned),
+    activeBuilding: normalizeActiveBuilding(p.shop?.activeBuilding, buildingsOwned),
   };
 }
 
@@ -227,14 +240,15 @@ export const ENDLESS_GEMS = 1_000_000_000;
 export const STARTING_GEMS = ENDLESS_GEMS;
 
 /**
- * Всё открыто: каждая вещь магазина, костюм, мелодия, набор звуков, оттенок и
- * облик сундука. Чистая функция: только добавляет к уже имеющемуся, ничего не
- * отбирает и не трогает алмазы и выбор ребёнка (стартовая мелодия, классика,
- * базовый облик сундука). Вызывается для новых профилей и один раз для старых.
+ * Всё открыто: каждая вещь магазина, здание, костюм, мелодия, набор звуков,
+ * оттенок и облик сундука. Чистая функция: только добавляет к уже имеющемуся,
+ * ничего не отбирает и не трогает алмазы и выбор ребёнка (стартовая мелодия,
+ * классика, базовый облик сундука). Вызывается для новых профилей и один раз для старых.
  */
 export function openEverything(p: Profile): Profile {
   const union = (a: string[] = [], b: string[]) => [...new Set([...a, ...b])];
   const shop = p.shop ?? { owned: [], equipped: {} };
+  const buildingsOwned = union(shop.buildingsOwned, BUILDINGS.map((building) => building.id));
   const tintUnlocked: Record<string, string[]> = { ...(shop.tuning?.unlocked ?? {}) };
   for (const [targetId, palette] of [...Object.entries(TINT_PALETTES), ...Object.entries(COSTUME_PALETTES)]) {
     if (palette.extra.length) tintUnlocked[targetId] = union(tintUnlocked[targetId], palette.extra.map((tint) => tint.id));
@@ -249,6 +263,8 @@ export function openEverything(p: Profile): Profile {
     shop: {
       ...shop,
       owned: union(shop.owned, SHOP_ITEMS.map((item) => item.id)),
+      buildingsOwned,
+      activeBuilding: normalizeActiveBuilding(shop.activeBuilding, buildingsOwned) ?? DEFAULT_BUILDING_ID,
       musicOwned: union(shop.musicOwned, MUSIC_TRACKS.map((track) => track.id)),
       musicTrack: shop.musicTrack ?? STARTER_TRACK_IDS[0],
       soundOwned: union(shop.soundOwned, SOUND_PACKS.map((pack) => pack.id)),
@@ -294,6 +310,9 @@ function newProfile(name: string, avatar: string): Profile {
       soundPack: DEFAULT_SOUND_PACK,
       wishlist: [],
       world: [],
+      buildingsOwned: [],
+      worldBase: null,
+      activeBuilding: null,
     },
     puzzle: { pieces: {}, collecting: null, assembled: [], worn: null },
   });
@@ -326,8 +345,15 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined, openLegacy =
     ? raw.shop.owned.filter((x): x is string => typeof x === 'string')
     : [];
   const puzzle = normalizePuzzle(raw.puzzle);
-    const music = migrateMusicShop(raw.shop);
-    const result: Profile = {
+  const music = migrateMusicShop(raw.shop);
+  // Профили с флагом «всё открыто» получают и новый каталог зданий,
+  // появившийся после их создания. Остальные сохраняют только свои покупки.
+  const buildingsOwned = raw.openedAll === true
+    ? [...new Set([...normalizeBuildingsOwned(raw.shop?.buildingsOwned), ...BUILDINGS.map((building) => building.id)])]
+    : normalizeBuildingsOwned(raw.shop?.buildingsOwned);
+  const activeBuilding = normalizeActiveBuilding(raw.shop?.activeBuilding, buildingsOwned)
+    ?? (raw.openedAll === true ? DEFAULT_BUILDING_ID : null);
+  const result: Profile = {
       ...base,
       ...raw,
       id: raw.id,
@@ -360,6 +386,9 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined, openLegacy =
         tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
         wishlist: normalizeWishlist(raw.shop?.wishlist, owned, puzzle.assembled, music.musicOwned),
         world: normalizeWorld(raw.shop?.world, owned),
+        buildingsOwned,
+        worldBase: normalizeWorldBase(raw.shop?.worldBase, buildingsOwned),
+        activeBuilding,
       },
       puzzle,
     };
@@ -447,6 +476,12 @@ interface AppState {
 
   /** Купить аксессуар у БУКа. Возвращает false, если кристаллов не хватает. */
   buyItem: (id: string) => boolean;
+  /** Купить здание для участка из новой полки БУКа. */
+  buyBuilding: (id: string) => boolean;
+  /** Поставить уже купленное здание на участок. */
+  chooseBuilding: (id: string) => boolean;
+  /** Выбрать или убрать купленную базу как фон «Моего мира». */
+  chooseWorldBase: (id: string | null) => boolean;
   /**
    * Сдать купленную вещь обратно («трейд-ин», docs/proposals/trade-in.md):
    * вещь уходит из гардероба навсегда, часть цены возвращается
@@ -1030,6 +1065,64 @@ export const useApp = create<AppState>()(
               },
             };
           }),
+        );
+        return true;
+      },
+
+      buyBuilding: (id) => {
+        const building = BUILDING_BY_ID[id];
+        const p = getActive(get());
+        if (!building || !p) return false;
+        const shop = readShop(p);
+        if (isBuildingOwned(shop.buildingsOwned, id) || p.gems < building.price) return false;
+        set((s) =>
+          patchActive(s, (prof) => {
+            const current = readShop(prof);
+            // Повторно проверяем при обновлении, чтобы быстрый двойной тап
+            // не списал кристаллы за одно и то же здание дважды.
+            if (isBuildingOwned(current.buildingsOwned, id) || prof.gems < building.price) return prof;
+            return {
+              ...prof,
+              gems: prof.gems - building.price,
+              shop: {
+                ...current,
+                buildingsOwned: [...(current.buildingsOwned ?? []), id],
+                activeBuilding: id,
+              },
+            };
+          }),
+        );
+        return true;
+      },
+
+      chooseBuilding: (id) => {
+        if (!BUILDING_BY_ID[id]) return false;
+        const p = getActive(get());
+        if (!p) return false;
+        const shop = readShop(p);
+        if (!isBuildingOwned(shop.buildingsOwned, id)) return false;
+        if (shop.activeBuilding === id) return true;
+        set((s) =>
+          patchActive(s, (prof) => ({
+            ...prof,
+            shop: { ...readShop(prof), activeBuilding: id },
+          })),
+        );
+        return true;
+      },
+
+      chooseWorldBase: (id) => {
+        const p = getActive(get());
+        if (!p) return false;
+        const shop = readShop(p);
+        const next = id === null ? null : normalizeWorldBase(id, shop.buildingsOwned ?? []);
+        if (id !== null && !next) return false;
+        if (shop.worldBase === next) return true;
+        set((s) =>
+          patchActive(s, (prof) => ({
+            ...prof,
+            shop: { ...readShop(prof), worldBase: next },
+          })),
         );
         return true;
       },

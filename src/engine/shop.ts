@@ -36,6 +36,8 @@ export interface ShopItem {
   emoji?: string;
   /** Тип вещи. Без поля тип считается по цене (см. rarityOf). */
   rarity?: ItemRarity;
+  /** Для машины — id базы, стилем которой она вдохновлена. */
+  baseStyle?: string;
 }
 
 /** Тип вещи: обычный, крутой, легендарный или ТОПОВЫЙ. */
@@ -113,6 +115,11 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'car-rolls', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Лорд', desc: 'Парадный лимузин: огромная решётка и фигурка на капоте', price: 80 },
   { id: 'car-lambo', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Бык', desc: 'Зелёный суперкар: Y-фары и антикрыло', price: 85 },
   { id: 'car-bugatti', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🚗', title: 'Молния', desc: 'Голубой гиперкар: подкова решётки и C-линия по борту', price: 90 },
+  // Детализированные машины, созданные в стилях четырёх научных баз.
+  { id: 'car-atomic-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '⚛️', title: 'Квант', desc: 'Научный внедорожник для ядерной базы: защитный корпус, датчики на крыше и голубое энергоядро', price: 120, rarity: 'top', baseStyle: 'atomic-base' },
+  { id: 'car-electron-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🔋', title: 'Импульс', desc: 'Тихий электрокар электронной базы: солнечная крыша и светящиеся линии схем', price: 100, rarity: 'legendary', baseStyle: 'electron-base' },
+  { id: 'car-arctic-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🧊', title: 'Полярник', desc: 'Вездеход арктической базы: гусеницы, тёплая кабина и мачта датчиков', price: 115, rarity: 'legendary', baseStyle: 'arctic-base' },
+  { id: 'car-moon-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🌙', title: 'Луноход', desc: 'Шестиколёсный ровер лунной базы: сетчатые колёса, солнечное крыло и камера-мачта', price: 140, rarity: 'top', baseStyle: 'moon-base' },
   // ── Техника: морские суда ────────────────────────────────────────────────
   // Старые id ship-paper/ship-sail/ship-steam сохраняем: так покупки,
   // избранный корабль и купленные оттенки в профилях не теряются при обновлении.

@@ -65,6 +65,10 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'car-rolls': ['#0f3d33', '#08120f', '#d4af37'],
   'car-lambo': ['#3fae2a', '#111827', '#e2e8f0'],
   'car-bugatti': ['#2563eb', '#0a1226', '#cbd5e1'],
+  'car-atomic-base': ['#e8e2d5', '#263348', '#28b8d6'],
+  'car-electron-base': ['#eef5f4', '#204956', '#2dced1'],
+  'car-arctic-base': ['#b6d2e0', '#2f5063', '#e98a3a'],
+  'car-moon-base': ['#dce0e3', '#374151', '#c9a44f'],
   'ship-paper': ['#f8fafc', '#172033', '#c5a45b'],
   'ship-sail': ['#183b63', '#202b3b', '#ef673c'],
   'ship-steam': ['#164b4c', '#203b3b', '#c6813d'],
@@ -95,12 +99,26 @@ const carIds = toysByShelf('car').map((item) => item.id);
 for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rolls', 'car-maybach', 'car-bugatti']) {
   assert.ok(carIds.includes(id), `в разделе авто нет ${id}`);
 }
+assert.equal(carIds.length, 14, 'полка авто содержит десять прежних машин и четыре машины в стиле баз');
+const baseCars = [
+  ['car-atomic-base', 'atomic-base', 'top'],
+  ['car-electron-base', 'electron-base', 'legendary'],
+  ['car-arctic-base', 'arctic-base', 'legendary'],
+  ['car-moon-base', 'moon-base', 'top'],
+] as const;
+for (const [carId, baseId, rarity] of baseCars) {
+  const car = ITEM_BY_ID[carId];
+  assert.ok(car && carIds.includes(carId), `${carId}: машины в стиле базы есть в каталоге`);
+  assert.equal(car.baseStyle, baseId, `${carId}: связана с правильной базой`);
+  assert.equal(car.rarity, rarity, `${carId}: редкость соответствует базе`);
+  assert.ok(TINT_PALETTES[carId], `${carId}: у машины есть палитра тюнинга`);
+}
 // 0.21.1: имена машин — по характеру, без точных обозначений брендов.
 // id остаются техническими (по ним лежат картинки и профили), но всё, что
 // видит ребёнок, не должно называть марку или модель.
 assert.deepEqual(
   toysByShelf('car').map((item) => item.title),
-  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния'],
+  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Квант', 'Импульс', 'Полярник', 'Луноход'],
   'названия машин должны отражать характер, а не бренд',
 );
 assert.deepEqual(
@@ -334,7 +352,10 @@ assert.equal(
   null,
   'явная база — тоже рисунок в своих цветах',
 );
-for (const id of ['car-mercedes', 'car-bmw', 'car-brabus', 'car-maybach', 'car-rolls', 'car-lambo', 'car-bugatti']) {
+for (const id of [
+  'car-mercedes', 'car-bmw', 'car-brabus', 'car-maybach', 'car-rolls', 'car-lambo', 'car-bugatti',
+  'car-atomic-base', 'car-electron-base', 'car-arctic-base', 'car-moon-base',
+]) {
   const extra = TINT_PALETTES[id].extra[0];
   assert.equal(
     carPencilTint(id, { current: { [id]: extra.id }, unlocked: { [id]: [extra.id] } }),
