@@ -123,6 +123,8 @@ export type LessonSize = 'short' | 'standard' | 'full';
 export interface ShopState {
   owned: string[];
   equipped: Partial<Record<ShopSlot, string>>;
+  /** Купленные кристальные костюмы, не относящиеся к пазловым наградам. */
+  crystalCostumesOwned?: string[];
   /** Купленные музыкальные лупы и выбранный для БУКа фон. */
   musicOwned?: string[];
   musicTrack?: string | null;
@@ -133,7 +135,7 @@ export interface ShopState {
   tuning?: ShopTuning;
   /** Список желаемых товаров («Мечты 🤍», фаза 2 магазина): id вещей, костюмов или мелодий. */
   wishlist?: string[];
-  /** «Мой мир» (0.26.0): до трёх купленных вещей для отдельной вкладки, см. engine/world.ts. */
+  /** «Мой мир»: до трёх купленных вещей или полученных костюмов, см. engine/world.ts. */
   world?: string[];
   /** Коллекция зданий из витрины БУКа; здания не занимают слоты обычного гардероба. */
   buildingsOwned?: string[];

@@ -12,7 +12,7 @@
 // один: покупка, вишлист, тюнинг и выгрузка работают одинаково для всех вещей.
 
 import type { PuzzleState, ShopSlot } from '../types';
-import { COSTUMES, type Costume, costumeProgress, normalizePuzzle, activeCostume } from './puzzles';
+import { PUZZLE_COSTUMES, ALL_COSTUMES, type Costume, costumeProgress, normalizePuzzle, activeCostume } from './puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from './music';
 
 /** Полка витрины: наряды или техника. Костюмы/музыка/звуки живут отдельно. */
@@ -278,7 +278,7 @@ export function resolveHero(
 
   if (puzzle) {
     const pz = normalizePuzzle(puzzle);
-    const unassembled = COSTUMES.filter((c) => !pz.assembled.includes(c.id));
+    const unassembled = PUZZLE_COSTUMES.filter((c) => !pz.assembled.includes(c.id));
     if (unassembled.length > 0) {
       const active = activeCostume(pz);
       const target = (active && unassembled.find((c) => c.id === active)) || unassembled[0];
@@ -318,7 +318,7 @@ export function normalizeWishlist(
   if (!Array.isArray(raw)) return [];
   const validIds = new Set([
     ...SHOP_ITEMS.map((i) => i.id),
-    ...COSTUMES.map((c) => c.id),
+    ...ALL_COSTUMES.map((c) => c.id),
     ...MUSIC_TRACKS.map((t) => t.id),
   ]);
   const ownedSet = new Set([

@@ -29,7 +29,9 @@ import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { HangarScene } from '../HangarScene';
 import {
-  COSTUMES,
+  PUZZLE_COSTUMES,
+  CRYSTAL_COSTUMES,
+  ALL_COSTUMES,
   OVERFLOW_GEMS,
   PUZZLE_SIZE,
   activeCostume,
@@ -43,7 +45,7 @@ import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
 import { SOUND_PACKS, type SoundCue, type SoundPack } from '../../engine/sounds';
 import { haptic } from '../../platform/haptics';
-import { rarityOf, type ItemRarity, type ShopItem } from '../../engine/shop';
+import { rarityOf, compareByRarity, RARITY_ORDER, type ItemRarity, type ShopItem } from '../../engine/shop';
 import { RarityChip, RarityLabel } from '../RarityChip';
 import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
 import { playMusic } from '../../platform/music';
@@ -51,6 +53,7 @@ import { MusicCreditsToggle } from '../Credits';
 import { THEME_STYLES, type ThemeStyle } from '../../engine/theme-styles';
 import { BackgroundThemeCard } from '../BackgroundThemeCard';
 import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
+import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
 import { BuildingArt } from '../BuildingArt';
 
 /**
@@ -94,13 +97,14 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 type View = 'vitrina' | 'wardrobe';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'toys' | 'buildings' | 'costumes' | 'music' | 'sounds' | 'backgrounds';
+type Cat = 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
 
 const CATS: { id: Cat; title: string; emoji: string }[] = [
   { id: 'outfits', title: 'Наряды', emoji: '🎩' },
   { id: 'toys', title: 'Техника', emoji: '🚗' },
   { id: 'buildings', title: 'Здания', emoji: '🏙️' },
   { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
+  { id: 'sets', title: 'Наборы', emoji: '🎁' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
   { id: 'sounds', title: 'Звуки', emoji: '🔊' },
   { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
@@ -251,6 +255,8 @@ export function ShopScreen() {
   const look = useLook();
   const buyItem = useApp((s) => s.buyItem);
   const buyBuilding = useApp((s) => s.buyBuilding);
+  const buyCrystalCostume = useApp((s) => s.buyCrystalCostume);
+  const buyBaseSet = useApp((s) => s.buyBaseSet);
   const chooseBuilding = useApp((s) => s.chooseBuilding);
   const sellItem = useApp((s) => s.sellItem);
   const toggleEquip = useApp((s) => s.toggleEquip);
@@ -273,6 +279,8 @@ export function ShopScreen() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [ask, setAsk] = useState<ShopItem | null>(null);
   const [askBuilding, setAskBuilding] = useState<BuildingItem | null>(null);
+  const [askCrystalCostume, setAskCrystalCostume] = useState<Costume | null>(null);
+  const [askBaseSet, setAskBaseSet] = useState<BaseSet | null>(null);
   const [askSell, setAskSell] = useState<ShopItem | null>(null);
   const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
   const [askSound, setAskSound] = useState<SoundPack | null>(null);
@@ -318,7 +326,7 @@ export function ShopScreen() {
   // поэтому смена цели сборки безопасна — ребёнок ничего не теряет.
   const pz = normalizePuzzle(profile.puzzle);
   const collecting = activeCostume(pz);
-  const allCostumesDone = COSTUMES.every((c) => pz.assembled.includes(c.id));
+  const allCostumesDone = PUZZLE_COSTUMES.every((c) => pz.assembled.includes(c.id));
   const musicOwned = profile.shop?.musicOwned ?? [];
   const selectedMusic = profile.shop?.musicTrack ?? null;
   const soundOwned = profile.shop?.soundOwned ?? [];
@@ -634,6 +642,80 @@ export function ShopScreen() {
             });
           }
         }}
+      />
+    );
+  };
+
+  const crystalCostumeCard = (c: Costume) => {
+    const owned_ = (profile.shop?.crystalCostumesOwned ?? []).includes(c.id);
+    const wearing = pz.worn === c.id;
+    const price = c.price ?? 0;
+    return (
+      <ShopCard
+        key={c.id}
+        badge={c.baseStyle ? BUILDING_BY_ID[c.baseStyle]?.emoji : undefined}
+        rarity={c.rarity}
+        cardCls={`crystal-costume-card${wearing ? ' on' : owned_ ? ' owned' : ''}`}
+        art={<Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />}
+        title={c.title}
+        desc={c.desc}
+        priceLabel={owned_ ? (wearing ? 'Надет ✓' : 'Твой ✓') : `💎 ${price}`}
+        afford={gems >= price}
+        actionLabel={owned_ ? (wearing ? 'Снять' : 'Надеть') : gems >= price ? `Купить · 💎${price}` : `Ещё ${price - gems} 💎`}
+        actionTone={owned_ ? (wearing ? 'green' : 'ghost') : gems >= price ? 'primary' : 'ghost'}
+        actionDisabled={!owned_ && gems < price}
+        onOpen={() => owned_ ? tapCostume(c.id) : setAskCrystalCostume(c)}
+        onAction={() => {
+          if (owned_) tapCostume(c.id);
+          else if (gems >= price) setAskCrystalCostume(c);
+          else showToast({ emoji: '💎', title: `До «${c.title}» ещё ${price - gems} 💎`, text: 'Кристаллы дают за задания дня и сундук' });
+        }}
+      />
+    );
+  };
+
+  const confirmCrystalCostumeBuy = () => {
+    if (!askCrystalCostume) return;
+    const costume = askCrystalCostume;
+    const ok = buyCrystalCostume(costume.id);
+    setAskCrystalCostume(null);
+    if (ok) showToast({ emoji: '✨', title: `«${costume.title}» теперь твой!`, text: 'БУК сразу надел новый костюм' });
+    else showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: 'Продолжай выполнять задания и открывать сундуки' });
+  };
+
+  const allOwnedCostumes = [...pz.assembled, ...(profile.shop?.crystalCostumesOwned ?? [])];
+  const priceForSet = (setInfo: BaseSet) => baseSetPrice(setInfo, owned, buildingsOwned, allOwnedCostumes);
+  const confirmBaseSetBuy = () => {
+    if (!askBaseSet) return;
+    const setInfo = askBaseSet;
+    const ok = buyBaseSet(setInfo.id);
+    setAskBaseSet(null);
+    if (ok) showToast({ emoji: setInfo.emoji, title: `${setInfo.title} куплен!`, text: 'База, машина и костюм уже в твоей коллекции' });
+    else showToast({ emoji: '💎', title: 'Не хватает кристаллов или набор уже собран', text: 'Купи недостающие части отдельно или накопи кристаллы' });
+  };
+
+  const baseSetCard = (setInfo: BaseSet) => {
+    const price = priceForSet(setInfo);
+    const complete = isBuildingOwned(buildingsOwned, setInfo.baseId) && isOwned(owned, setInfo.carId) && allOwnedCostumes.includes(setInfo.costumeId);
+    const allMissing = !isBuildingOwned(buildingsOwned, setInfo.baseId) && !isOwned(owned, setInfo.carId) && !allOwnedCostumes.includes(setInfo.costumeId);
+    const base = BUILDING_BY_ID[setInfo.baseId];
+    const costume = ALL_COSTUMES.find((entry) => entry.id === setInfo.costumeId)!;
+    return (
+      <ShopCard
+        key={setInfo.id}
+        badge="БАЗА · АВТО · КОСТЮМ"
+        rarity={setInfo.rarity}
+        art={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, width: '100%' }}><BuildingArt id={setInfo.baseId} className="building-card-art" /><ToyArt id={setInfo.carId} size={46} /><Mascot mood="idle" costumeId={costume.id} size={48} stage={growth.index} /></div>}
+        title={setInfo.title}
+        desc={setInfo.desc}
+        extra={<div className="tiny muted">{base.emoji} база · 🚗 машина · ✨ костюм</div>}
+        priceLabel={complete ? 'Набор собран ✓' : `💎 ${price}${allMissing && price > 0 ? ' · скидка 10%' : ''}`}
+        afford={gems >= price}
+        actionLabel={complete ? 'Уже всё твоё ✓' : gems >= price ? `Купить набор · 💎${price}` : `Ещё ${price - gems} 💎`}
+        actionTone={complete ? 'green' : gems >= price ? 'primary' : 'ghost'}
+        actionDisabled={complete || gems < price}
+        onOpen={() => !complete && setAskBaseSet(setInfo)}
+        onAction={() => !complete && setAskBaseSet(setInfo)}
       />
     );
   };
@@ -1530,7 +1612,7 @@ export function ShopScreen() {
             <h2 className="mb">Наряды БУКа</h2>
             <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
           </div>
-          <ShowcaseGrid>{OUTFIT_ITEMS.map(itemCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{OUTFIT_ITEMS.slice().sort(compareByRarity).map(itemCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1595,7 +1677,7 @@ export function ShopScreen() {
                 <span aria-hidden="true">{emoji}</span> {title}
               </h3>
               <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
-                {toysByShelf(id).map(itemCard)}
+                {toysByShelf(id).slice().sort(compareByRarity).map(itemCard)}
               </ShowcaseGrid>
             </div>
           ))}
@@ -1631,7 +1713,7 @@ export function ShopScreen() {
             <h3>Выбери здание</h3>
             <span className="tiny muted">Тапни по карточке — подробности</span>
           </div>
-          <ShowcaseGrid tone="sky">{BUILDINGS.map(buildingCard)}</ShowcaseGrid>
+          <ShowcaseGrid tone="sky">{BUILDINGS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || a.price - b.price).map(buildingCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1650,7 +1732,7 @@ export function ShopScreen() {
           )}
           {(() => {
             const activeId = collecting;
-            const activeCostumeObj = activeId ? COSTUMES.find((c) => c.id === activeId) : null;
+            const activeCostumeObj = activeId ? PUZZLE_COSTUMES.find((c) => c.id === activeId) : null;
             const prog = activeCostumeObj ? costumeProgress(pz, activeCostumeObj.id) : 0;
             if (!activeCostumeObj) return null;
             return (
@@ -1667,7 +1749,22 @@ export function ShopScreen() {
               </div>
             );
           })()}
-          <ShowcaseGrid>{COSTUMES.map(costumeCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{PUZZLE_COSTUMES.map(costumeCard)}</ShowcaseGrid>
+          <div className="mb mt">
+            <h3 className="mb">Костюмы за кристаллы ✨</h3>
+            <div className="tiny muted">Каждый образ подходит к своей научной базе.</div>
+          </div>
+          <ShowcaseGrid>{CRYSTAL_COSTUMES.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity ?? 'common') - RARITY_ORDER.indexOf(b.rarity ?? 'common') || (a.price ?? 0) - (b.price ?? 0)).map(crystalCostumeCard)}</ShowcaseGrid>
+        </section>
+      )}
+
+      {view === 'vitrina' && cat === 'sets' && (
+        <section className="mt" aria-label="Наборы">
+          <div className="mb">
+            <h2 className="mb">Наборы научных баз 🎁</h2>
+            <div className="tiny muted">В каждом наборе — база, машина в её стиле и подходящий костюм. Если часть уже есть, платишь только за недостающие вещи.</div>
+          </div>
+          <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1863,13 +1960,13 @@ export function ShopScreen() {
           {/* Мои костюмы: собранное */}
           <section className="mb" aria-label="Мои костюмы">
             <h2 className="mb">Мои костюмы</h2>
-            {pz.assembled.length === 0 && (
+            {pz.assembled.length === 0 && !(profile.shop?.crystalCostumesOwned?.length) && (
               <div className="card tiny mb" style={{ textAlign: 'center' }}>
                 Пока ни одного костюма. Каждый урок приносит фрагмент 🧩
               </div>
             )}
             <div className="col">
-              {COSTUMES.filter((c) => pz.assembled.includes(c.id)).map((c) =>
+              {ALL_COSTUMES.filter((c) => pz.assembled.includes(c.id) || (profile.shop?.crystalCostumesOwned ?? []).includes(c.id)).map((c) =>
                 wardrobeRow(
                   c.id,
                   { kind: 'costume', costume: c },
@@ -1943,7 +2040,7 @@ export function ShopScreen() {
                 {wishlist.map((id) => {
                   const item = ITEM_BY_ID[id];
                   const track = MUSIC_BY_ID[id];
-                  const costume = COSTUMES.find((c) => c.id === id);
+                  const costume = ALL_COSTUMES.find((c) => c.id === id);
 
                   if (item) {
                     const left = missingGems(item, gems);
@@ -2164,6 +2261,30 @@ export function ShopScreen() {
           leaveLabel="Не сейчас"
           onStay={confirmSoundBuy}
           onLeave={() => setAskSound(null)}
+        />
+      )}
+
+      {askCrystalCostume && (
+        <ConfirmDialog
+          emoji="✨"
+          title={`Купить костюм «${askCrystalCostume.title}»?`}
+          text={`Отдашь ${askCrystalCostume.price} 💎. Костюм сразу появится в гардеробе и будет надет на БУКа.`}
+          stayLabel={`Купить за 💎${askCrystalCostume.price}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmCrystalCostumeBuy}
+          onLeave={() => setAskCrystalCostume(null)}
+        />
+      )}
+
+      {askBaseSet && (
+        <ConfirmDialog
+          emoji={askBaseSet.emoji}
+          title={`Купить ${askBaseSet.title}?`}
+          text={`В наборе три вещи: база, машина и костюм. За недостающие части отдашь ${priceForSet(askBaseSet)} 💎. Если покупаешь весь набор сразу — действует скидка 10%.`}
+          stayLabel={`Купить · 💎${priceForSet(askBaseSet)}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmBaseSetBuy}
+          onLeave={() => setAskBaseSet(null)}
         />
       )}
 
