@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react';
+import { ITEM_BY_ID } from '../engine/shop';
+import { TOY_PLAY_COPY, ToyPlayFx, useToyPlay } from './toyPlay';
 
 /**
  * Морская коллекция БУКа: полноцветные карандашные рисунки крупных судов.
@@ -58,13 +60,17 @@ export function ShipArt({
   tint,
   alt,
   className,
+  interactive = false,
 }: {
   id: string;
   tint?: string | null;
   /** Пустая строка — декоративное изображение, когда карточка уже подписана. */
   alt?: string;
   className?: string;
+  /** По нажатию корабль качается на волнах; только вне других кнопок. */
+  interactive?: boolean;
 }) {
+  const { run, playing, play, onAnimationEnd } = useToyPlay();
   const src = shipArtUrl(id);
   if (!src) return null;
   const style = tint
@@ -73,10 +79,34 @@ export function ShipArt({
         '--ship-mask': `url("${src}")`,
       } as unknown as CSSProperties)
     : undefined;
-  return (
-    <span className={`ship-art${className ? ` ${className}` : ''}`} style={style}>
+  const cls = `ship-art${className ? ` ${className}` : ''}`;
+  const picture = (
+    <>
       <img src={src} width={720} height={480} alt={alt ?? ''} draggable={false} decoding="async" loading="lazy" />
       {tint && <span className="ship-art-wash" aria-hidden="true" />}
-    </span>
+    </>
+  );
+  if (!interactive) {
+    return (
+      <span className={cls} style={style}>
+        {picture}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={`${cls} toy-play toy-play--ship${playing ? ' is-playing' : ''}`}
+      style={style}
+      aria-label={`${ITEM_BY_ID[id]?.title ?? SHIP_ART[id].kind}: ${TOY_PLAY_COPY.ship.verb}`}
+      title={TOY_PLAY_COPY.ship.title}
+      onClick={(event) => { event.stopPropagation(); play(); }}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <span className="toy-play-anim" key={run} onAnimationEnd={onAnimationEnd}>
+        {picture}
+      </span>
+      <ToyPlayFx kind="ship" />
+    </button>
   );
 }

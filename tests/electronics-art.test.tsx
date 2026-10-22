@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { existsSync, statSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ELECTRONICS_ART, ElectronicsArt, hasElectronicsArt } from '../src/ui/ElectronicsArt';
-import { ToyArt } from '../src/ui/ToyArt';
+import { ToyArt, toyPlayHint, toyPlayKindFor } from '../src/ui/ToyArt';
 import { ITEM_BY_ID, toysByShelf } from '../src/engine/shop';
 
 const shelf = toysByShelf('phone');
@@ -28,4 +28,44 @@ for (const id of ['phone-smart', 'phone-flip', 'phone-retro']) {
 }
 assert.equal(hasElectronicsArt('toString'), false);
 assert.equal(renderToStaticMarkup(<ElectronicsArt id="missing" />), '');
-console.log('Electronics: catalog, assets, base URL, shared rendering and legacy phones OK');
+
+// Игра по нажатию: у каждого вида техники — свой трюк и своя подсказка,
+// как поворот у телефонов, но анимации не повторяются между видами.
+const playKinds: Record<string, string> = {
+  'car-bmw': 'car',
+  'ship-sail': 'ship',
+  'plane-swift': 'plane',
+  'laptop-air': 'laptop',
+  'tv-cinema': 'tv',
+  'headphones-max': 'headphones',
+  'phone-smart': 'phone',
+};
+const fxMarker: Record<string, string> = {
+  car: 'toy-fx-line',
+  ship: 'toy-fx-wave',
+  plane: 'toy-fx-trail',
+  laptop: 'toy-fx-pixel',
+  tv: 'toy-fx-scan',
+  headphones: 'toy-fx-note',
+};
+const hints = new Set<string>();
+for (const [id, kind] of Object.entries(playKinds)) {
+  assert.equal(toyPlayKindFor(id), kind, id);
+  const hint = toyPlayHint(id);
+  assert.ok(hint, id);
+  assert.ok(!hints.has(hint), `hint repeats: ${hint}`);
+  hints.add(hint);
+  if (kind === 'phone') continue;
+  const still = renderToStaticMarkup(<ToyArt id={id} />);
+  assert.ok(!still.includes('<button'), `${id}: no button without interactive`);
+  assert.ok(!still.includes('toy-play'), `${id}: no play classes without interactive`);
+  const playable = renderToStaticMarkup(<ToyArt id={id} interactive />);
+  assert.ok(playable.includes('<button'), `${id}: playable is a button`);
+  assert.ok(playable.includes(`toy-play--${kind}`), `${id}: own trick class`);
+  assert.ok(playable.includes(fxMarker[kind]), `${id}: own fx layer`);
+  assert.ok(playable.includes('aria-label='), `${id}: labelled for a11y`);
+  for (const [otherKind, marker] of Object.entries(fxMarker)) {
+    if (otherKind !== kind) assert.ok(!playable.includes(marker), `${id}: fx of ${otherKind} must not leak in`);
+  }
+}
+console.log('Electronics: catalog, assets, base URL, shared rendering, legacy phones and per-kind play tricks OK');

@@ -1975,8 +1975,9 @@ p {
 }
 
 /* ── Машины: цветные карандашные рисунки настоящих моделей (0.21.0; цвет — 0.21.1)
-   У каждой машины — свой цветной лист: прозрачный фон, собственная тень под
-   колёсами и общая линия «пола» (низ рисунка у всех машин на одной высоте).
+   У каждой машины — свой цветной лист: прозрачный фон без запечённой тени и
+   белых краёв бумаги (очистка — scripts/clean-tech-art.py) и общая линия
+   «пола» (низ рисунка у всех машин на одной высоте).
    Поэтому в любом месте рисунок сам стоит на подиуме и не требует
    подгонки координат — только размера. Размер задаёт контекст. */
 .car-art {
@@ -2032,7 +2033,6 @@ p {
   width: calc(var(--airplane-size, 96) * 1.45px);
   aspect-ratio: 1.45;
   height: auto;
-  filter: drop-shadow(0 5px 7px color-mix(in srgb, var(--ink) 18%, transparent));
 }
 .airplane-art > img {
   display: block;
@@ -2536,7 +2536,6 @@ p {
   display: block;
   transform: translateX(-50%);
   pointer-events: none;
-  filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--ink) 16%, transparent));
 }
 .tech-item > svg { display: block; width: 100%; height: auto; }
 .tech-bay-car .tech-item { bottom: 25px; width: 72%; }
@@ -2805,7 +2804,7 @@ p {
   text-align: center;
   color: var(--ink-soft, var(--ink));
 }
-.hangar-item > svg { filter: drop-shadow(0 4px 6px color-mix(in srgb, var(--ink) 16%, transparent)); }
+.hangar-item > svg { display: block; }
 .hangar-item-plinth {
   width: 100%;
   height: 8px;
@@ -3196,7 +3195,6 @@ p {
   z-index: 1;
   width: min(74%, 230px);
   height: auto;
-  filter: drop-shadow(0 6px 10px color-mix(in srgb, var(--ink) 16%, transparent));
 }
 .shop-bigart-toy .mascot {
   position: relative;
@@ -6589,6 +6587,344 @@ p {
 @media (prefers-reduced-motion: reduce) {
   .phone-turntable { transition: none; }
 }
+/* ── Игра с техникой по нажатию (ui/toyPlay.tsx) ───────────────────────────
+   Как поворот телефона, но у каждого вида техники — свой трюк: машина
+   заводится с пробуксовкой, уносится за край и возвращается с другой
+   стороны; корабль качается на волнах с брызгами; самолёт делает петлю
+   со следом; ноутбук оживает с блёстками; телевизор переключает канал
+   схлопыванием в линию; наушники танцуют в ритме с нотами. Теней здесь
+   нет намеренно: эффекты — плоские линии, кольца и знаки. */
+.toy-play {
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.toy-play:focus-visible {
+  outline: 3px solid var(--accent, #8065c9);
+  outline-offset: 3px;
+}
+.toy-play-svg {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.toy-play-anim {
+  position: relative;
+  display: block;
+  line-height: 0;
+  transition: transform 180ms ease;
+}
+.toy-play.is-playing { z-index: 4; }
+.toy-play.is-playing .toy-play-anim { will-change: transform; }
+.toy-play-anim > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+.airplane-art .toy-play-anim { width: 100%; height: 100%; }
+.airplane-art .toy-play-anim > img { height: 100%; object-fit: contain; }
+.toy-play:not(.is-playing):hover .toy-play-anim { transform: translateY(-2px) scale(1.02); }
+.toy-play-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.toy-fx { position: absolute; opacity: 0; }
+
+/* Машина: пробуксовка → рывок за край → возвращение с другой стороны. */
+.toy-play--car.is-playing .toy-play-anim {
+  transform-origin: 50% 92%;
+  animation: toy-car-zoom 1500ms cubic-bezier(.3,.6,.3,1) both;
+}
+@keyframes toy-car-zoom {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1, 1); opacity: 1; }
+  10% { transform: translate(1.5%, 2%) rotate(1.2deg) scale(1.03, .94); opacity: 1; }
+  17% { transform: translate(.8%, 1%) rotate(.5deg) scale(1.01, .97); opacity: 1; }
+  23% { transform: translate(2%, 2%) rotate(1.3deg) scale(1.03, .94); opacity: 1; }
+  38% { transform: translate(-34%, -1%) rotate(-1deg) scale(1.08, .95); opacity: 1; }
+  50% { transform: translate(-60%, 0) rotate(0deg) scale(1.1, .94); opacity: 0; }
+  53% { transform: translate(60%, 0) rotate(0deg) scale(1.1, .94); opacity: 0; }
+  68% { transform: translate(9%, -1%) rotate(-.8deg) scale(1.05, .96); opacity: 1; }
+  82% { transform: translate(-2.5%, 1%) rotate(.8deg) scale(.99, 1.02); opacity: 1; }
+  92% { transform: translate(.8%, 0) rotate(-.3deg) scale(1, 1); opacity: 1; }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1, 1); opacity: 1; }
+}
+.toy-fx-line {
+  right: 1%;
+  width: 34%;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  transform-origin: 100% 50%;
+}
+.toy-fx-line.l1 { top: 56%; }
+.toy-fx-line.l2 { top: 65%; width: 26%; }
+.toy-fx-line.l3 { top: 74%; width: 40%; }
+.toy-play--car.is-playing .toy-fx-line { animation: toy-fx-line 1500ms linear both; }
+.toy-play--car.is-playing .toy-fx-line.l2 { animation-delay: 60ms; }
+.toy-play--car.is-playing .toy-fx-line.l3 { animation-delay: 120ms; }
+@keyframes toy-fx-line {
+  0%, 24% { opacity: 0; transform: translateX(18%) scaleX(.2); }
+  34% { opacity: .9; transform: translateX(0) scaleX(1); }
+  48% { opacity: 0; transform: translateX(-30%) scaleX(1.15); }
+  60% { opacity: 0; transform: translateX(18%) scaleX(.2); }
+  68% { opacity: .85; transform: translateX(0) scaleX(1); }
+  80%, 100% { opacity: 0; transform: translateX(-26%) scaleX(1.1); }
+}
+.toy-fx-puff {
+  right: 6%;
+  bottom: 7%;
+  width: 12%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+}
+.toy-fx-puff.p2 { right: 13%; bottom: 4%; width: 9%; }
+.toy-fx-puff.p3 { right: 2%; bottom: 12%; width: 8%; }
+.toy-play--car.is-playing .toy-fx-puff { animation: toy-fx-puff 1500ms ease-out both; }
+.toy-play--car.is-playing .toy-fx-puff.p2 { animation-delay: 90ms; }
+.toy-play--car.is-playing .toy-fx-puff.p3 { animation-delay: 180ms; }
+@keyframes toy-fx-puff {
+  0%, 14% { opacity: 0; transform: translate(0, 0) scale(.3); }
+  26% { opacity: .75; transform: translate(30%, -18%) scale(1); }
+  46%, 100% { opacity: 0; transform: translate(85%, -46%) scale(1.7); }
+}
+
+/* Корабль: затухающая качка на волнах, кольца воды и брызги. */
+.toy-play--ship.is-playing .toy-play-anim {
+  transform-origin: 50% 82%;
+  animation: toy-ship-rock 1800ms ease-in-out both;
+}
+@keyframes toy-ship-rock {
+  0% { transform: rotate(0deg) translateY(0); }
+  14% { transform: rotate(2.6deg) translateY(-2.2%); }
+  30% { transform: rotate(-2.2deg) translateY(1.6%); }
+  46% { transform: rotate(1.8deg) translateY(-1.4%); }
+  62% { transform: rotate(-1.2deg) translateY(.9%); }
+  78% { transform: rotate(.6deg) translateY(-.5%); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+.toy-fx-wave {
+  left: 50%;
+  bottom: 9%;
+  width: 74%;
+  height: 13%;
+  border: 3px solid color-mix(in srgb, var(--primary) 55%, transparent);
+  border-radius: 50%;
+  transform: translateX(-50%) scale(.55);
+}
+.toy-play--ship.is-playing .toy-fx-wave { animation: toy-fx-wave 1800ms ease-out both; }
+.toy-play--ship.is-playing .toy-fx-wave.w2 { animation-delay: 420ms; }
+@keyframes toy-fx-wave {
+  0% { opacity: 0; transform: translateX(-50%) scale(.55); }
+  18% { opacity: .85; }
+  62%, 100% { opacity: 0; transform: translateX(-50%) scale(1.18); }
+}
+.toy-fx-drop {
+  bottom: 16%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.toy-fx-drop.d1 { left: 14%; }
+.toy-fx-drop.d2 { left: 50%; }
+.toy-fx-drop.d3 { right: 13%; }
+.toy-play--ship.is-playing .toy-fx-drop { animation: toy-fx-drop 1800ms ease-out both; }
+.toy-play--ship.is-playing .toy-fx-drop.d2 { animation-delay: 200ms; }
+.toy-play--ship.is-playing .toy-fx-drop.d3 { animation-delay: 380ms; }
+@keyframes toy-fx-drop {
+  0%, 12% { opacity: 0; transform: translateY(6px) scale(.5); }
+  30% { opacity: .95; transform: translateY(-16px) scale(1); }
+  52%, 100% { opacity: 0; transform: translateY(4px) scale(.6); }
+}
+
+/* Самолёт: мёртвая петля с инверсионным следом. */
+.toy-play--plane.is-playing .toy-play-anim {
+  animation: toy-plane-loop 1600ms cubic-bezier(.45,.05,.35,1) both;
+}
+@keyframes toy-plane-loop {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  16% { transform: translate(-4%, 7%) rotate(5deg) scale(.98); }
+  38% { transform: translate(5%, -17%) rotate(-125deg) scale(.92); }
+  58% { transform: translate(19%, -7%) rotate(-232deg) scale(.9); }
+  76% { transform: translate(10%, 5%) rotate(-318deg) scale(.97); }
+  90% { transform: translate(-2%, 1%) rotate(-352deg) scale(1); }
+  100% { transform: translate(0, 0) rotate(-360deg) scale(1); }
+}
+.toy-fx-trail {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
+}
+.toy-fx-trail.t1 { left: 22%; top: 62%; }
+.toy-fx-trail.t2 { left: 38%; top: 26%; }
+.toy-fx-trail.t3 { left: 66%; top: 18%; }
+.toy-fx-trail.t4 { left: 74%; top: 52%; }
+.toy-play--plane.is-playing .toy-fx-trail { animation: toy-fx-trail 1600ms ease-out both; }
+.toy-play--plane.is-playing .toy-fx-trail.t2 { animation-delay: 260ms; }
+.toy-play--plane.is-playing .toy-fx-trail.t3 { animation-delay: 520ms; }
+.toy-play--plane.is-playing .toy-fx-trail.t4 { animation-delay: 780ms; }
+@keyframes toy-fx-trail {
+  0% { opacity: 0; transform: scale(.4); }
+  22% { opacity: .9; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(1.9); }
+}
+.toy-fx-spark {
+  left: 50%;
+  top: 2%;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--primary);
+  transform: translateX(-50%) scale(.3) rotate(0deg);
+}
+.toy-play--plane.is-playing .toy-fx-spark { animation: toy-fx-spark 1600ms ease-out both; }
+@keyframes toy-fx-spark {
+  0%, 44% { opacity: 0; transform: translateX(-50%) scale(.3) rotate(0deg); }
+  58% { opacity: 1; transform: translateX(-50%) scale(1.25) rotate(40deg); }
+  76%, 100% { opacity: 0; transform: translateX(-50%) scale(.7) rotate(80deg); }
+}
+
+/* Ноутбук: «крышка» откидывается с отскоком, экран вспыхивает, летят пиксели. */
+.toy-play--laptop { perspective: 720px; }
+.toy-play--laptop.is-playing .toy-play-anim {
+  transform-origin: 50% 100%;
+  animation: toy-laptop-open 1100ms cubic-bezier(.3,.7,.3,1) both;
+}
+@keyframes toy-laptop-open {
+  0% { transform: rotateX(0deg) translateY(0); filter: brightness(1); }
+  24% { transform: rotateX(17deg) translateY(2%); filter: brightness(1.02); }
+  48% { transform: rotateX(-8deg) translateY(-2%); filter: brightness(1.22); }
+  68% { transform: rotateX(4deg) translateY(0); filter: brightness(1.1); }
+  84% { transform: rotateX(-2deg); filter: brightness(1.04); }
+  100% { transform: rotateX(0deg) translateY(0); filter: brightness(1); }
+}
+.toy-fx-pixel {
+  top: 30%;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--primary);
+}
+.toy-fx-pixel.x1 { left: 38%; }
+.toy-fx-pixel.x2 { left: 52%; top: 24%; }
+.toy-fx-pixel.x3 { left: 64%; top: 34%; }
+.toy-play--laptop.is-playing .toy-fx-pixel { animation: toy-fx-pixel 1100ms ease-out both; }
+.toy-play--laptop.is-playing .toy-fx-pixel.x2 { animation-delay: 120ms; }
+.toy-play--laptop.is-playing .toy-fx-pixel.x3 { animation-delay: 240ms; }
+@keyframes toy-fx-pixel {
+  0%, 18% { opacity: 0; transform: translateY(10px) rotate(0deg) scale(.5); }
+  38% { opacity: 1; }
+  78%, 100% { opacity: 0; transform: translateY(-34px) rotate(120deg) scale(1); }
+}
+.toy-fx-ring {
+  left: 50%;
+  top: 34%;
+  width: 34%;
+  aspect-ratio: 1;
+  border: 3px solid color-mix(in srgb, var(--primary) 60%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(.4);
+}
+.toy-play--laptop.is-playing .toy-fx-ring { animation: toy-fx-ring 1100ms ease-out both; }
+@keyframes toy-fx-ring {
+  0%, 20% { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+  40% { opacity: .9; }
+  82%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
+}
+
+/* Телевизор: канал переключается схлопыванием картинки в яркую линию. */
+.toy-play--tv.is-playing .toy-play-anim {
+  transform-origin: 50% 46%;
+  animation: toy-tv-zap 950ms steps(1, end) both;
+}
+@keyframes toy-tv-zap {
+  0% { transform: scale(1, 1) translateY(0); filter: none; }
+  17% { transform: scale(1.03, .07) translateY(0); filter: brightness(2.4); }
+  29% { transform: scale(.98, .02) translateY(0); filter: brightness(3); }
+  43% { transform: scale(1.04, 1.07) translateY(0); filter: hue-rotate(42deg) saturate(1.7); }
+  57% { transform: scale(1, .96) translateY(-1.6%); filter: hue-rotate(-26deg) saturate(1.3); }
+  71% { transform: scale(1, 1.02) translateY(1%); filter: hue-rotate(10deg); }
+  86% { transform: scale(1, .99) translateY(0); filter: brightness(1.08); }
+  100% { transform: scale(1, 1) translateY(0); filter: none; }
+}
+.toy-fx-scan {
+  left: 6%;
+  width: 88%;
+  height: 5px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ink) 50%, transparent);
+}
+.toy-fx-scan.s1 { top: 24%; }
+.toy-fx-scan.s2 { top: 42%; }
+.toy-fx-scan.s3 { top: 60%; }
+.toy-play--tv.is-playing .toy-fx-scan { animation: toy-fx-scan 950ms linear both; }
+.toy-play--tv.is-playing .toy-fx-scan.s2 { animation-delay: 90ms; }
+.toy-play--tv.is-playing .toy-fx-scan.s3 { animation-delay: 180ms; }
+@keyframes toy-fx-scan {
+  0%, 34% { opacity: 0; transform: translateY(0); }
+  48% { opacity: .8; }
+  84%, 100% { opacity: 0; transform: translateY(26px); }
+}
+.toy-play--tv .toy-fx-spark { left: auto; right: 7%; top: 8%; transform: scale(.3) rotate(0deg); }
+.toy-play--tv.is-playing .toy-fx-spark { animation: toy-fx-zap 950ms ease-out both; }
+@keyframes toy-fx-zap {
+  0%, 36% { opacity: 0; transform: scale(.3) rotate(0deg); }
+  52% { opacity: 1; transform: scale(1.3) rotate(35deg); }
+  74%, 100% { opacity: 0; transform: scale(.7) rotate(70deg); }
+}
+
+/* Наушники: три прыжка в ритме и улетающие ноты. */
+.toy-play--headphones.is-playing .toy-play-anim {
+  transform-origin: 50% 100%;
+  animation: toy-headphones-dance 1050ms cubic-bezier(.35,.6,.35,1) both;
+}
+@keyframes toy-headphones-dance {
+  0% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+  14% { transform: translateY(-7%) scale(.96, 1.05) rotate(-3deg); }
+  26% { transform: translateY(0) scale(1.06, .92) rotate(0deg); }
+  40% { transform: translateY(-9%) scale(.95, 1.06) rotate(3deg); }
+  53% { transform: translateY(0) scale(1.07, .91) rotate(0deg); }
+  67% { transform: translateY(-6%) scale(.97, 1.04) rotate(-2deg); }
+  80% { transform: translateY(0) scale(1.03, .97) rotate(0deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+}
+.toy-fx-note {
+  top: 12%;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--primary);
+}
+.toy-fx-note.n1 { left: 16%; }
+.toy-fx-note.n2 { left: 47%; top: 5%; }
+.toy-fx-note.n3 { right: 15%; top: 14%; }
+.toy-play--headphones.is-playing .toy-fx-note { animation: toy-fx-note 1050ms ease-out both; }
+.toy-play--headphones.is-playing .toy-fx-note.n2 { animation-delay: 160ms; }
+.toy-play--headphones.is-playing .toy-fx-note.n3 { animation-delay: 320ms; }
+@keyframes toy-fx-note {
+  0%, 10% { opacity: 0; transform: translate(0, 10px) rotate(-8deg) scale(.6); }
+  34% { opacity: 1; }
+  82%, 100% { opacity: 0; transform: translate(10px, -38px) rotate(14deg) scale(1.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toy-play-anim { transition: none; }
+  .toy-play:not(.is-playing):hover .toy-play-anim { transform: none; }
+  .toy-play.is-playing .toy-play-anim { animation: none; }
+  .toy-play.is-playing .toy-fx { animation: none !important; opacity: 0 !important; }
+}
+
 
 
 /* «Мой мир»: выбранная база задаёт пейзаж экрана, вещи занимают три слота.

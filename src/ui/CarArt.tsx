@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react';
+import { ITEM_BY_ID } from '../engine/shop';
+import { TOY_PLAY_COPY, ToyPlayFx, useToyPlay } from './toyPlay';
 
 /**
  * Автомобили мечты (0.21.0, цвет — 0.21.1): цветные карандашные рисунки
@@ -146,6 +148,7 @@ export function CarArt({
   tint,
   alt,
   className,
+  interactive = false,
 }: {
   id: string;
   /** Цветной карандаш поверх рисунка; null/undefined — природные цвета. */
@@ -153,7 +156,10 @@ export function CarArt({
   /** Пустая строка — рисунок декоративный (карточка уже озвучена). */
   alt?: string;
   className?: string;
+  /** По нажатию машинка заводится и уносится; только вне других кнопок. */
+  interactive?: boolean;
 }) {
+  const { run, playing, play, onAnimationEnd } = useToyPlay();
   const src = carArtUrl(id);
   if (!src) return null;
   const style = tint
@@ -162,10 +168,34 @@ export function CarArt({
         '--car-mask': `url("${src}")`,
       } as unknown as CSSProperties)
     : undefined;
-  return (
-    <span className={`car-art${className ? ` ${className}` : ''}`} style={style}>
+  const cls = `car-art${className ? ` ${className}` : ''}`;
+  const picture = (
+    <>
       <img src={src} width={720} height={480} alt={alt ?? ''} draggable={false} decoding="async" loading="lazy" />
       {tint && <span className="car-art-wash" aria-hidden="true" />}
-    </span>
+    </>
+  );
+  if (!interactive) {
+    return (
+      <span className={cls} style={style}>
+        {picture}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={`${cls} toy-play toy-play--car${playing ? ' is-playing' : ''}`}
+      style={style}
+      aria-label={`${ITEM_BY_ID[id]?.title ?? CAR_ART[id].kind}: ${TOY_PLAY_COPY.car.verb}`}
+      title={TOY_PLAY_COPY.car.title}
+      onClick={(event) => { event.stopPropagation(); play(); }}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <span className="toy-play-anim" key={run} onAnimationEnd={onAnimationEnd}>
+        {picture}
+      </span>
+      <ToyPlayFx kind="car" />
+    </button>
   );
 }

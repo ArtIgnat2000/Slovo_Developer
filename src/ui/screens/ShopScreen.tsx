@@ -23,8 +23,7 @@ import {
   type ToyKind,
 } from '../../engine/shop';
 import { Mascot } from '../Mascot';
-import { ToyArt } from '../ToyArt';
-import { isRotatingPhone } from '../ElectronicsArt';
+import { ToyArt, toyPlayHint } from '../ToyArt';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
 import { HangarScene } from '../HangarScene';
@@ -993,7 +992,7 @@ export function ShopScreen() {
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
             )}
           </div>
-          {isRotatingPhone(item.id) && <p className="tiny muted phone-rotate-hint">↻ Нажми на телефон — он повернётся</p>}
+          {toy && toyPlayHint(item.id) && <p className="tiny muted phone-rotate-hint">{toyPlayHint(item.id)}</p>}
           <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
           <RarityChip item={item} className="rarity-chip-detail" />
           <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
