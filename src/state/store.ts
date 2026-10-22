@@ -35,11 +35,14 @@ import {
   normalizeWorldBase,
 } from '../engine/buildings';
 import { normalizeWorld, toggleWorldPick, type WorldToggle } from '../engine/world';
+import { BASE_SETS, baseSetPrice } from '../engine/base-sets';
 import { migrateMusicShop, MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from '../engine/music';
 import { DEFAULT_SOUND_PACK, normalizeSoundShop, SOUND_PACK_BY_ID, SOUND_PACKS, STARTER_SOUND_IDS } from '../engine/sounds';
 import { COSTUME_PALETTES, normalizeTuning, recolor, TINT_PALETTES, type RecolorOutcome } from '../engine/tints';
 import {
-  COSTUMES,
+  PUZZLE_COSTUMES,
+  CRYSTAL_COSTUMES,
+  ALL_COSTUMES,
   PUZZLE_SIZE,
   awardLessonPiece,
   chooseCollecting,
@@ -220,9 +223,10 @@ function readShop(p: Profile): ShopState {
     // «Звуки»: старые профили получают стартовые наборы и классику
     ...normalizeSoundShop(p.shop),
     // краски некупленных вещей, чужие id и акценты несобранных костюмов отбрасываем
-    tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled]),
-    wishlist: normalizeWishlist(p.shop?.wishlist, owned, assembled, music.musicOwned),
-    world: normalizeWorld(p.shop?.world, owned),
+    tuning: normalizeTuning(p.shop?.tuning, [...owned, ...assembled, ...(p.shop?.crystalCostumesOwned ?? [])]),
+    wishlist: normalizeWishlist(p.shop?.wishlist, owned, [...assembled, ...(p.shop?.crystalCostumesOwned ?? [])], music.musicOwned),
+    world: normalizeWorld(p.shop?.world, owned, [...assembled, ...(p.shop?.crystalCostumesOwned ?? [])]),
+    crystalCostumesOwned: [...new Set((p.shop?.crystalCostumesOwned ?? []).filter((id) => CRYSTAL_COSTUMES.some((costume) => costume.id === id)))],
     buildingsOwned,
     worldBase: normalizeWorldBase(p.shop?.worldBase, buildingsOwned),
     activeBuilding: normalizeActiveBuilding(p.shop?.activeBuilding, buildingsOwned),
@@ -253,7 +257,7 @@ export function openEverything(p: Profile): Profile {
   for (const [targetId, palette] of [...Object.entries(TINT_PALETTES), ...Object.entries(COSTUME_PALETTES)]) {
     if (palette.extra.length) tintUnlocked[targetId] = union(tintUnlocked[targetId], palette.extra.map((tint) => tint.id));
   }
-  const costumeIds = COSTUMES.map((c) => c.id);
+  const costumeIds = PUZZLE_COSTUMES.map((c) => c.id);
   const pieces: Record<string, number> = { ...(p.puzzle?.pieces ?? {}) };
   for (const id of costumeIds) pieces[id] = PUZZLE_SIZE;
   return {
@@ -269,12 +273,13 @@ export function openEverything(p: Profile): Profile {
       musicTrack: shop.musicTrack ?? STARTER_TRACK_IDS[0],
       soundOwned: union(shop.soundOwned, SOUND_PACKS.map((pack) => pack.id)),
       soundPack: shop.soundPack ?? DEFAULT_SOUND_PACK,
+      crystalCostumesOwned: union(shop.crystalCostumesOwned, CRYSTAL_COSTUMES.map((c) => c.id)),
       tuning: { current: shop.tuning?.current ?? {}, unlocked: tintUnlocked },
     },
     puzzle: {
       pieces,
       collecting: null,
-      assembled: union(p.puzzle?.assembled, costumeIds),
+      assembled: union(p.puzzle?.assembled, PUZZLE_COSTUMES.map((c) => c.id)),
       worn: p.puzzle?.worn ?? null,
     },
   };
@@ -383,9 +388,10 @@ function normalizeProfile(raw: Partial<Profile> | null | undefined, openLegacy =
         // ребёнка (включая «Тишина») сохраняется — см. engine/music.ts.
         ...music,
         ...normalizeSoundShop(raw.shop),
-        tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled]),
-        wishlist: normalizeWishlist(raw.shop?.wishlist, owned, puzzle.assembled, music.musicOwned),
-        world: normalizeWorld(raw.shop?.world, owned),
+        tuning: normalizeTuning(raw.shop?.tuning, [...owned, ...puzzle.assembled, ...(raw.shop?.crystalCostumesOwned ?? [])]),
+        crystalCostumesOwned: [...new Set((raw.shop?.crystalCostumesOwned ?? []).filter((id) => CRYSTAL_COSTUMES.some((costume) => costume.id === id)))],
+        wishlist: normalizeWishlist(raw.shop?.wishlist, owned, [...puzzle.assembled, ...(raw.shop?.crystalCostumesOwned ?? [])], music.musicOwned),
+        world: normalizeWorld(raw.shop?.world, owned, [...puzzle.assembled, ...(raw.shop?.crystalCostumesOwned ?? [])]),
         buildingsOwned,
         worldBase: normalizeWorldBase(raw.shop?.worldBase, buildingsOwned),
         activeBuilding,
@@ -478,6 +484,8 @@ interface AppState {
   buyItem: (id: string) => boolean;
   /** Купить здание для участка из новой полки БУКа. */
   buyBuilding: (id: string) => boolean;
+  buyCrystalCostume: (id: string) => boolean;
+  buyBaseSet: (id: string) => boolean;
   /** Поставить уже купленное здание на участок. */
   chooseBuilding: (id: string) => boolean;
   /** Выбрать или убрать купленную базу как фон «Моего мира». */
@@ -1095,6 +1103,59 @@ export const useApp = create<AppState>()(
         return true;
       },
 
+      buyCrystalCostume: (id) => {
+        const costume = CRYSTAL_COSTUMES.find((entry) => entry.id === id);
+        const p = getActive(get());
+        if (!costume || !p || readShop(p).crystalCostumesOwned?.includes(id) || p.gems < (costume.price ?? 0)) return false;
+        set((s) => patchActive(s, (prof) => {
+          const puzzle = normalizePuzzle(prof.puzzle);
+          const price = costume.price ?? 0;
+          const currentShop = readShop(prof);
+          if (currentShop.crystalCostumesOwned?.includes(id) || prof.gems < price) return prof;
+          return {
+            ...prof,
+            gems: prof.gems - price,
+            puzzle: { ...puzzle, worn: id },
+            shop: { ...currentShop, crystalCostumesOwned: [...(currentShop.crystalCostumesOwned ?? []), id], wishlist: currentShop.wishlist?.filter((item) => item !== id) },
+          };
+        }));
+        return true;
+      },
+
+      buyBaseSet: (id) => {
+        const setInfo = BASE_SETS.find((entry) => entry.id === id);
+        const p = getActive(get());
+        if (!setInfo || !p) return false;
+        const puzzle = normalizePuzzle(p.puzzle);
+        const shop = readShop(p);
+        const price = baseSetPrice(setInfo, shop.owned, shop.buildingsOwned ?? [], [...puzzle.assembled, ...(shop.crystalCostumesOwned ?? [])]);
+        if (price <= 0 || p.gems < price) return false;
+        set((s) => patchActive(s, (prof) => {
+          const current = readShop(prof);
+          const currentPuzzle = normalizePuzzle(prof.puzzle);
+          const currentPrice = baseSetPrice(setInfo, current.owned, current.buildingsOwned ?? [], [...currentPuzzle.assembled, ...(current.crystalCostumesOwned ?? [])]);
+          if (currentPrice <= 0 || prof.gems < currentPrice) return prof;
+          return {
+            ...prof,
+            gems: prof.gems - currentPrice,
+            shop: {
+              ...current,
+              owned: current.owned.includes(setInfo.carId) ? current.owned : [...current.owned, setInfo.carId],
+              equipped: { ...current.equipped, toy: setInfo.carId },
+              buildingsOwned: current.buildingsOwned?.includes(setInfo.baseId) ? current.buildingsOwned : [...(current.buildingsOwned ?? []), setInfo.baseId],
+              activeBuilding: setInfo.baseId,
+              crystalCostumesOwned: current.crystalCostumesOwned?.includes(setInfo.costumeId) ? current.crystalCostumesOwned : [...(current.crystalCostumesOwned ?? []), setInfo.costumeId],
+              wishlist: current.wishlist?.filter((item) => item !== setInfo.costumeId && item !== setInfo.carId),
+            },
+            puzzle: {
+              ...currentPuzzle,
+              worn: setInfo.costumeId,
+            },
+          };
+        }));
+        return true;
+      },
+
       chooseBuilding: (id) => {
         if (!BUILDING_BY_ID[id]) return false;
         const p = getActive(get());
@@ -1170,7 +1231,9 @@ export const useApp = create<AppState>()(
         const p = getActive(get());
         if (!p) return 'locked';
         const shop = readShop(p);
-        const next = toggleWorldPick(shop.world, id, shop.owned);
+        const puzzle = normalizePuzzle(p.puzzle);
+        const ownedCostumes = [...puzzle.assembled, ...(shop.crystalCostumesOwned ?? [])];
+        const next = toggleWorldPick(shop.world, id, shop.owned, ownedCostumes);
         if (next.result === 'added' || next.result === 'removed') {
           set((s) =>
             patchActive(s, (prof) => ({
@@ -1190,7 +1253,7 @@ export const useApp = create<AppState>()(
         const music = migrateMusicShop(p.shop);
         const ownedSet = new Set([...shop.owned, ...pz.assembled, ...music.musicOwned]);
         if (ownedSet.has(id)) return false;
-        const isValid = Boolean(ITEM_BY_ID[id] || COSTUMES.find((c) => c.id === id) || MUSIC_BY_ID[id]);
+        const isValid = Boolean(ITEM_BY_ID[id] || ALL_COSTUMES.find((c) => c.id === id) || MUSIC_BY_ID[id]);
         if (!isValid) return false;
 
         const currentWishlist = shop.wishlist ?? [];
@@ -1328,7 +1391,12 @@ export const useApp = create<AppState>()(
         ),
 
       toggleCostume: (id) =>
-        set((s) => patchActive(s, (p) => ({ ...p, puzzle: toggleWorn(p.puzzle, id) }))),
+        set((s) => patchActive(s, (p) => {
+          const shop = readShop(p);
+          const puzzle = normalizePuzzle(p.puzzle);
+          if (!puzzle.assembled.includes(id) && !shop.crystalCostumesOwned?.includes(id)) return p;
+          return { ...p, puzzle: toggleWorn(puzzle, id, shop.crystalCostumesOwned) };
+        })),
 
       chooseChestSkin: (id) =>
         set((s) =>

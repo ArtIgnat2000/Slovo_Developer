@@ -1,6 +1,7 @@
 import { type CSSProperties, useState } from 'react';
 import { BUILDING_BY_ID, WORLD_BASES } from '../../engine/buildings';
-import { compareByRarity, ITEM_BY_ID, growthStage, isOwned, rarityOf, SHOP_ITEMS, type ShopItem } from '../../engine/shop';
+import { growthStage, isOwned, rarityOf, RARITY_ORDER, SHOP_ITEMS, type ItemRarity, type ShopItem } from '../../engine/shop';
+import { ALL_COSTUMES, type Costume } from '../../engine/puzzles';
 import { normalizeWorld, WORLD_SLOTS } from '../../engine/world';
 import { haptic } from '../../platform/haptics';
 import { sfx } from '../../platform/sound';
@@ -8,8 +9,10 @@ import { masteredCount, useActiveProfile, useApp } from '../../state/store';
 import { Mascot } from '../Mascot';
 import { BayDecor } from '../TechScene';
 import { ToyArt } from '../ToyArt';
-import { RarityChip, RarityLabel } from '../RarityChip';
+import { RarityLabel } from '../RarityChip';
 import { BuildingArt, buildingArtUrl } from '../BuildingArt';
+
+type WorldThing = { id: string; title: string; rarity: ItemRarity; item?: ShopItem; costume?: Costume };
 
 /**
  * «Мой мир»: купленная научная база задаёт пейзаж и фон вкладки, а три слота
@@ -27,15 +30,25 @@ export function WorldScreen() {
 
   const owned = profile.shop?.owned ?? [];
   const buildingsOwned = profile.shop?.buildingsOwned ?? [];
-  const world = normalizeWorld(profile.shop?.world, owned);
+  const puzzle = profile.puzzle;
+  const ownedCostumes = [...(puzzle?.assembled ?? []), ...(profile.shop?.crystalCostumesOwned ?? [])];
+  const world = normalizeWorld(profile.shop?.world, owned, ownedCostumes);
   const worldBaseId = profile.shop?.worldBase ?? null;
   const worldBase = worldBaseId ? BUILDING_BY_ID[worldBaseId] : undefined;
   const ownedBases = WORLD_BASES.filter((base) => buildingsOwned.includes(base.id));
   const tuning = profile.shop?.tuning;
   const growth = growthStage(masteredCount(profile));
-  // Типы идут по возрастанию: обычный → крутой → легендарный → ТОПОВЫЙ (слоты и список).
-  const shown = world.slice().sort((a, b) => compareByRarity(ITEM_BY_ID[a], ITEM_BY_ID[b]));
-  const ownedItems = SHOP_ITEMS.filter((item) => isOwned(owned, item.id)).sort(compareByRarity);
+  // Общий список предметов и костюмов для трёх мест мира.
+  const ownedThings: WorldThing[] = [
+    ...SHOP_ITEMS.filter((item) => isOwned(owned, item.id)).map((item) => ({ id: item.id, title: item.title, rarity: rarityOf(item), item })),
+    ...ALL_COSTUMES.filter((costume) => ownedCostumes.includes(costume.id)).map((costume) => ({ id: costume.id, title: costume.title, rarity: costume.rarity ?? 'common' as ItemRarity, costume })),
+  ];
+  const thingById = new Map(ownedThings.map((thing) => [thing.id, thing]));
+  const compareThings = (a: WorldThing, b: WorldThing) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity)
+    || (a.item?.price ?? a.costume?.price ?? 0) - (b.item?.price ?? b.costume?.price ?? 0);
+  // Типы идут по возрастанию: обычный → крутой → легендарный → ТОПОВЫЙ.
+  const shown = world.map((id) => thingById.get(id)).filter((thing): thing is WorldThing => Boolean(thing)).sort(compareThings);
+  ownedThings.sort(compareThings);
   const backdropStyle = worldBase
     ? ({ '--world-base-image': `url("${buildingArtUrl(worldBase.id)}")` } as CSSProperties)
     : undefined;
@@ -61,15 +74,16 @@ export function WorldScreen() {
   };
 
   /** Картинка вещи: техника — ToyArt, наряд — маскот БУКа в этом наряде. */
-  const art = (item: ShopItem, size: number) =>
-    item.kind === 'toy' ? (
-      <ToyArt id={item.id} size={size} tuning={tuning} />
-    ) : (
-      <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={size} />
-    );
+  const art = (thing: WorldThing, size: number) => {
+    if (thing.costume) return <Mascot mood="idle" costumeId={thing.costume.id} stage={growth.index} size={size} />;
+    const item = thing.item!;
+    return item.kind === 'toy'
+      ? <ToyArt id={item.id} size={size} tuning={tuning} />
+      : <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={size} />;
+  };
 
   /** Категория сцены: техника по типу, наряды — отдельный мягкий фон. */
-  const toneOf = (item: ShopItem): 'car' | 'ship' | 'phone' | 'outfit' => item.toy ?? 'outfit';
+  const toneOf = (thing: WorldThing): 'car' | 'ship' | 'phone' | 'outfit' => thing.item?.toy ?? 'outfit';
 
   return (
     <div
@@ -111,9 +125,9 @@ export function WorldScreen() {
 
       <div className="world-slots">
         {Array.from({ length: WORLD_SLOTS }, (_, index) => {
-          const id = shown[index];
-          const item = id ? ITEM_BY_ID[id] : undefined;
-          if (!id || !item) {
+          const thing = shown[index];
+          const id = thing?.id;
+          if (!id || !thing) {
             return (
               <button
                 key={`empty-${index}`}
@@ -127,18 +141,18 @@ export function WorldScreen() {
               </button>
             );
           }
-          const tone = toneOf(item);
+          const tone = toneOf(thing);
           return (
-            <div key={id} className={`world-slot world-tone-${tone} tier-${rarityOf(item)}`}>
+            <div key={id} className={`world-slot world-tone-${tone} tier-${thing.rarity}`}>
               <span className={`hangar-panel ${tone === 'outfit' ? 'world-panel-outfit' : `hangar-panel-${tone}`}`} aria-hidden="true">
                 {tone !== 'outfit' && <BayDecor tone={tone} />}
               </span>
               <span className="world-slot-halo" aria-hidden="true" />
-              <div className="world-slot-art">{art(item, 132)}</div>
+              <div className="world-slot-art">{art(thing, 132)}</div>
               <span className="world-slot-plinth" aria-hidden="true" />
               <div className="world-slot-foot">
-                <b className="world-slot-title">{item.title}</b>
-                <RarityChip item={item} className="rarity-chip-mini" />
+                <b className="world-slot-title">{thing.title}</b>
+                <RarityLabel rarity={thing.rarity} className="rarity-chip-mini" />
                 <button type="button" className="btn sm ghost" onClick={() => tap(id)}>
                   Убрать
                 </button>
@@ -199,25 +213,25 @@ export function WorldScreen() {
               <b>Вещи на сцене · до {WORLD_SLOTS}</b>
               <small>База не занимает одно из трёх мест.</small>
             </div>
-            {ownedItems.length === 0 ? (
+            {ownedThings.length === 0 ? (
               <p className="tiny muted">Пока пусто. Купите вещь в БУКе, и она появится здесь.</p>
             ) : (
               <div className="world-pick">
-                {ownedItems.map((item) => {
-                  const on = world.includes(item.id);
-                  const tone = toneOf(item);
+                {ownedThings.map((thing) => {
+                  const on = world.includes(thing.id);
+                  const tone = toneOf(thing);
                   return (
                     <button
-                      key={item.id}
+                      key={thing.id}
                       type="button"
-                      className={`world-pick-item world-tone-${tone} tier-${rarityOf(item)}${on ? ' on' : ''}`}
+                      className={`world-pick-item world-tone-${tone} tier-${thing.rarity}${on ? ' on' : ''}`}
                       aria-pressed={on}
-                      aria-label={`${item.title}${on ? ' — в Моём мире. Убрать' : '. Поставить в Мой мир'}`}
-                      onClick={() => tap(item.id)}
+                      aria-label={`${thing.title}${on ? ' — в Моём мире. Убрать' : '. Поставить в Мой мир'}`}
+                      onClick={() => tap(thing.id)}
                     >
-                      <span className="world-pick-art">{art(item, 84)}</span>
-                      <span className="world-pick-title">{item.title}</span>
-                      <RarityChip item={item} className="rarity-chip-mini" />
+                      <span className="world-pick-art">{art(thing, 84)}</span>
+                      <span className="world-pick-title">{thing.title}</span>
+                      <RarityLabel rarity={thing.rarity} className="rarity-chip-mini" />
                       {on && <i aria-hidden="true">✓</i>}
                     </button>
                   );

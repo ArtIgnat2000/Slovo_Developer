@@ -40,7 +40,7 @@ import { compareByRarity, ITEM_BY_ID, RARITY_LABEL, SHOP_ITEMS, TOY_ITEMS, growt
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { BUILDINGS } from '../src/engine/buildings';
 import { CHEST_SKINS } from '../src/engine/chests';
-import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
+import { COSTUMES, CRYSTAL_COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
 import { runStudyEngineChecks } from './study.test';
@@ -789,6 +789,9 @@ async function main() {
   // ── Мой мир (0.26.0): вкладка с тремя выбранными вещами ───────────────
   // Чистая логика: до трёх мест, только купленное, без повторов.
   check('«Мой мир»: в третье место нельзя поставить четвёртую вещь', toggleWorldPick(['cap', 'bow', 'scarf'], 'glasses', ['cap', 'bow', 'scarf', 'glasses']).result === 'full', '');
+  const testCrystalCostume = CRYSTAL_COSTUMES[0];
+  check('«Мой мир»: купленный костюм можно добавить', toggleWorldPick([], testCrystalCostume.id, [], [testCrystalCostume.id]).result === 'added', '');
+  check('«Мой мир»: костюм сохраняется после нормализации', normalizeWorld([testCrystalCostume.id], [], [testCrystalCostume.id])[0] === testCrystalCostume.id, '');
   // Тип вещи (0.27.0): каждой вещи назначен один из четырёх типов по цене.
   const rarities = SHOP_ITEMS.map((item) => rarityOf(item));
   check(
@@ -888,6 +891,16 @@ async function main() {
   click(document.querySelector('.world-slot [class*="btn"]'));
   await sleep(40);
   check('«Убрать» возвращает вещь в список', !(useApp.getState().profiles[0].shop?.world ?? []).includes('car-racer'), '');
+  const crystalCostumePick = Array.from(document.querySelectorAll<HTMLButtonElement>('.world-pick-item'))
+    .find((button) => button.getAttribute('aria-label')?.startsWith(testCrystalCostume.title));
+  check('костюмы доступны в списке выбора для «Моего мира»', !!crystalCostumePick, '');
+  if (crystalCostumePick) click(crystalCostumePick);
+  await sleep(40);
+  check('костюм ставится в отдельный слот «Моего мира»', (useApp.getState().profiles[0].shop?.world ?? []).includes(testCrystalCostume.id) && has(testCrystalCostume.title), '');
+  const costumeSlot = Array.from(document.querySelectorAll('.world-slot')).find((slot) => slot.textContent?.includes(testCrystalCostume.title));
+  if (costumeSlot) click(costumeSlot.querySelector('button'));
+  await sleep(40);
+  check('костюм можно убрать из «Моего мира»', !(useApp.getState().profiles[0].shop?.world ?? []).includes(testCrystalCostume.id), '');
   click(btnText('Готово'));
   await sleep(30);
   // Возвращаем вкладку БУК: дальнейшие блоки ждут её экран.
