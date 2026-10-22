@@ -18,8 +18,8 @@ import { MUSIC_TRACKS, type MusicTrack } from './music';
 /** Полка витрины: наряды или техника. Костюмы/музыка/звуки живут отдельно. */
 export type ShopItemKind = 'outfit' | 'toy';
 
-/** Разделы техники в магазине и ангаре. Авто и корабли идут рядом, телефоны отдельно. */
-export type ToyKind = 'car' | 'ship' | 'phone';
+/** Разделы техники в магазине и ангаре: авто, самолёты, корабли и электроника. */
+export type ToyKind = 'car' | 'plane' | 'ship' | 'phone';
 
 export interface ShopItem {
   id: string;
@@ -36,7 +36,7 @@ export interface ShopItem {
   emoji?: string;
   /** Тип вещи. Без поля тип считается по цене (см. rarityOf). */
   rarity?: ItemRarity;
-  /** Для машины — id базы, стилем которой она вдохновлена. */
+  /** Для техники — id базы, стилем которой она вдохновлена. */
   baseStyle?: string;
 }
 
@@ -82,6 +82,7 @@ export const SLOT_TITLE: Record<ShopSlot, string> = {
 /** Полки техники: порядок и подписи для витрины. */
 export const TOY_SHELVES: { id: ToyKind; title: string; emoji: string }[] = [
   { id: 'car', title: 'Авто', emoji: '🚗' },
+  { id: 'plane', title: 'Самолёты', emoji: '✈️' },
   { id: 'ship', title: 'Корабли', emoji: '🚢' },
   { id: 'phone', title: 'Телефоны', emoji: '📱' },
 ];
@@ -120,6 +121,12 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'car-electron-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🔋', title: 'Импульс', desc: 'Тихий электрокар электронной базы: солнечная крыша и светящиеся линии схем', price: 100, rarity: 'legendary', baseStyle: 'electron-base' },
   { id: 'car-arctic-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🧊', title: 'Полярник', desc: 'Вездеход арктической базы: гусеницы, тёплая кабина и мачта датчиков', price: 115, rarity: 'legendary', baseStyle: 'arctic-base' },
   { id: 'car-moon-base', slot: 'toy', kind: 'toy', toy: 'car', emoji: '🌙', title: 'Луноход', desc: 'Шестиколёсный ровер лунной базы: сетчатые колёса, солнечное крыло и камера-мачта', price: 140, rarity: 'top', baseStyle: 'moon-base' },
+  // ── Техника: самолёты ────────────────────────────────────────────────────
+  { id: 'plane-swift', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '✈️', title: 'Стриж', desc: 'Манёвренный пассажирский джет: стреловидные крылья, два турбодвигателя и панорамная кабина', price: 90, rarity: 'cool' },
+  { id: 'plane-electron-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '🔋', title: 'Схемолёт', desc: 'Самолёт электронной базы с солнечными панелями и сияющими дорожками микросхем', price: 160, rarity: 'legendary', baseStyle: 'electron-base' },
+  { id: 'plane-arctic-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '🧊', title: 'Северный ветер', desc: 'Полярный исследовательский самолёт: морозостойкие крылья, датчики и снежинки на фюзеляже', price: 175, rarity: 'legendary', baseStyle: 'arctic-base' },
+  { id: 'plane-moon-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '🌙', title: 'Лунный орёл', desc: 'Серебристый высотный самолёт лунной базы с золотыми звёздами и лунными знаками', price: 200, rarity: 'top', baseStyle: 'moon-base' },
+  { id: 'plane-atomic-base', slot: 'toy', kind: 'toy', toy: 'plane', emoji: '⚛️', title: 'Атомный дозор', desc: 'Самый редкий самолёт научного флота: атомная эмблема, турбины и бирюзовый энергоконтур', price: 230, rarity: 'top', baseStyle: 'atomic-base' },
   // ── Техника: морские суда ────────────────────────────────────────────────
   // Старые id ship-paper/ship-sail/ship-steam сохраняем: так покупки,
   // избранный корабль и купленные оттенки в профилях не теряются при обновлении.

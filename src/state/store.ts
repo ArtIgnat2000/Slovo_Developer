@@ -1140,12 +1140,12 @@ export const useApp = create<AppState>()(
             gems: prof.gems - currentPrice,
             shop: {
               ...current,
-              owned: current.owned.includes(setInfo.carId) ? current.owned : [...current.owned, setInfo.carId],
+              owned: [...new Set([...current.owned, setInfo.carId, setInfo.planeId])],
               equipped: { ...current.equipped, toy: setInfo.carId },
               buildingsOwned: current.buildingsOwned?.includes(setInfo.baseId) ? current.buildingsOwned : [...(current.buildingsOwned ?? []), setInfo.baseId],
               activeBuilding: setInfo.baseId,
               crystalCostumesOwned: current.crystalCostumesOwned?.includes(setInfo.costumeId) ? current.crystalCostumesOwned : [...(current.crystalCostumesOwned ?? []), setInfo.costumeId],
-              wishlist: current.wishlist?.filter((item) => item !== setInfo.costumeId && item !== setInfo.carId),
+              wishlist: current.wishlist?.filter((item) => item !== setInfo.costumeId && item !== setInfo.carId && item !== setInfo.planeId),
             },
             puzzle: {
               ...currentPuzzle,

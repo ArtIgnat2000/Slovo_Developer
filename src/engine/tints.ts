@@ -286,6 +286,46 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'red', title: 'Красный', colors: ['#7d3d3e', '#332124', '#f0c150'] },
     ],
   },
+  'plane-swift': {
+    base: { id: BASE_TINT, title: 'Коралловый', colors: ['#e4573d', '#273750', '#ffc857'] },
+    extra: [
+      { id: 'blue', title: 'Синий', colors: ['#3979d1', '#1b3152', '#9be7ff'] },
+      { id: 'green', title: 'Зелёный', colors: ['#319a72', '#17483d', '#e4d66e'] },
+      { id: 'violet', title: 'Фиолетовый', colors: ['#8258bd', '#34264e', '#ffd166'] },
+    ],
+  },
+  'plane-electron-base': {
+    base: { id: BASE_TINT, title: 'Электрический синий', colors: ['#4d75df', '#26346f', '#4df0db'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#cc5863', '#4a2939', '#8af7ff'] },
+      { id: 'green', title: 'Зелёный', colors: ['#319b7d', '#174b4b', '#e4f274'] },
+      { id: 'gold', title: 'Золотой', colors: ['#c19a40', '#4a3b2b', '#78f4dd'] },
+    ],
+  },
+  'plane-arctic-base': {
+    base: { id: BASE_TINT, title: 'Ледяной голубой', colors: ['#a8d9e9', '#426a88', '#53b9f0'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый лёд', colors: ['#a8b5e8', '#46517b', '#f1ffff'] },
+      { id: 'green', title: 'Северное сияние', colors: ['#8ecdbd', '#365e68', '#b9ffde'] },
+      { id: 'red', title: 'Экспедиционный', colors: ['#e59a83', '#68495a', '#fff0ca'] },
+    ],
+  },
+  'plane-moon-base': {
+    base: { id: BASE_TINT, title: 'Лунный металл', colors: ['#777b91', '#34394e', '#ffd166'] },
+    extra: [
+      { id: 'blue', title: 'Синяя орбита', colors: ['#6384bd', '#263650', '#b9efff'] },
+      { id: 'red', title: 'Марсианский', colors: ['#b76c64', '#472d3a', '#f5ce80'] },
+      { id: 'green', title: 'Изумрудная комета', colors: ['#6d9e8f', '#2a4649', '#ffe19b'] },
+    ],
+  },
+  'plane-atomic-base': {
+    base: { id: BASE_TINT, title: 'Атомный бирюзовый', colors: ['#2ca7ad', '#17475d', '#9aefb3'] },
+    extra: [
+      { id: 'blue', title: 'Ионный синий', colors: ['#4c82d3', '#20375e', '#9cfff1'] },
+      { id: 'red', title: 'Плазменный', colors: ['#bf6670', '#492e45', '#ffe17c'] },
+      { id: 'gold', title: 'Солнечный реактор', colors: ['#c19b48', '#51402a', '#aaf5c0'] },
+    ],
+  },
 };
 
 // ── Акценты костюмов ───────────────────────────────────────────────────────

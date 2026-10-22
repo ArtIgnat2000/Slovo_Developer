@@ -2,6 +2,9 @@
 import assert from 'node:assert/strict';
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { BASE_SETS, baseSetPrice } from '../src/engine/base-sets';
+import { ITEM_BY_ID } from '../src/engine/shop';
+import { CRYSTAL_COSTUMES } from '../src/engine/puzzles';
 import {
   BUILDINGS,
   BUILDING_BY_ID,
@@ -17,6 +20,19 @@ assert.equal(BUILDINGS.length, 4, 'в каталоге остались четы
 assert.equal(new Set(BUILDINGS.map((building) => building.id)).size, BUILDINGS.length, 'id баз уникальны');
 assert.ok(BUILDINGS.every((building) => building.isBase && building.title.trim() && building.desc.trim() && building.price > 0));
 assert.deepEqual(BUILDINGS.map((base) => base.rarity), ['top', 'legendary', 'legendary', 'top']);
+assert.equal(BUILDING_BY_ID['atomic-base']?.price, Math.max(...BUILDINGS.map((base) => base.price)), 'атомная база самая дорогая');
+for (const base of BUILDINGS) {
+  const costume = CRYSTAL_COSTUMES.find((entry) => entry.baseStyle === base.id);
+  assert.equal(costume?.rarity, base.rarity, `${base.title}: костюм совпадает по редкости`);
+}
+const atomicSet = BASE_SETS.find((set) => set.id === 'atomic-set')!;
+assert.equal(baseSetPrice(atomicSet, [], [], []), 2100, 'атомный премиум-набор учитывает самолёт и стоит втрое дороже компонентов');
+assert.equal(baseSetPrice(atomicSet, [atomicSet.carId], [atomicSet.baseId], [atomicSet.costumeId]), ITEM_BY_ID[atomicSet.planeId].price * 3, 'цена набора учитывает только недостающий самолёт');
+for (const set of BASE_SETS) {
+  const plane = ITEM_BY_ID[set.planeId];
+  assert.equal(plane?.toy, 'plane', `${set.title}: в набор входит самолёт`);
+  assert.equal(plane?.baseStyle, set.baseId, `${set.title}: самолёт соответствует теме базы`);
+}
 for (const building of BUILDINGS) {
   const imagePath = join(process.cwd(), 'public', 'buildings', `${building.id}.webp`);
   assert.ok(existsSync(imagePath), `есть WebP-иллюстрация для ${building.id}`);
