@@ -3,8 +3,9 @@ import { TINT_PALETTES, accessoryColors, artPencilTint } from '../engine/tints';
 import type { ShopTuning } from '../types';
 import { CarArt, hasCarArt } from './CarArt';
 import { ShipArt, hasShipArt } from './ShipArt';
-import { ElectronicsArt, hasElectronicsArt } from './ElectronicsArt';
+import { ElectronicsArt, electronicsPlayKind, hasElectronicsArt, isRotatingPhone } from './ElectronicsArt';
 import { AirplaneArt, hasAirplaneArt } from './AirplaneArt';
+import { TOY_PLAY_COPY, ToyPlayFx, useToyPlay, type ToyPlayKind } from './toyPlay';
 
 /**
  * Техника БУКа: авто, самолёты, морские суда и электроника. Машины и корабли — цветные
@@ -26,11 +27,6 @@ function colorsFor(id: string, colors?: Colors | null, tuning?: ShopTuning): Col
   return colors ?? accessoryColors(id, tuning) ?? TINT_PALETTES[id]?.base.colors ?? ['#3b82f6', '#1f2937', '#ffd166'];
 }
 
-/** Общая тень под вещью: «стоит на полке», а не висит в воздухе. */
-function ToyShadow() {
-  return <ellipse cx="50" cy="91" rx="31" ry="4.5" fill="#241f36" opacity=".14" />;
-}
-
 /** Корабли. */
 function Ship({ id, colors }: { id: string; colors: Colors }) {
   const [main, deep, accent] = colors;
@@ -45,7 +41,6 @@ function Ship({ id, colors }: { id: string; colors: Colors }) {
   if (id === 'ship-paper') {
     return (
       <g>
-        <ToyShadow />
         {waves}
         <path d="M50 9 L50 67 L15 67 Z" fill={main} stroke="#94a3b8" strokeWidth="1.6" strokeLinejoin="round" />
         <path d="M52 18 L85 67 L52 67 Z" fill={main} opacity=".82" stroke="#94a3b8" strokeWidth="1.6" strokeLinejoin="round" />
@@ -62,7 +57,6 @@ function Ship({ id, colors }: { id: string; colors: Colors }) {
   if (id === 'ship-sail') {
     return (
       <g>
-        <ToyShadow />
         {waves}
         <path d="M10 74 L90 74 L74 91 L26 91 Z" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" strokeLinejoin="round" />
         <path d="M14 78 L86 78" stroke={accent} strokeWidth="2.4" opacity=".85" strokeLinecap="round" />
@@ -80,7 +74,6 @@ function Ship({ id, colors }: { id: string; colors: Colors }) {
   // Пароход: корпус, каюта, труба и дым.
   return (
     <g>
-      <ToyShadow />
       {waves}
       <path d="M6 64 L94 64 L82 88 L18 88 Z" fill={main} stroke="#241f36" strokeOpacity=".22" strokeWidth="2" strokeLinejoin="round" />
       <path d="M10 69 L90 69" stroke={deep} strokeWidth="2" opacity=".35" strokeLinecap="round" />
@@ -114,7 +107,8 @@ function ToyGlyph({ id, colors }: { id: string; colors: Colors }) {
  * Машины — растровый цветной карандашный рисунок реальной модели (`CarArt`):
  * размер и посадку на подиум задаёт контекст через CSS, как раньше делал
  * `size` у квадратного SVG. Электроника использует WebP; у телефонов
- * доступны две стороны и анимация поворота. SVG оставлен как запасной вид судна.
+ * доступны две стороны и анимация поворота. Вся остальная техника по нажатию
+ * показывает свой трюк (ui/toyPlay.tsx). SVG оставлен как запасной вид судна.
  * `colors[0]` у машины — цвет «цветного карандаша» поверх готового рисунка.
  */
 export function ToyArt({
@@ -132,7 +126,7 @@ export function ToyArt({
   className?: string;
   /** Тюнинг профиля: у машин — цветной карандаш, у телефонов/кораблей — палитра */
   tuning?: ShopTuning;
-  /** Enable phone rotation only in non-button containers. */
+  /** Включить игру по нажатию (телефон поворачивается, остальная техника показывает свой трюк); только вне других кнопок. */
   interactive?: boolean;
   /**
    * Подпись рисунка для подробного просмотра. На витрине и в гардеробе
@@ -140,19 +134,20 @@ export function ToyArt({
    */
   alt?: string;
 }) {
+  const { run, playing, play, onAnimationEnd } = useToyPlay();
   if (hasAirplaneArt(id)) {
-    return <AirplaneArt key={id} id={id} size={size} className={className} alt={alt} colors={accessoryColors(id, tuning)} />;
+    return <AirplaneArt key={id} id={id} size={size} className={className} alt={alt} colors={accessoryColors(id, tuning)} interactive={interactive} />;
   }
   if (hasElectronicsArt(id)) {
     return <ElectronicsArt key={id} id={id} className={className} alt={alt} interactive={interactive} tint={artPencilTint(id, tuning)} />;
   }
   if (hasCarArt(id)) {
-    return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} />;
+    return <CarArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} interactive={interactive} />;
   }
   if (hasShipArt(id)) {
-    return <ShipArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} />;
+    return <ShipArt id={id} tint={artPencilTint(id, tuning)} className={className} alt={alt ?? ''} interactive={interactive} />;
   }
-  return (
+  const glyph = (
     <svg
       width={size}
       height={size}
@@ -166,6 +161,41 @@ export function ToyArt({
       <ToyGlyph id={id} colors={colorsFor(id, colors, tuning)} />
     </svg>
   );
+  if (!interactive) return glyph;
+  // Запасной SVG-вид существует только у судов — трюк у него корабельный.
+  return (
+    <button
+      type="button"
+      className={`toy-play toy-play--ship toy-play-svg${playing ? ' is-playing' : ''}`}
+      aria-label={`${ITEM_BY_ID[id]?.title ?? 'Судно'}: ${TOY_PLAY_COPY.ship.verb}`}
+      title={TOY_PLAY_COPY.ship.title}
+      onClick={(event) => { event.stopPropagation(); play(); }}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <span className="toy-play-anim" key={run} onAnimationEnd={onAnimationEnd}>
+        {glyph}
+      </span>
+      <ToyPlayFx kind="ship" />
+    </button>
+  );
+}
+
+/** Какой трюк покажет вещь по нажатию; null — трюка нет (или это не техника). */
+export function toyPlayKindFor(id: string): ToyPlayKind | 'phone' | null {
+  if (isRotatingPhone(id)) return 'phone';
+  if (hasCarArt(id)) return 'car';
+  if (hasShipArt(id)) return 'ship';
+  if (hasAirplaneArt(id)) return 'plane';
+  const elec = electronicsPlayKind(id);
+  if (elec) return elec;
+  return ITEM_BY_ID[id]?.toy === 'ship' ? 'ship' : null;
+}
+
+/** Подсказка «нажми на вещь» для подробной карточки; null — подсказка не нужна. */
+export function toyPlayHint(id: string): string | null {
+  const kind = toyPlayKindFor(id);
+  if (!kind) return null;
+  return kind === 'phone' ? '↻ Нажми на телефон — он повернётся' : TOY_PLAY_COPY[kind].hint;
 }
 
 // 0.22.0: `MascotToy` (техника внутри SVG совы) удалён — машины, телефоны и

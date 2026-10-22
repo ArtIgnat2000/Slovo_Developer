@@ -24,7 +24,7 @@ import {
   type ShopItem,
   type ToyKind,
 } from '../engine/shop';
-import { ToyArt } from './ToyArt';
+import { ToyArt, toyPlayHint } from './ToyArt';
 import { COSTUMES, PUZZLE_SIZE, costumeProgress, type Costume } from '../engine/puzzles';
 import { MUSIC_TRACKS, type MusicTrack } from '../engine/music';
 import { TINT_PRICE, type TintOption } from '../engine/tints';
@@ -972,6 +972,7 @@ function Demo() {
                           <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
                         )}
                       </div>
+                      {isToy(item) && toyPlayHint(item.id) && <p className="tiny muted phone-rotate-hint">{toyPlayHint(item.id)}</p>}
                       <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
                       <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
                       {(carKind(item.id) || shipKind(item.id)) && (

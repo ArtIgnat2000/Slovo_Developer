@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { ITEM_BY_ID } from '../engine/shop';
+import { TOY_PLAY_COPY, ToyPlayFx, useToyPlay, type ToyPlayKind } from './toyPlay';
 
 /** Stable legacy IDs preserve purchased phones and their place in the hangar. */
 export const ELECTRONICS_ART: Record<string, string> = {
@@ -20,6 +21,14 @@ export function isRotatingPhone(id: string): boolean {
   return hasElectronicsArt(id) && id.startsWith('phone-');
 }
 
+/** Свой трюк у нефоновой электроники: ноутбук, телевизор и наушники. */
+export function electronicsPlayKind(id: string): ToyPlayKind | null {
+  if (id === 'laptop-air') return 'laptop';
+  if (id === 'tv-cinema') return 'tv';
+  if (id === 'headphones-max') return 'headphones';
+  return null;
+}
+
 /** Interactive only where explicitly enabled: never nest a button in a hangar button. */
 export function ElectronicsArt({ id, className, interactive = false, tint, alt }: {
   id: string;
@@ -29,6 +38,7 @@ export function ElectronicsArt({ id, className, interactive = false, tint, alt }
   alt?: string;
 }) {
   const [front, setFront] = useState(false);
+  const { run, playing, play, onAnimationEnd } = useToyPlay();
   if (!hasElectronicsArt(id)) return null;
   const src = `${import.meta.env.BASE_URL}electronics/${ELECTRONICS_ART[id]}.webp`;
   const cls = `electronics-art${className ? ` ${className}` : ''}`;
@@ -37,7 +47,25 @@ export function ElectronicsArt({ id, className, interactive = false, tint, alt }
     {image}
     {tint && <span className="phone-tint" aria-hidden="true" style={{ '--phone-tint': tint, '--phone-mask': `url("${src}")` } as CSSProperties} />}
   </span>;
-  if (!isRotatingPhone(id)) return <span className={cls}>{image}</span>;
+  if (!isRotatingPhone(id)) {
+    const kind = electronicsPlayKind(id);
+    if (!interactive || !kind) return <span className={cls}>{image}</span>;
+    return (
+      <button
+        type="button"
+        className={`${cls} toy-play toy-play--${kind}${playing ? ' is-playing' : ''}`}
+        aria-label={`${ITEM_BY_ID[id]?.title ?? 'Техника'}: ${TOY_PLAY_COPY[kind].verb}`}
+        title={TOY_PLAY_COPY[kind].title}
+        onClick={(event) => { event.stopPropagation(); play(); }}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <span className="toy-play-anim" key={run} onAnimationEnd={onAnimationEnd}>
+          {image}
+        </span>
+        <ToyPlayFx kind={kind} />
+      </button>
+    );
+  }
   const content = <span className={`phone-turntable${front ? ' is-front' : ''}`} aria-hidden="true">
     {back}
     <span className="phone-face phone-face-front">
