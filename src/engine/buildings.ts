@@ -19,7 +19,7 @@ export const BUILDINGS: BuildingItem[] = [
     id: 'atomic-base',
     title: 'Ядерная база',
     desc: 'Фантастический научный центр с защитным куполом и атомной энергией',
-    price: 120,
+    price: 260,
     emoji: '⚛️',
     isBase: true,
     rarity: 'top',

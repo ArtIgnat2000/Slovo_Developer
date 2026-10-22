@@ -2018,13 +2018,44 @@ p {
 }
 /* Корабли используют тот же полноцветный карандашный стиль, что и авто. */
 .ship-art,
-.electronics-art {
+.electronics-art,
+.airplane-art {
   position: relative;
   display: inline-block;
   width: 100%;
   max-width: 100%;
   line-height: 0;
   isolation: isolate;
+}
+.airplane-art {
+  display: block;
+  width: calc(var(--airplane-size, 96) * 1.45px);
+  aspect-ratio: 1.45;
+  height: auto;
+  filter: drop-shadow(0 5px 7px color-mix(in srgb, var(--ink) 18%, transparent));
+}
+.airplane-art > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+.airplane-art-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--airplane-tint);
+  opacity: 0.32;
+  mix-blend-mode: color;
+  pointer-events: none;
+  -webkit-mask-image: var(--airplane-mask);
+  mask-image: var(--airplane-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 .ship-art > img,
 .electronics-art > img {
@@ -2052,15 +2083,18 @@ p {
 /* Карточка витрины: рисунок занимает ширину ниши, но не выходит за высоту. */
 .shop-icon > .car-art,
 .shop-icon > .ship-art,
-.shop-icon > .electronics-art { max-width: 126px; }
+.shop-icon > .electronics-art,
+.shop-icon > .airplane-art { max-width: 126px; }
 /* Крупный лист в подробной карточке — как гравюра на паспарту. */
 .shop-bigart-toy > .car-art,
 .shop-bigart-toy > .ship-art,
-.shop-bigart-toy > .electronics-art { width: min(100%, 340px); margin-bottom: 4px; }
+.shop-bigart-toy > .electronics-art,
+.shop-bigart-toy > .airplane-art { width: min(100%, 340px); margin-bottom: 4px; }
 /* Гардероб и мечты: маленькие рисунки в квадратных плитках. */
 .shop-wear-icon > .car-art,
 .shop-wear-icon > .ship-art,
-.shop-wear-icon > .electronics-art { max-width: 52px; }
+.shop-wear-icon > .electronics-art,
+.shop-wear-icon > .airplane-art { max-width: 52px; }
 .shop-wear-icon > .building-wardrobe-art {
   width: 52px;
   height: 39px;
@@ -2070,16 +2104,20 @@ p {
 .wishlist-card-art > .car-art,
 .wishlist-card-art > .ship-art,
 .wishlist-card-art > .electronics-art,
+.wishlist-card-art > .airplane-art,
 .mz-art > .car-art,
 .mz-art > .ship-art,
-.mz-art > .electronics-art { max-width: 104px; }
+.mz-art > .electronics-art,
+.mz-art > .airplane-art { max-width: 104px; }
 /* Сцена техники: машины и суда стоят на подиумах в своих залах. */
 .tech-item > .car-art,
 .tech-item > .ship-art,
-.tech-item > .electronics-art { width: 100%; }
+.tech-item > .electronics-art,
+.tech-item > .airplane-art { width: 100%; }
 .tech-tag > .car-art,
 .tech-tag > .ship-art,
-.tech-tag > .electronics-art { width: 26px; }
+.tech-tag > .electronics-art,
+.tech-tag > .airplane-art { width: 26px; }
 .shop-title {
   font-weight: 800;
   font-size: var(--fs-sm);
@@ -2424,6 +2462,51 @@ p {
     color-mix(in srgb, #ffffff 32%, transparent) 8px 11px
   );
 }
+/* Самолёт: отдельная взлётная полоса со световыми маркерами. */
+.tech-runway {
+  position: absolute;
+  z-index: 1;
+  right: 12%;
+  bottom: 0;
+  left: 12%;
+  height: 35%;
+  border-radius: 48% 48% 0 0 / 18% 18% 0 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, #34435c 70%, var(--stage-water)) 18% 82%, transparent);
+  opacity: .85;
+}
+.tech-runway::before {
+  content: '';
+  position: absolute;
+  top: 14%;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(180deg, #fff 0 8px, transparent 8px 17px);
+}
+.tech-runway i {
+  position: absolute;
+  bottom: 8%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #cffff6;
+  box-shadow: 0 0 7px #79fff0;
+}
+.tech-runway i:nth-child(1) { left: 8%; }
+.tech-runway i:nth-child(2) { left: 20%; }
+.tech-runway i:nth-child(3) { right: 20%; }
+.tech-runway i:nth-child(4) { right: 8%; }
+.tech-bay-plane .tech-arch { background: linear-gradient(180deg, var(--stage-ship-frame), var(--stage-ship-frame-2)); }
+.tech-bay-plane .tech-panel {
+  background:
+    radial-gradient(18% 10% at 22% 20%, var(--stage-cloud) 60%, transparent 62%),
+    radial-gradient(22% 11% at 75% 24%, var(--stage-cloud) 60%, transparent 62%),
+    linear-gradient(180deg, var(--stage-sky-top) 0 58%, var(--stage-sky-mid) 58% 100%);
+}
+.tech-bay-plane .tech-item { bottom: 23%; width: 92%; }
+.tech-bay-plane .tech-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
+.tech-bay-plane .tech-tag { top: 9%; right: -2px; transform: rotate(2deg); }
 /* Телефон: две полки витрины и лампа сверху. */
 .tech-bay-phone .tech-panel {
   background:
@@ -2628,6 +2711,13 @@ p {
 }
 /* Фоны панелей — те же, что у арок витрины (.tech-panel и варианты полок). */
 .hangar-panel-car { background: linear-gradient(180deg, var(--case-mint-top), var(--case-mint-bottom)); }
+.hangar-panel-plane {
+  background:
+    radial-gradient(18% 8% at 22% 18%, var(--stage-cloud) 60%, transparent 62%),
+    radial-gradient(21% 9% at 76% 24%, var(--stage-cloud) 60%, transparent 62%),
+    linear-gradient(180deg, var(--stage-sky-top) 0 58%, var(--stage-sky-mid) 100%);
+}
+.hangar-panel-plane .tech-runway { height: 55%; }
 .hangar-panel-ship {
   background:
     radial-gradient(22% 8% at 24% 18%, var(--stage-cloud) 60%, transparent 61%),
@@ -2700,11 +2790,13 @@ p {
 }
 .hangar-item .car-art,
 .hangar-item .ship-art,
-.hangar-item .electronics-art { width: 92px; }
+.hangar-item .electronics-art,
+.hangar-item .airplane-art { width: 92px; }
 /* Любимая вещь (★) в своей части — крупнее остальных. */
 .hangar-item.star .car-art,
 .hangar-item.star .ship-art,
-.hangar-item.star .electronics-art { width: 124px; }
+.hangar-item.star .electronics-art,
+.hangar-item.star .airplane-art { width: 124px; }
 .hangar-empty {
   position: relative;
   z-index: 3;
@@ -2722,7 +2814,8 @@ p {
   background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
   box-shadow: 0 3px 6px color-mix(in srgb, var(--ink) 16%, transparent);
 }
-.hangar-tone-ship .hangar-item-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
+.hangar-tone-ship .hangar-item-plinth,
+.hangar-tone-plane .hangar-item-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
 .hangar-tone-phone .hangar-item-plinth { background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2)); }
 .hangar-item .hangar-tag { max-width: 112px; margin-top: 6px; font-size: 10px; }
 /* БУК на коврике — любуется коллекцией, а не служит ей подставкой. */
@@ -2764,10 +2857,12 @@ p {
 @media (max-width: 359px) {
   .hangar-item .car-art,
   .hangar-item .ship-art,
-  .hangar-item .electronics-art { width: 80px; }
+  .hangar-item .electronics-art,
+  .hangar-item .airplane-art { width: 80px; }
   .hangar-item.star .car-art,
   .hangar-item.star .ship-art,
-  .hangar-item.star .electronics-art { width: 100px; }
+  .hangar-item.star .electronics-art,
+  .hangar-item.star .airplane-art { width: 100px; }
 }
 
 /* Ценник — бумажная бирка бутика, а не кнопка. */
@@ -6612,10 +6707,12 @@ p {
 /* Рисунки техники: размер задан явно — ширина в процентах в сетке схлопывалась до нуля. */
 .world-slot-art > .car-art,
 .world-slot-art > .ship-art,
-.world-slot-art > .electronics-art { width: 132px; }
+.world-slot-art > .electronics-art,
+.world-slot-art > .airplane-art { width: 132px; }
 .world-pick-art > .car-art,
 .world-pick-art > .ship-art,
-.world-pick-art > .electronics-art { width: 84px; }
+.world-pick-art > .electronics-art,
+.world-pick-art > .airplane-art { width: 84px; }
 /* Маскот в наряде — картинка в сцене, а не плавающая кнопка. */
 .world-slot-art .mascot,
 .world-pick-art .mascot {
@@ -6634,7 +6731,8 @@ p {
   background: linear-gradient(180deg, var(--case-mint-plinth), var(--case-mint-deep));
   box-shadow: 0 8px 14px color-mix(in srgb, var(--ink) 20%, transparent);
 }
-.world-tone-ship .world-slot-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
+.world-tone-ship .world-slot-plinth,
+.world-tone-plane .world-slot-plinth { background: linear-gradient(180deg, var(--case-sky-plinth), var(--case-sky-deep)); }
 .world-tone-phone .world-slot-plinth { background: linear-gradient(180deg, var(--stage-lav-frame), var(--stage-lav-frame-2)); }
 .world-slot-foot {
   position: relative;
@@ -6914,6 +7012,33 @@ p {
   object-fit: cover;
   filter: drop-shadow(0 4px 5px rgba(36, 31, 54, .16));
 }
+/* Набор научной базы: четыре предмета в витринной мини-композиции. */
+.base-set-icons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  gap: 0 4px;
+  width: 100%;
+  height: 76px;
+}
+.base-set-icons > .building-card-art { width: 58px; height: 40px; border-radius: 8px; }
+.base-set-icons > .car-art { width: 58px; }
+.base-set-icons > .airplane-art { width: 58px; max-width: 100%; }
+.base-set-detail { width: 100%; }
+.base-set-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  gap: 8px 14px;
+  width: min(100%, 360px);
+  position: relative;
+  z-index: 1;
+}
+.base-set-detail-grid > .building-card-art { width: min(100%, 132px); height: auto; }
+.base-set-detail-grid > .airplane-art { width: min(100%, 110px); }
 .building-item .shop-title {
   min-height: 38px;
   display: grid;

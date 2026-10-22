@@ -84,7 +84,7 @@ export async function runBuildingUiChecks() {
 
   useApp.setState((state) => ({
     profiles: state.profiles.map((profile) =>
-      profile.id === state.activeId ? { ...profile, gems: 500 } : profile,
+      profile.id === state.activeId ? { ...profile, gems: 1000 } : profile,
     ),
   }));
   await sleep(20);
@@ -94,15 +94,15 @@ export async function runBuildingUiChecks() {
   await sleep(25);
   const detail = document.querySelector('.shop-sheet');
   check('тап по карточке показывает большую иллюстрацию и описание здания', !!detail?.querySelector('.building-detail-art img[alt="Ядерная база"]') && (detail?.textContent ?? '').includes('научный центр'));
-  click(buttonIn(detail, 'Построить · 💎120'));
+  click(buttonIn(detail, 'Построить · 💎260'));
   await sleep(25);
-  check('перед покупкой появляется подтверждение стоимости', (document.querySelector('[role="dialog"]')?.textContent ?? '').includes('Отдашь 120 💎'));
-  click(buttonIn(document.querySelector('[role="dialog"]'), 'Построить · 💎120'));
+  check('перед покупкой появляется подтверждение стоимости', (document.querySelector('[role="dialog"]')?.textContent ?? '').includes('Отдашь 260 💎'));
+  click(buttonIn(document.querySelector('[role="dialog"]'), 'Построить · 💎260'));
   await sleep(30);
   let profile = activeProfile();
   check(
     'покупка списывает кристаллы и ставит здание на участок',
-    profile?.gems === 380 && profile.shop?.buildingsOwned?.includes('atomic-base') && profile.shop.activeBuilding === 'atomic-base',
+    profile?.gems === 740 && profile.shop?.buildingsOwned?.includes('atomic-base') && profile.shop.activeBuilding === 'atomic-base',
     JSON.stringify({ gems: profile?.gems, buildings: profile?.shop?.buildingsOwned, active: profile?.shop?.activeBuilding }),
   );
   check('участок показывает выбранную ядерную базу', document.querySelector('.building-plot-art')?.getAttribute('alt') === 'Ядерная база');
@@ -161,6 +161,42 @@ export async function runBuildingUiChecks() {
     ),
   }));
   await sleep(25);
+  const setsShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((button) => (button.textContent ?? '').includes('Наборы'));
+  if (setsShelf) click(setsShelf);
+  await sleep(25);
+  const atomicSet = Array.from(document.querySelectorAll('.shop-item')).find((card) => (card.querySelector('.shop-title')?.textContent ?? '').includes('Набор «Атом»'));
+  check('наборы показывают атомный комплект в каталоге', !!atomicSet);
+  click(atomicSet?.querySelector('.shop-title') ?? null);
+  await sleep(25);
+  const setDetail = document.querySelector('.shop-sheet');
+  check('тап по набору открывает подробный просмотр четырёх вещей', !!setDetail && ['Ядерная база', 'Квант', 'Атомный дозор', 'Хранитель атома'].every((name) => setDetail.textContent?.includes(name)) && !!setDetail.querySelector('.airplane-art[data-airplane-id="plane-atomic-base"] img'));
+  check('подробности набора объясняют премиальную цену', (setDetail?.textContent ?? '').includes('в 3 раза'));
+  click(document.querySelector('.shop-sheet-veil'));
+  await sleep(20);
+
+  const beforeBundle = activeProfile();
+  if (beforeBundle) {
+    const snapshot = { gems: beforeBundle.gems, shop: beforeBundle.shop, puzzle: beforeBundle.puzzle };
+    useApp.setState((state) => ({
+      profiles: state.profiles.map((profile) => profile.id === state.activeId
+        ? {
+            ...profile,
+            gems: 10000,
+            shop: { ...profile.shop!, owned: [], buildingsOwned: [], activeBuilding: null, crystalCostumesOwned: [], wishlist: [] },
+            puzzle: { ...profile.puzzle!, assembled: [], worn: null },
+          }
+        : profile),
+    }));
+    const purchased = useApp.getState().buyBaseSet('atomic-set');
+    const bought = activeProfile();
+    check('покупка набора выдаёт тематические авто, самолёт, базу и костюм', purchased && bought?.shop?.owned.includes('car-atomic-base') && bought.shop.owned.includes('plane-atomic-base') && bought.shop.buildingsOwned?.includes('atomic-base') && bought.shop.crystalCostumesOwned?.includes('atomic-suit') && bought.puzzle?.worn === 'atomic-suit');
+    useApp.setState((state) => ({
+      profiles: state.profiles.map((profile) => profile.id === state.activeId
+        ? { ...profile, gems: snapshot.gems, shop: snapshot.shop, puzzle: snapshot.puzzle }
+        : profile),
+    }));
+  }
+
   const outfits = Array.from(document.querySelectorAll('.shop-cats .chip')).find((button) =>
     (button.textContent ?? '').includes('Наряды'),
   );

@@ -170,8 +170,8 @@ export const PUZZLE_COSTUMES = COSTUMES;
 
 /** Crystal costumes matching each base (sold separately and in themed sets). */
 export const BASE_COSTUMES: Costume[] = [
-  { id: 'atomic-suit', title: 'Хранитель атома', desc: 'Защитный скафандр с голубым энергосердцем — в цвет ядерной базы', body: '#4778a8', belly: '#b5e4ff', wing: '#28527e', trim: '#d9f3ff', glow: '#4ddcff', helmet: 'dome', prop: null, baseStyle: 'atomic-base', price: 90, rarity: 'legendary' },
-  { id: 'electron-suit', title: 'Повелитель импульса', desc: 'Солнечный костюм с сияющими линиями электронных схем', body: '#4d9d82', belly: '#c4f4d8', wing: '#34745f', trim: '#d9fff0', glow: '#72ffbd', helmet: 'plate', prop: null, baseStyle: 'electron-base', price: 85, rarity: 'cool' },
+  { id: 'atomic-suit', title: 'Хранитель атома', desc: 'Защитный скафандр с голубым энергосердцем — в цвет ядерной базы', body: '#4778a8', belly: '#b5e4ff', wing: '#28527e', trim: '#d9f3ff', glow: '#4ddcff', helmet: 'dome', prop: null, baseStyle: 'atomic-base', price: 90, rarity: 'top' },
+  { id: 'electron-suit', title: 'Повелитель импульса', desc: 'Солнечный костюм с сияющими линиями электронных схем', body: '#4d9d82', belly: '#c4f4d8', wing: '#34745f', trim: '#d9fff0', glow: '#72ffbd', helmet: 'plate', prop: null, baseStyle: 'electron-base', price: 85, rarity: 'legendary' },
   { id: 'arctic-suit', title: 'Полярный исследователь', desc: 'Тёплый костюм для экспедиций среди льдов и северного сияния', body: '#86b7d4', belly: '#e6f8ff', wing: '#5c8eae', trim: '#f1fbff', glow: '#70eaff', helmet: 'bubble', prop: null, baseStyle: 'arctic-base', price: 95, rarity: 'legendary' },
   { id: 'moon-suit', title: 'Лунный первооткрыватель', desc: 'Серебристый скафандр с золотым светом далёких звёзд', body: '#aaa4c8', belly: '#f1edff', wing: '#817b9f', trim: '#fff5d6', glow: '#ffd166', helmet: 'dome', prop: null, baseStyle: 'moon-base', price: 100, rarity: 'top' },
 ];

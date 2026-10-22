@@ -114,6 +114,7 @@ const CATS: { id: Cat; title: string; emoji: string }[] = [
 type Detail =
   | { kind: 'item'; item: ShopItem }
   | { kind: 'building'; building: BuildingItem }
+  | { kind: 'baseSet'; set: BaseSet }
   | { kind: 'costume'; costume: Costume }
   | { kind: 'track'; track: MusicTrack }
   | { kind: 'sound'; pack: SoundPack };
@@ -690,31 +691,30 @@ export function ShopScreen() {
     const setInfo = askBaseSet;
     const ok = buyBaseSet(setInfo.id);
     setAskBaseSet(null);
-    if (ok) showToast({ emoji: setInfo.emoji, title: `${setInfo.title} куплен!`, text: 'База, машина и костюм уже в твоей коллекции' });
+    if (ok) showToast({ emoji: setInfo.emoji, title: `${setInfo.title} куплен!`, text: 'База, машина, самолёт и костюм уже в твоей коллекции' });
     else showToast({ emoji: '💎', title: 'Не хватает кристаллов или набор уже собран', text: 'Купи недостающие части отдельно или накопи кристаллы' });
   };
 
   const baseSetCard = (setInfo: BaseSet) => {
     const price = priceForSet(setInfo);
-    const complete = isBuildingOwned(buildingsOwned, setInfo.baseId) && isOwned(owned, setInfo.carId) && allOwnedCostumes.includes(setInfo.costumeId);
-    const allMissing = !isBuildingOwned(buildingsOwned, setInfo.baseId) && !isOwned(owned, setInfo.carId) && !allOwnedCostumes.includes(setInfo.costumeId);
+    const complete = isBuildingOwned(buildingsOwned, setInfo.baseId) && isOwned(owned, setInfo.carId) && isOwned(owned, setInfo.planeId) && allOwnedCostumes.includes(setInfo.costumeId);
     const base = BUILDING_BY_ID[setInfo.baseId];
     const costume = ALL_COSTUMES.find((entry) => entry.id === setInfo.costumeId)!;
     return (
       <ShopCard
         key={setInfo.id}
-        badge="БАЗА · АВТО · КОСТЮМ"
+        badge="БАЗА · 2 ТС · КОСТЮМ"
         rarity={setInfo.rarity}
-        art={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, width: '100%' }}><BuildingArt id={setInfo.baseId} className="building-card-art" /><ToyArt id={setInfo.carId} size={46} /><Mascot mood="idle" costumeId={costume.id} size={48} stage={growth.index} /></div>}
+        art={<div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" /><ToyArt id={setInfo.carId} size={40} /><ToyArt id={setInfo.planeId} size={40} /><Mascot mood="idle" costumeId={costume.id} size={42} stage={growth.index} /></div>}
         title={setInfo.title}
         desc={setInfo.desc}
-        extra={<div className="tiny muted">{base.emoji} база · 🚗 машина · ✨ костюм</div>}
-        priceLabel={complete ? 'Набор собран ✓' : `💎 ${price}${allMissing && price > 0 ? ' · скидка 10%' : ''}`}
+        extra={<div className="tiny muted">{base.emoji} база · 🚗 машина · ✈️ самолёт · ✨ костюм</div>}
+        priceLabel={complete ? 'Набор собран ✓' : `💎 ${price} · премиум`}
         afford={gems >= price}
         actionLabel={complete ? 'Уже всё твоё ✓' : gems >= price ? `Купить набор · 💎${price}` : `Ещё ${price - gems} 💎`}
         actionTone={complete ? 'green' : gems >= price ? 'primary' : 'ghost'}
         actionDisabled={complete || gems < price}
-        onOpen={() => !complete && setAskBaseSet(setInfo)}
+        onOpen={() => openSheet({ kind: 'baseSet', set: setInfo })}
         onAction={() => !complete && setAskBaseSet(setInfo)}
       />
     );
@@ -1141,6 +1141,59 @@ export function ShopScreen() {
               </button>
             )}
           </div>
+        </>
+      );
+    }
+    if (sheet.kind === 'baseSet') {
+      const setInfo = sheet.set;
+      const base = BUILDING_BY_ID[setInfo.baseId];
+      const car = ITEM_BY_ID[setInfo.carId];
+      const plane = ITEM_BY_ID[setInfo.planeId];
+      const costume = ALL_COSTUMES.find((entry) => entry.id === setInfo.costumeId)!;
+      const baseOwned = isBuildingOwned(buildingsOwned, setInfo.baseId);
+      const carOwned = isOwned(owned, setInfo.carId);
+      const planeOwned = isOwned(owned, setInfo.planeId);
+      const costumeOwned = allOwnedCostumes.includes(setInfo.costumeId);
+      const complete = baseOwned && carOwned && planeOwned && costumeOwned;
+      const price = priceForSet(setInfo);
+      const affordable = gems >= price;
+      return (
+        <>
+          <div className="shop-bigart base-set-detail">
+            <div className="base-set-detail-grid">
+              <BuildingArt id={base.id} className="building-card-art" loading="eager" />
+              <ToyArt id={car.id} size={64} tuning={profile.shop?.tuning} />
+              <ToyArt id={plane.id} size={64} tuning={profile.shop?.tuning} />
+              <Mascot mood="happy" costumeId={costume.id} size={66} stage={growth.index} />
+            </div>
+          </div>
+          <h2 style={{ margin: '0 0 2px' }}>{setInfo.title}</h2>
+          <RarityLabel rarity={setInfo.rarity} className="rarity-chip-detail" />
+          <p className="tiny muted" style={{ marginTop: 6 }}>{setInfo.desc}</p>
+          <div className="col mb">
+            {[{ title: base.title, emoji: base.emoji, owned: baseOwned }, { title: car.title, emoji: '🚗', owned: carOwned }, { title: plane.title, emoji: '✈️', owned: planeOwned }, { title: costume.title, emoji: '✨', owned: costumeOwned }].map((part) => (
+              <div className="between tiny" key={part.title}>
+                <span>{part.emoji} {part.title}</span>
+                <b>{part.owned ? 'Уже есть ✓' : 'В наборе'}</b>
+              </div>
+            ))}
+          </div>
+          <p className="tiny muted mb">Премиум-набор: стоимость в 3 раза выше суммы недостающих вещей. Уже купленные части повторно не оплачиваются.</p>
+          <div className="row mb">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>
+            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{complete ? 'Все части уже в коллекции' : `У тебя ${gems} 💎`}</span>
+          </div>
+          <button
+            className={`btn lg wide ${complete ? 'green' : 'primary'}`}
+            disabled={complete || !affordable}
+            onClick={() => {
+              if (complete || !affordable) return;
+              closeSheet();
+              setAskBaseSet(setInfo);
+            }}
+          >
+            {complete ? 'Уже всё твоё ✓' : affordable ? `Купить набор · 💎${price}` : `Ещё ${price - gems} 💎`}
+          </button>
         </>
       );
     }
@@ -1616,12 +1669,12 @@ export function ShopScreen() {
         </section>
       )}
 
-      {/* ── Техника: отдельные полки авто, кораблей и телефонов ─────────── */}
+      {/* ── Техника: отдельные полки авто, самолётов, кораблей и телефонов ── */}
       {view === 'vitrina' && cat === 'toys' && (
         <section className="mt" aria-label="Техника">
           <div className="mb">
             <h2 className="mb">Техника БУКа</h2>
-            <div className="tiny muted">Авто, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
+            <div className="tiny muted">Авто, самолёты, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
           </div>
           <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
             {TOY_SHELVES.map(({ id, title, emoji }) => (
@@ -1676,7 +1729,7 @@ export function ShopScreen() {
               <h3 className="shop-case-group-title">
                 <span aria-hidden="true">{emoji}</span> {title}
               </h3>
-              <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' ? 'sky' : undefined}>
+              <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' || id === 'plane' ? 'sky' : undefined}>
                 {toysByShelf(id).slice().sort(compareByRarity).map(itemCard)}
               </ShowcaseGrid>
             </div>
@@ -1762,7 +1815,7 @@ export function ShopScreen() {
         <section className="mt" aria-label="Наборы">
           <div className="mb">
             <h2 className="mb">Наборы научных баз 🎁</h2>
-            <div className="tiny muted">В каждом наборе — база, машина в её стиле и подходящий костюм. Если часть уже есть, платишь только за недостающие вещи.</div>
+            <div className="tiny muted">В каждом наборе — тематическая база, машина, самолёт и подходящий костюм. Если часть уже есть, платишь только за недостающие вещи.</div>
           </div>
           <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
         </section>
@@ -2280,7 +2333,7 @@ export function ShopScreen() {
         <ConfirmDialog
           emoji={askBaseSet.emoji}
           title={`Купить ${askBaseSet.title}?`}
-          text={`В наборе три вещи: база, машина и костюм. За недостающие части отдашь ${priceForSet(askBaseSet)} 💎. Если покупаешь весь набор сразу — действует скидка 10%.`}
+          text={`Премиум-набор включает базу, машину, самолёт и костюм. Цена — ${priceForSet(askBaseSet)} 💎 за недостающие части.`}
           stayLabel={`Купить · 💎${priceForSet(askBaseSet)}`}
           leaveLabel="Не сейчас"
           onStay={confirmBaseSetBuy}

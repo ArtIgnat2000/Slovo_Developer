@@ -73,6 +73,11 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'ship-sail': ['#183b63', '#202b3b', '#ef673c'],
   'ship-steam': ['#164b4c', '#203b3b', '#c6813d'],
   'ship-carrier': ['#59616a', '#252b34', '#e5b849'],
+  'plane-swift': ['#e4573d', '#273750', '#ffc857'],
+  'plane-electron-base': ['#4d75df', '#26346f', '#4df0db'],
+  'plane-arctic-base': ['#a8d9e9', '#426a88', '#53b9f0'],
+  'plane-moon-base': ['#777b91', '#34394e', '#ffd166'],
+  'plane-atomic-base': ['#2ca7ad', '#17475d', '#9aefb3'],
 };
 
 assert.equal(OUTFIT_ITEMS.length, Object.keys(EXPECTED_BASE).length, 'список нарядов и ожидаемых палитр разошёлся');
@@ -88,13 +93,13 @@ assert.ok(TOY_ITEMS.every((item) => !showsOnBuk(item)), 'техника не д�
 assert.ok(OUTFIT_ITEMS.every((item) => showsOnBuk(item)), 'наряды должны рисоваться на БУКе');
 assert.deepEqual(
   [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
-  ['car', 'phone', 'ship'],
-  'техника должна быть трёх видов: авто, телефоны, корабли',
+  ['car', 'phone', 'plane', 'ship'],
+  'техника должна содержать авто, телефоны, самолёты и корабли',
 );
 // Авто и корабли идут рядом и доступны как отдельные полки.
-assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'ship', 'phone'], 'полки техники поехали');
+assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'plane', 'ship', 'phone'], 'полки техники поехали');
 assert.equal(TOY_SHELVES[0].title, 'Авто', 'первая полка называется «Авто»');
-assert.equal(TOY_SHELVES[1].title, 'Корабли', 'корабли идут отдельной полкой рядом с авто');
+assert.equal(TOY_SHELVES[1].title, 'Самолёты', 'самолёты вынесены в отдельную полку');
 const carIds = toysByShelf('car').map((item) => item.id);
 for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rolls', 'car-maybach', 'car-bugatti']) {
   assert.ok(carIds.includes(id), `в разделе авто нет ${id}`);

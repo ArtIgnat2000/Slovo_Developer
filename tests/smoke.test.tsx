@@ -590,7 +590,7 @@ async function main() {
   if (toyShelf) click(toyShelf);
   await sleep(30);
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
-  check('разделы авто, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
+  check('разделы авто, самолётов, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Самолёты', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
   check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 14 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check(
     '«Авто»: десять прежних машин и четыре машины в стиле баз',
@@ -606,6 +606,24 @@ async function main() {
     check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 14 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
+
+  const planeTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Самолёты'));
+  if (planeTab) click(planeTab);
+  await sleep(30);
+  const planeCards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
+  const planeArts = Array.from(document.querySelectorAll('.shop-item.toy-item .airplane-art'));
+  check('«Самолёты»: есть обычный самолёт и четыре модели в стилях баз', planeCards.length === 5 && ['Стриж', 'Схемолёт', 'Северный ветер', 'Лунный орёл', 'Атомный дозор'].every((title) => has(title)), '');
+  check('«Самолёты»: пять разных моделей используют отдельные WebP-иллюстрации', planeArts.length === 5 && new Set(planeArts.map((art) => art.getAttribute('data-airplane-id'))).size === 5 && planeArts.every((art) => {
+    const id = art.getAttribute('data-airplane-id');
+    return !!id && art.querySelector('img')?.getAttribute('src')?.endsWith(`/planes/${id}.webp`);
+  }), '');
+  const atomicPlane = planeCards.find((card) => card.textContent?.includes('Атомный дозор'));
+  if (atomicPlane) click(atomicPlane.querySelector('.shop-title'));
+  await sleep(30);
+  const atomicPlaneSheet = document.querySelector('.shop-sheet');
+  check('подробная карточка самолёта открывает крупную иллюстрацию и описание', !!atomicPlaneSheet?.querySelector('.airplane-art[data-airplane-id="plane-atomic-base"]') && atomicPlaneSheet.textContent?.includes('атомная эмблема'), '');
+  if (atomicPlaneSheet) click(document.querySelector('.shop-sheet-veil'));
+  await sleep(20);
 
   const shipTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Корабли'));
   if (shipTab) click(shipTab);
@@ -708,16 +726,17 @@ async function main() {
       !!document.querySelector('.hangar-item.star'),
     `плашек: ${hangarItems.length}`,
   );
-  // 0.26.0: одна большая сцена выбранной части и выбор части под ней —
-  // полка для телефона, пристань для корабля, гараж для машины (в этом порядке).
+  // 0.26.0+: одна большая сцена выбранной части и выбор части под ней —
+  // полка, пристань, гараж и ангар самолётов.
   const partTabs = Array.from(document.querySelectorAll('.hangar-bays [role="tab"]'));
   const partLabels = partTabs.map((t) => (t.textContent ?? '').trim());
   check(
-    'под сценой три части: полка, пристань, гараж (в этом порядке)',
-    partTabs.length === 3 &&
+    'под сценой четыре части: полка, пристань, гараж и самолёты',
+    partTabs.length === 4 &&
       partLabels[0].includes('Полка') &&
       partLabels[1].includes('Пристань') &&
-      partLabels[2].includes('Гараж'),
+      partLabels[2].includes('Гараж') &&
+      partLabels[3].includes('Самолёты'),
     partLabels.join(' | '),
   );
   check(
@@ -755,6 +774,9 @@ async function main() {
     useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer' && !!document.querySelector('.hangar-item.star'),
     JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
   );
+  click(partTabs[3]);
+  await sleep(40);
+  check('в ангаре самолётам выделена отдельная взлётная площадка', (document.querySelector('.hangar-scene-title')?.textContent ?? '').includes('Ангар для самолёта') && !!document.querySelector('.hangar-panel-plane .tech-runway'), '');
   click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
   await sleep(50);
   check('ангар закрывается крестиком', !document.querySelector('.hangar'), '');
