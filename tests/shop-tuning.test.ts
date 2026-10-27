@@ -15,6 +15,7 @@ import {
   toysByShelf,
 } from '../src/engine/shop';
 import { COSTUMES } from '../src/engine/puzzles';
+import { tintKey } from '../src/engine/sold';
 import {
   BASE_TINT,
   COSTUME_PALETTES,
@@ -234,6 +235,9 @@ assert.deepEqual(
   ],
 );
 assert.equal(tintChoices(shop.tuning, 'scarf')[0].price, 0, 'база бесплатна даже с нулём кристаллов');
+const soldBase = tintChoices(shop.tuning, 'scarf', [tintKey('scarf', BASE_TINT)]);
+assert.equal(soldBase.length, 3, 'проданный базовый оттенок скрыт из палитры');
+assert.ok(!soldBase.some((choice) => choice.tint.id === BASE_TINT));
 assert.deepEqual(tintChoices(shop.tuning, 'unknown-item'), []);
 
 // Текущий оттенок без записи в профиле — базовый

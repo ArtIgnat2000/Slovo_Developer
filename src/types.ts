@@ -6,6 +6,9 @@ import type { ChestSkinId } from './engine/chests';
 
 export type DangerKind = 'vowel' | 'consonant' | 'other';
 
+/** Класс программы «Школа России» (1–4),docs/proposals/classes-1-4.md. */
+export type ClassId = 1 | 2 | 3 | 4;
+
 export interface Word {
   id: string;
   text: string;
@@ -20,6 +23,8 @@ export interface Word {
   /** Имя файла картинки в public/words/ (без расширения). Нет — показываем эмодзи. */
   image?: string;
   theme: string; // id темы (урока)
+  /** Классы, в словариках которых встречается слово. Одна карточка на все классы. */
+  grades: ClassId[];
 }
 
 export interface Lesson {
@@ -28,6 +33,11 @@ export interface Lesson {
   emoji: string;
   order: number;
   wordIds: string[];
+}
+
+/** Урок программы класса; «Повторение» остаётся обычным Lesson. */
+export interface GradeLesson extends Lesson {
+  grade: ClassId;
 }
 
 // ── Прогресс ─────────────────────────────────────────────────────────────────
@@ -146,7 +156,7 @@ export interface ShopState {
 }
 
 /**
- * Тюнинг цвета: у вещи есть базовый оттенок (бесплатный, всегда доступен) и
+ * Тюнинг цвета: у вещи есть базовый оттенок (бесплатный, с 0.31.1 продаётся) и
  * несколько открываемых за кристаллы. Решение 2026-10-05: 1 💎 берём один раз
  * за оттенок, дальше переключение между открытыми бесплатно.
  */
@@ -242,6 +252,11 @@ export interface Profile {
   achievements: string[];
   /** Размер базовой очереди урока; у старых профилей по умолчанию «standard». */
   lessonSize?: LessonSize;
+  /**
+   * Программа класса (1–4). Смена класса меняет ТОЛЬКО это поле и адаптивное
+   * окно: опыт, кристаллы, серия, награды и покупки остаются. У старых профилей — 2.
+   */
+  activeClass?: ClassId;
   adaptiveCards?: number;
   adaptiveGood?: number;
   daily?: DailyState; // опционально: профили, созданные до этой версии, живут без него
@@ -259,6 +274,14 @@ export interface Profile {
   chestSkins?: string[];
   /** Все вещи, здания, костюмы, музыка, звуки, оттенки и облики уже открыты (см. store.ts openEverything). */
   openedAll?: boolean;
+  /**
+   * Пространственно-именованные ключи проданных товаров каталога. Нужны, чтобы
+   * режим «всё открыто» не возвращал проданное при следующем запуске. См.
+   * `engine/sold.ts` и `engine/catalog.ts`.
+   */
+  sold?: string[];
+  /** Версия единого каталога, для которой профиль уже получил «всё открыто». */
+  catalogVersion?: string;
 }
 
 // ── Задания ──────────────────────────────────────────────────────────────────

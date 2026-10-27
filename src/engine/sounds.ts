@@ -13,6 +13,8 @@
  * громкость ниже, чем у мелодии правильного ответа (проверяется тестом).
  */
 
+import { catalogKey, isSold, normalizeSold } from './sold';
+
 /** Тембр ноты: осцилляторы Web Audio и «колокольчик» с гармониками. */
 export type SoundWave = 'sine' | 'triangle' | 'square' | 'sawtooth' | 'chime';
 
@@ -180,14 +182,27 @@ export interface SoundShopSelection {
  * получают стартовые наборы и классику (звучание для них не меняется).
  * Чужие id отбрасываются, выбранный набор обязан быть открыт.
  */
-export function normalizeSoundShop(raw: { soundOwned?: unknown; soundPack?: unknown } | null | undefined): SoundShopSelection {
-  const owned: string[] = [...STARTER_SOUND_IDS];
+export function normalizeSoundShop(
+  raw: { soundOwned?: unknown; soundPack?: unknown } | null | undefined,
+  soldKeys: unknown = [],
+): SoundShopSelection {
+  const sold = { sold: normalizeSold(soldKeys) };
+  const owned: string[] = STARTER_SOUND_IDS.filter(
+    (id) => !isSold(sold, catalogKey('sound', id)),
+  );
   if (Array.isArray(raw?.soundOwned)) {
     for (const id of raw.soundOwned) {
-      if (typeof id === 'string' && SOUND_PACK_BY_ID[id] && !owned.includes(id)) owned.push(id);
+      if (
+        typeof id === 'string' &&
+        SOUND_PACK_BY_ID[id] &&
+        !owned.includes(id) &&
+        !isSold(sold, catalogKey('sound', id))
+      ) owned.push(id);
     }
   }
   const picked = raw?.soundPack;
-  const soundPack = typeof picked === 'string' && owned.includes(picked) ? picked : DEFAULT_SOUND_PACK;
+  const soundPack = typeof picked === 'string' && owned.includes(picked)
+    ? picked
+    : (owned.includes(DEFAULT_SOUND_PACK) ? DEFAULT_SOUND_PACK : owned[0] ?? DEFAULT_SOUND_PACK);
   return { soundOwned: owned, soundPack };
 }

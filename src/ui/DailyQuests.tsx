@@ -21,6 +21,7 @@ import {
   type QuestKind,
 } from '../engine/quests';
 import { Bar } from './Bits';
+import { Gem } from './Icon';
 import { ChestCelebration } from './ChestCelebration';
 import { ChestGlyph, KeySymbol, prewarmChestArt } from './ChestArt';
 import { ChestSkins } from './ChestSkins';
@@ -92,7 +93,7 @@ function ChestRewards({ reward }: { reward: Chest }) {
   const wake = reward.wakeBonus ?? 0;
   return (
     <div className="chest-rewards" aria-label="Награда сундука">
-      {reward.gems > 0 && <span className="chest-reward">💎 +{reward.gems}</span>}
+      {reward.gems > 0 && <span className="chest-reward"><Gem value={`+${reward.gems}`} size={18} /></span>}
       {wake > 0 && <span className="chest-reward wake">🌟 разбудил сундук · +{wake}</span>}
       {reward.xp > 0 && <span className="chest-reward">⚡ +{reward.xp} XP</span>}
       {reward.freezes > 0 && (
@@ -303,11 +304,11 @@ export function DailyQuests({ onStart }: Props) {
                 )}
                 {canClaim ? (
                   <button className="btn green sm" onClick={() => claim(id, spec.reward)}>
-                    Забрать 💎{spec.reward}
+                    Забрать <Gem value={spec.reward} size={18} />
                   </button>
                 ) : (
                   <span className={`quest-gem ${isClaimed ? 'taken' : ''}`}>
-                    {isClaimed ? '✓' : `💎${spec.reward}`}
+                    {isClaimed ? '✓' : <Gem value={spec.reward} size={18} />}
                   </span>
                 )}
               </div>
@@ -386,7 +387,7 @@ export function DailyQuests({ onStart }: Props) {
           <ChestGlyph state="ready" skin={skin} />
           <span>Открыть сундук БУКа</span>
           <span className="tiny">
-            +{chestPreview('daily', wakeAwake).gems} 💎
+            +<Gem value={chestPreview('daily', wakeAwake).gems} size={18} />
             {wakeAwake ? ` · разогрет +${chestWakeBonus('daily')}` : ''}
           </span>
         </button>
@@ -397,7 +398,7 @@ export function DailyQuests({ onStart }: Props) {
           <ChestGlyph state="ready" skin={skin} />
           <span>Открыть бонусный сундук</span>
           <span className="tiny">
-            +{chestPreview('bonus', wakeAwake).gems} 💎
+            +<Gem value={chestPreview('bonus', wakeAwake).gems} size={18} />
             {wakeAwake ? ` · разогрет +${chestWakeBonus('bonus')}` : ''}
             {bonusReady > 1 ? ` · готово: ${bonusReady}` : ''}
           </span>

@@ -8,7 +8,7 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openHomeMenu, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
@@ -42,6 +42,7 @@ import { BUILDINGS } from '../src/engine/buildings';
 import { CHEST_SKINS } from '../src/engine/chests';
 import { COSTUMES, CRYSTAL_COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
 import { THEME_STYLES } from '../src/engine/theme-styles';
+import { CATALOG, catalogEntry, ownsCatalog, refundOf } from '../src/engine/catalog';
 import { masteredCount } from '../src/state/store';
 import { runStudyEngineChecks } from './study.test';
 
@@ -534,7 +535,11 @@ async function main() {
     '',
   );
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
-  check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
+  check(
+    'показан баланс кристаллов с новым алмазом',
+    has(String(useApp.getState().profiles[0].gems)) && !!document.querySelector('.stat-pill.gems [data-icon="crystal"]'),
+    body().slice(0, 200),
+  );
   await runBuildingUiChecks();
 
   const backgroundShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны'));
@@ -794,14 +799,15 @@ async function main() {
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(40);
 
-  // Вход с главной: значок 🚗 в шапке экрана «Уроки».
+  // Вход с главной: строка «Ангар» в меню ☰ (значок 🚗 ушёл из шапки).
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'))!);
   await sleep(60);
-  const homeHangarBtn = document.querySelector('button[aria-label="Ангар БУКа"]');
-  check('в шапке главной есть значок «Ангар БУКа»', !!homeHangarBtn, '');
+  await openHomeMenu();
+  const homeHangarBtn = document.querySelector('[data-menu="hangar"]');
+  check('в меню ☰ есть строка «Ангар»', !!homeHangarBtn, '');
   click(homeHangarBtn);
   await sleep(60);
-  check('ангар открылся с главной', !!document.querySelector('.hangar'), '');
+  check('ангар открылся с главной через меню ☰', !!document.querySelector('.hangar'), '');
   click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
   await sleep(50);
   check('после ангара видна главная', !document.querySelector('.hangar') && has('Мой путь'), '');
@@ -1353,14 +1359,45 @@ async function main() {
   click(homeTab!);
   await sleep(80);
   check(
-    'на главной есть серия дней',
-    has('🔥') && !!document.querySelector('.stat-pill.fire'),
+    'в шапке один счётчик — кристаллы, и кнопка меню ☰',
+    !!document.querySelector('[data-menu-trigger]') && !!document.querySelector('.topbar-stat.gems [data-icon="crystal"]') &&
+      !document.querySelector('.stat-pill.fire') && !document.querySelector('.rewards-btn'),
     body().slice(0, 200),
   );
+  click(document.querySelector('[data-menu-trigger]'));
+  await sleep(60);
   check(
-    'на главной награды за иконкой 🎁, а не полотном',
-    !!btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды')) && !document.querySelector('.quest'),
+    'меню ☰ объясняет серию и кристаллы',
+    has('Серия:') && has('Кристаллы:') && !!document.querySelector('.home-menu [data-icon="flame"]'),
+    body().slice(0, 300),
+  );
+  check(
+    'в меню ☰ пять крупных строк и версия',
+    ['rewards', 'purchases', 'hangar', 'class', 'profiles'].every((id) => !!document.querySelector(`[data-menu="${id}"]`)) &&
+      !!document.querySelector('[data-menu-version]'),
     '',
+  );
+  check('на главной нет полотна заданий', !document.querySelector('.quest'), '');
+  click(document.querySelector('[data-menu="class"]'));
+  await sleep(60);
+  check('лист класса открывается из меню ☰', !!document.querySelector('.class-sheet'), body().slice(0, 200));
+  check('в листе класса четыре программы', document.querySelectorAll('.class-card').length === 4, '');
+  const beforeClass = useApp.getState().profiles[0];
+  const ownedBeforeClass = (beforeClass.shop?.owned ?? []).join('|');
+  const xpBeforeClass = beforeClass.xp;
+  const gemsBeforeClass = beforeClass.gems;
+  const classOne = Array.from(document.querySelectorAll('.class-card')).find((c) => (c.textContent ?? '').includes('1 класс'));
+  click(classOne);
+  await sleep(60);
+  const afterClass = useApp.getState().profiles[0];
+  check(
+    'смена класса не сбрасывает прогресс, кристаллы и покупки',
+    afterClass.activeClass === 1 &&
+      afterClass.xp === xpBeforeClass &&
+      afterClass.gems === gemsBeforeClass &&
+      (afterClass.shop?.owned ?? []).join('|') === ownedBeforeClass &&
+      has('Мой путь · 1 класс'),
+    `class=${afterClass.activeClass}; xp=${xpBeforeClass}→${afterClass.xp}; gems=${gemsBeforeClass}→${afterClass.gems}`,
   );
 
   // ── Настройка размера урока в разделе «Родителям» ─────────────────────────
@@ -1471,6 +1508,95 @@ async function main() {
 
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();
+
+  // ── Абсолютно всё открыто при старте и продаётся/выкупается ──────────
+  const activeProfile = () => useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId)!;
+  setEndlessGemsForTests(false);
+  useApp.getState().unlockAll();
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: ENDLESS_GEMS } : p)),
+  }));
+  await sleep(30);
+  const allOwnedProfile = activeProfile();
+  check(
+    'при старте открыт весь единый каталог, включая краски, темы и наборы',
+    CATALOG.every((entry) => ownsCatalog(allOwnedProfile, entry)),
+    `${CATALOG.filter((entry) => !ownsCatalog(allOwnedProfile, entry)).length} закрыто`,
+  );
+
+  const shopTabForSale = buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab'));
+  if (shopTabForSale) click(shopTabForSale);
+  await sleep(60);
+  const sellTab = Array.from(document.querySelectorAll('.shop-seg button'))
+    .find((b) => (b.textContent ?? '').includes('Продать')) as HTMLButtonElement | undefined;
+  if (sellTab) click(sellTab);
+  await sleep(40);
+  check('в магазине есть раздел продажи всего каталога', !!document.querySelector('.catalog-sell'), body().slice(0, 200));
+  check('у товара есть кнопка продажи с пространством имён', !!document.querySelector('[data-sell="item:cap"]'), '');
+  click(document.querySelector('[data-sell="item:cap"]') as HTMLButtonElement);
+  await sleep(30);
+  check('продажа спрашивает подтверждение', has('Сдать «Кепка» обратно?'), body().slice(0, 200));
+  const confirmSellBtn = document.querySelector('.dialog .btn.primary') as HTMLButtonElement | null;
+  if (confirmSellBtn) click(confirmSellBtn);
+  await sleep(40);
+  check('после продажи появляется выкуп', !!document.querySelector('[data-buy-back="item:cap"]'), body().slice(0, 240));
+  click(document.querySelector('[data-buy-back="item:cap"]') as HTMLButtonElement);
+  await sleep(40);
+  check('выкуп возвращает товар в коллекцию', ownsCatalog(activeProfile(), catalogEntry('item:cap')!), '');
+
+  const sampleKeys = [
+    'item:scarf',
+    'building:atomic-base',
+    'crystalCostume:atomic-suit',
+    'puzzleCostume:dark-lord',
+    'track:carefree',
+    'sound:classic',
+    'tint:grad:base',
+    'tint:grad:blue',
+    'chestSkin:travel',
+    'theme:classic',
+    'baseSet:atomic-set',
+  ];
+  for (const key of sampleKeys) {
+    const entry = catalogEntry(key)!;
+    const before = activeProfile();
+    const refund = refundOf(entry, before);
+    const gemsBefore = before.gems;
+    const sold = useApp.getState().sellItem(key);
+    await sleep(10);
+    const after = activeProfile();
+    check(
+      `продаётся ${key}`,
+      sold && !ownsCatalog(after, entry) && after.gems === gemsBefore + refund,
+      `sold=${sold}, gems=${gemsBefore}→${after.gems}, refund=${refund}`,
+    );
+    const bought = useApp.getState().buyCatalogItem(key);
+    await sleep(10);
+    check(
+      `выкупается ${key}`,
+      bought && ownsCatalog(activeProfile(), entry),
+      '',
+    );
+  }
+
+  const totalRefund = useApp.getState().sellAll();
+  await sleep(30);
+  const afterSellAll = activeProfile();
+  check(
+    'массовая продажа опустошает весь каталог',
+    totalRefund > 0 && CATALOG.every((entry) => !ownsCatalog(afterSellAll, entry)),
+    `${CATALOG.filter((entry) => ownsCatalog(afterSellAll, entry)).length} осталось`,
+  );
+  useApp.getState().unlockAll();
+  await sleep(30);
+  check(
+    'повторное открытие возвращает абсолютно всё',
+    CATALOG.every((entry) => ownsCatalog(activeProfile(), entry)),
+    '',
+  );
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: ENDLESS_GEMS } : p)),
+  }));
 
   // ── Бесконечные алмазы: включено восполнение, запас не падает ниже ENDLESS_GEMS ──
   setEndlessGemsForTests(true);

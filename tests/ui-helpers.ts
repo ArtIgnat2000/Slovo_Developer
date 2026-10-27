@@ -15,14 +15,19 @@ export const btn = (pred: (b: HTMLButtonElement) => boolean) => buttons().find(p
 export const btnText = (t: string) => btn((b) => (b.textContent ?? '').includes(t));
 export const has = (t: string) => body().includes(t);
 
+/** Меню ☰ на главной (0.33.0 slovo2): один вход ко всем вторичным делам. */
+export async function openHomeMenu(): Promise<void> {
+  if (document.querySelector('.home-menu')) return;
+  click(document.querySelector('[data-menu-trigger]'));
+  await sleep(60);
+}
+
 /** Лист наград на главной: квесты, сундук, неделя. Идемпотентно, если уже открыт. */
 export async function openRewardsSheet(): Promise<void> {
   if (document.querySelector('.rewards-sheet')) return;
-  const tab = buttons().find((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
-  if (tab) {
-    click(tab);
-    await sleep(60);
-  }
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="rewards"]'));
+  await sleep(60);
 }
 
 let failures = 0;

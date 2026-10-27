@@ -7402,3 +7402,118 @@ p {
   .shop-boutique .building-item .shop-icon { height: 84px; }
   .building-card-art { height: 84px; }
 }
+
+/* ── Единая продажа каталога (0.31.x) ─────────────────────────────────────
+   Третья вкладка магазина и кнопки продажи/выкупа на карточках. */
+.shop-seg-3 button {
+  min-width: 0;
+  padding-inline: 4px;
+  font-size: clamp(11px, 3.2vw, var(--fs-sm));
+}
+.shop-sell-btn {
+  margin-top: 6px;
+  color: var(--ink-2);
+}
+.catalog-sell-hero {
+  display: grid;
+  gap: 8px;
+}
+.catalog-sell-hero h2 {
+  font-size: var(--fs-lg);
+}
+.catalog-sell-hero .row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.catalog-sell-hero .row .btn {
+  min-width: 160px;
+}
+.catalog-sell-group {
+  margin: 10px 0;
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  overflow: hidden;
+}
+.catalog-sell-group > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.catalog-sell-group > summary::-webkit-details-marker {
+  display: none;
+}
+.catalog-sell-group > summary::after {
+  content: '⌄';
+  color: var(--ink-2);
+}
+.catalog-sell-group[open] > summary::after {
+  content: '⌃';
+}
+.catalog-sell-list {
+  display: grid;
+  gap: 1px;
+  border-top: 1px solid var(--line);
+  background: var(--line);
+}
+.catalog-sell-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--card);
+}
+.catalog-sell-row.sold {
+  opacity: 0.72;
+}
+.catalog-sell-row > .grow {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.catalog-sell-row b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.catalog-sell-row .btn {
+  flex: 0 0 auto;
+}
+.tint-cell {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+.tint-sell {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+.skin-card-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.skin-card-shell .skin-card {
+  width: 100%;
+}
+.skin-sell-btn {
+  font-size: var(--fs-xs, 12px);
+}

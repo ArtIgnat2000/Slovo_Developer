@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useApp } from '../../state/store';
+import { AVAILABLE_CLASSES, CLASS_META, WORDS_BY_GRADE, availableClass } from '../../content/words';
 import { ConfirmDialog } from '../Bits';
 import { ShareApp } from '../ShareApp';
+import type { ClassId } from '../../types';
 
 const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐸', '🦄', '🐨', '🐯', '🐙', '🦖'];
 
@@ -11,17 +13,21 @@ const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐸', '🦄', '🐨', '🐯',
  *   только из раздела «Родителям». Именно так ребёнок терял весь прогресс.
  */
 export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => void; manage?: boolean }) {
-  const { profiles, activeId, createProfile, selectProfile, deleteProfile, renameProfile } = useApp();
+  const { profiles, activeId, createProfile, selectProfile, deleteProfile, renameProfile, setProfileClass } = useApp();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(AVATARS[0]);
+  // В Slovo_Developer 2 класс остаётся значением по умолчанию, чтобы
+  // существующий путь создания профиля не ломался; выбор доступен сразу.
+  const [classId, setClassId] = useState<ClassId>(2);
   const [editing, setEditing] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const create = () => {
     const n = name.trim();
     if (!n) return;
-    createProfile(n, avatar);
+    createProfile(n, avatar, classId);
     setName('');
+    setClassId(2);
     onClose?.();
   };
 
@@ -38,10 +44,22 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
                 {p.avatar}
               </span>
               <b style={{ marginLeft: 8 }}>{p.name}</b>
-              {p.id === activeId && <span className="tiny" style={{ marginLeft: 8 }}>· выбран</span>}
+              <span className="tiny" style={{ marginLeft: 8 }}>
+                · {availableClass(p.activeClass ?? 2)} класс
+                {p.id === activeId ? ' · выбран' : ''}
+              </span>
             </button>
             <span className="row">
-              <button className="chip" onClick={() => { setEditing(p.id); setName(p.name); setAvatar(p.avatar); }}>
+              <button
+                className="chip"
+                aria-label={`Изменить профиль ${p.name}: имя, аватар, класс`}
+                onClick={() => {
+                  setEditing(p.id);
+                  setName(p.name);
+                  setAvatar(p.avatar);
+                  setClassId(availableClass(p.activeClass ?? 2));
+                }}
+              >
                 ✏️
               </button>
               {manage && (
@@ -74,6 +92,27 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
             </button>
           ))}
         </div>
+        {AVAILABLE_CLASSES.length > 1 && (
+          <div className="mb">
+            <div className="setting-title mb">Какой класс?</div>
+            <div className="class-form-row">
+              {AVAILABLE_CLASSES.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  className={`class-form-btn ${classId === g ? 'on' : ''}`}
+                  aria-pressed={classId === g}
+                  onClick={() => setClassId(g)}
+                >
+                  <span aria-hidden="true">{CLASS_META[g].emoji}</span>
+                  <span>{CLASS_META[g].title}</span>
+                  <span className="tiny">{WORDS_BY_GRADE[g].length} слов</span>
+                </button>
+              ))}
+            </div>
+            {editing && <p className="setting-hint">Прогресс, кристаллы и покупки сохранятся.</p>}
+          </div>
+        )}
         {editing ? (
           <div className="row">
             <button
@@ -81,13 +120,15 @@ export function ProfilesScreen({ onClose, manage = false }: { onClose?: () => vo
               onClick={() => {
                 if (!name.trim()) return;
                 renameProfile(editing, name.trim(), avatar);
+                setProfileClass(editing, classId);
                 setEditing(null);
                 setName('');
+                setClassId(2);
               }}
             >
               Сохранить
             </button>
-            <button className="btn ghost" onClick={() => { setEditing(null); setName(''); }}>
+            <button className="btn ghost" onClick={() => { setEditing(null); setName(''); setClassId(2); }}>
               Отмена
             </button>
           </div>

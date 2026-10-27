@@ -16,6 +16,8 @@
  * касается: они синтезируются на месте и остаются как были.
  */
 
+import { catalogKey, isSold, normalizeSold } from './sold';
+
 /** Полка витрины: спокойный фон занятий или весёлая коллекция/награды. */
 export type MusicShelf = 'calm' | 'fun';
 
@@ -228,14 +230,19 @@ export interface MusicShopSelection {
  *
  * Функция чистая и идемпотентна: её можно звать на каждом чтении профиля.
  */
-export function migrateMusicShop(raw: { musicOwned?: unknown; musicTrack?: unknown } | null | undefined): MusicShopSelection {
+export function migrateMusicShop(
+  raw: { musicOwned?: unknown; musicTrack?: unknown } | null | undefined,
+  soldKeys: unknown = [],
+): MusicShopSelection {
   const listed = Array.isArray(raw?.musicOwned)
     ? raw.musicOwned.filter((id): id is string => typeof id === 'string')
     : null;
+  const sold = { sold: normalizeSold(soldKeys) };
 
   const owned: string[] = [];
   const push = (id: string) => {
-    if (MUSIC_BY_ID[id] && !owned.includes(id)) owned.push(id);
+    // Проданная мелодия не возвращается бесплатным стартовым набором.
+    if (MUSIC_BY_ID[id] && !owned.includes(id) && !isSold(sold, catalogKey('track', id))) owned.push(id);
   };
 
   // Старые id в порядке СПИСКА профиля: ребёнок получает столько же новых,
@@ -265,6 +272,7 @@ export function migrateMusicShop(raw: { musicOwned?: unknown; musicTrack?: unkno
   let track: string | null;
   const picked = raw?.musicTrack;
   if (picked === null) track = null;
+  else if (typeof picked === 'string' && isSold(sold, catalogKey('track', picked))) track = null;
   else if (typeof picked === 'string' && MUSIC_BY_ID[picked] && owned.includes(picked)) track = picked;
   else if (typeof picked === 'string' && successorOf.has(picked)) track = successorOf.get(picked) ?? null;
   else if (picked === undefined) track = owned[0] ?? null;

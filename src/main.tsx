@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/app.css';
+import './styles/upstream-0.68.0.css';
 import { useApp } from './state/store';
 import { initPWA } from './platform/pwa';
 import { checkPersistence } from './platform/storage';

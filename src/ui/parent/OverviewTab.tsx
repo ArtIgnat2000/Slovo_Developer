@@ -5,7 +5,8 @@
 // Никаких настроек здесь нет: настройки — это решения, а не отчёт.
 
 import { ACHIEVEMENTS } from '../../engine/rewards';
-import { LESSON_BY_ID, WORDS, WORD_BY_ID } from '../../content/words';
+import { CLASS_META, LESSON_BY_ID, WORDS, WORDS_BY_GRADE, WORD_BY_ID, availableClass } from '../../content/words';
+import { classProgress } from '../../engine/classes';
 import { lastDays } from '../../engine/day';
 import { dayKey, masteredCount, todayStat } from '../../state/store';
 import { activeStudyDays } from '../../engine/weekly-rewards';
@@ -86,6 +87,10 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
   const todayErrorWords = Object.entries(today.errorWords ?? {}).sort((a, b) => b[1] - a[1]);
   const todayAnswered = today.correct + today.wrong;
   const todayAccuracy = todayAnswered >= 5 ? Math.round((today.correct / todayAnswered) * 100) : null;
+  const grade = availableClass(profile.activeClass ?? 2);
+  const gradeInfo = classProgress(profile, grade);
+  const gradeWords = WORDS_BY_GRADE[grade];
+  const masteredInGrade = gradeWords.filter((w) => (profile.words[w.id]?.s ?? 0) >= 90).length;
   const mastered = masteredCount(profile);
   const totalOk = Object.values(profile.words).reduce((sum, w) => sum + w.ok, 0);
   const totalWrong = Object.values(profile.words).reduce((sum, w) => sum + w.wrong, 0);
@@ -108,6 +113,17 @@ export function OverviewTab({ profile, onOpenWords, onOpenSection }: Props) {
 
   return (
     <div className="parent-stack">
+      {/* Программа активного класса: родитель видит, что именно учит ребёнок. */}
+      <div className="card">
+        <GroupTitle title="Программа" hint={`${CLASS_META[grade].title} · ${gradeInfo.words} слов`} />
+        <div className="kv"><span>Освоено слов</span><b>{masteredInGrade} из {gradeInfo.words}</b></div>
+        <div className="kv"><span>Уроков пройдено</span><b>{gradeInfo.lessonsDone} из {gradeInfo.lessons}</b></div>
+        <div className="kv"><span>Точность по программе</span><b>{gradeInfo.pct}%</b></div>
+        <p className="setting-hint">
+          Класс меняется в «Настройках»: опыт, кристаллы и покупки при этом сохраняются.
+        </p>
+      </div>
+
       {/* Сегодня — время, фактически записанные действия и результат именно за этот день. */}
       <div className="card">
         <GroupTitle title="Сегодня" hint={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} />

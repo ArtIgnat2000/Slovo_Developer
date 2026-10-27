@@ -25,6 +25,9 @@ import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } 
 
 type Tab = 'home' | 'words' | 'shop' | 'world' | 'parent';
 
+/** Точка входа в БУК из меню ☰: витрина/покупки и, при желании, ангар. */
+type ShopEntry = { view: 'vitrina' | 'wardrobe'; hangar?: boolean };
+
 function diagnosticsRequested(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
 }
@@ -72,6 +75,9 @@ export default function App() {
   // «Ангар БУКа» (0.22.0): сцена коллекции техники. Вход — значок 🚗 в шапке
   // главной; ещё два входа живут во вкладке БУК (гардероб и полка «Техника»).
   const [hangarOpen, setHangarOpen] = useState(false);
+  // Меню ☰ может сразу открыть «Мои покупки»; нижняя вкладка БУК всегда
+  // возвращает витрину — для этого ShopScreen получает key от точки входа.
+  const [shopEntry, setShopEntry] = useState<ShopEntry>({ view: 'vitrina', hangar: false });
   /**
    * Подсказка «добавь на экран». Читаем флаг один раз при старте и держим в состоянии:
    * раньше `markInstallHintShown()` писал в localStorage, но React об этом не знал —
@@ -230,11 +236,19 @@ export default function App() {
 
   const switchTab = (next: Tab) => {
     setProfilesOpen(false);
+    if (next === 'shop') setShopEntry({ view: 'vitrina', hangar: false });
     if (next !== 'parent') {
       setParentUnlocked(false);
       setParentReturnTab('overview');
     }
     setTab(next);
+  };
+
+  const openShopEntry = (view: ShopEntry['view'], hangar = false) => {
+    setProfilesOpen(false);
+    setParentUnlocked(false);
+    setShopEntry({ view, hangar });
+    setTab('shop');
   };
 
   if (lessonId) {
@@ -273,11 +287,16 @@ export default function App() {
           onOpenProfiles={() => setProfilesOpen(true)}
           onStartReview={() => startLesson('review')}
           onOpenHangar={() => setHangarOpen(true)}
+          onOpenShop={openShopEntry}
         />
       ) : tab === 'words' ? (
         <WordsScreen />
       ) : tab === 'shop' ? (
-        <ShopScreen />
+        <ShopScreen
+          key={`${shopEntry.view}-${shopEntry.hangar}`}
+          initialView={shopEntry.view}
+          initialHangar={shopEntry.hangar}
+        />
       ) : tab === 'world' ? (
         <WorldScreen />
       ) : (

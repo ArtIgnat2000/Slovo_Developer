@@ -25,6 +25,7 @@
 
 import type { Profile } from '../types';
 import { mastered } from './srs';
+import { catalogKey, isSold } from './sold';
 
 export type ChestSkinId = 'travel' | 'sky' | 'ice' | 'star';
 
@@ -142,7 +143,9 @@ function recorded(p: Profile): Set<string> {
 }
 
 /** Открыт ли облик: условие выполнено сейчас ИЛИ он открыт раньше (не отбираем). */
-function isUnlocked(skin: ChestSkin, done: number, have: Set<string>): boolean {
+function isUnlocked(skin: ChestSkin, done: number, have: Set<string>, p: Profile): boolean {
+  // Проданный облик не должен открыться заново одним лишь старым достижением.
+  if (isSold(p, catalogKey('chestSkin', skin.id))) return false;
   return skin.need === 0 || done >= skin.need || have.has(skin.id);
 }
 
@@ -154,7 +157,7 @@ function isUnlocked(skin: ChestSkin, done: number, have: Set<string>): boolean {
 export function skinState(skin: ChestSkin, p: Profile): ChestSkinState {
   const have = recorded(p);
   const done = skin.need === 0 ? skin.need : Math.max(0, Math.floor(skin.progress(p)));
-  const unlocked = isUnlocked(skin, done, have);
+  const unlocked = isUnlocked(skin, done, have, p);
   const fresh = unlocked && !have.has(skin.id);
   return {
     skin,

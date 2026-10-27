@@ -1,0 +1,382 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Перенесено из ArtIgnat2000/slovo2 main (v0.68.0): классы 1–4, «вау-алмаз»
+   и меню ☰. Лежит отдельным слоем после app.css, чтобы не перетирать
+   кастомные стили Slovo_Developer («Мой мир», техника, здания, самолёты).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── UI-иконки (0.55.0 → 0.68.0) ────────────────────────────────────────── */
+.ico {
+  flex: 0 0 auto;
+  vertical-align: -0.15em;
+  display: inline-block;
+  overflow: visible;
+}
+.btn .ico,
+.chip .ico {
+  vertical-align: -0.2em;
+}
+
+/* Мерцание искры «вау-алмаза». «Меньше движения» полностью его выключает. */
+.ico .ic-spark {
+  animation: icSpark 2.8s ease-in-out infinite;
+}
+.ico .ic-spark-2 {
+  animation-delay: 1.4s;
+}
+@keyframes icSpark {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ico .ic-spark {
+    animation: none;
+  }
+}
+
+/* Кристалл и число одной группой: `[◆] 128`. */
+.gem-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.gem-amount > span {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.topbar-stat.gems .gem-amount {
+  gap: 0.22em;
+}
+@media (max-width: 359px) {
+  .topbar-stat.gems .ico {
+    width: 22px;
+    height: 22px;
+  }
+}
+.gem-amount .ico {
+  vertical-align: 0;
+}
+.stat-pill.gems .gem-amount {
+  align-items: center;
+}
+
+/* ── Шапка: один счётчик и ☰ (0.33.0) ───────────────────────────────────── */
+.topbar {
+  gap: 10px;
+}
+.profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--r-pill);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-btn .avatar {
+  flex: none;
+}
+.profile-btn:active .avatar {
+  transform: scale(0.96);
+}
+.topbar .grow {
+  min-width: 0;
+}
+.topbar-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.topbar-stat {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.topbar-stat.gems {
+  font-size: 20px;
+}
+@media (max-width: 359px) {
+  .topbar {
+    gap: 8px;
+  }
+  .topbar-name {
+    font-size: 16px;
+  }
+  .topbar-stat {
+    font-size: 14px;
+    gap: 3px;
+  }
+  .topbar-stat.gems {
+    font-size: 18px;
+  }
+}
+.menu-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+}
+.menu-btn[aria-expanded='true'] {
+  border-color: var(--primary-ink);
+}
+
+/* ── Меню ☰ на главной ───────────────────────────────────────────────────── */
+.home-menu {
+  display: grid;
+  gap: 12px;
+}
+.menu-status {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+}
+.menu-status-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.menu-status-emoji {
+  flex: none;
+  font-size: 20px;
+  line-height: 1.2;
+}
+.menu-status-title {
+  font-weight: 800;
+}
+.menu-list {
+  display: grid;
+  gap: 8px;
+}
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-row:active {
+  transform: scale(0.99);
+}
+.menu-row-emoji {
+  flex: none;
+  width: 32px;
+  font-size: 24px;
+  line-height: 1;
+  text-align: center;
+}
+.menu-row-title {
+  display: block;
+  font-weight: 800;
+}
+.menu-count {
+  flex: none;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--orange);
+  color: #2b1a00;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.menu-row-arrow {
+  flex: none;
+  color: var(--ink-3);
+  font-size: 22px;
+  line-height: 1;
+}
+.menu-sep {
+  height: 2px;
+  margin: 4px 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.menu-version {
+  margin: 2px 0 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.rewards-backdrop {
+  justify-content: flex-end;
+  padding: 0;
+}
+.rewards-sheet,
+.home-menu {
+  width: 100%;
+  max-width: var(--screen-max);
+  max-height: min(88dvh, 740px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 16px 16px calc(20px + var(--safe-b));
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Лист «Какой класс учим?» ─────────────────────────────────────────────── */
+.class-backdrop {
+  justify-content: flex-end;
+  padding: 0;
+}
+.class-sheet {
+  width: 100%;
+  max-width: var(--screen-max);
+  max-height: min(88dvh, 740px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 16px 16px calc(20px + var(--safe-b));
+  box-shadow: var(--shadow-lg);
+}
+.class-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.class-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.class-card.on {
+  border-color: var(--primary-ink);
+  background: var(--primary-soft);
+}
+.class-card:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.class-card-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+.class-card-title {
+  display: block;
+  font-weight: 800;
+}
+.class-card-check {
+  color: var(--primary-ink);
+}
+.class-card-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.class-card.done {
+  border-color: var(--green);
+}
+.class-card.done .class-card-meta {
+  color: var(--green);
+}
+.class-sheet-next {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 2px solid var(--green);
+  border-radius: var(--r-md);
+  background: var(--green-soft);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+/* Выбор класса при создании/редактировании ученика. */
+.class-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+}
+.class-form-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px 6px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.class-form-btn.on {
+  border-color: var(--primary-ink);
+  background: var(--primary-soft);
+}
+.class-form-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}

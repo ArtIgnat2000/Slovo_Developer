@@ -5,10 +5,13 @@ export function BackgroundThemeCard({
   theme,
   selected,
   onSelect,
+  sell,
 }: {
   theme: ThemeStyleOption;
   selected: boolean;
   onSelect: () => void;
+  /** Продажа фона: подпись уже содержит сумму возврата. */
+  sell?: { label: string; onClick: () => void; dataKey: string };
 }) {
   const previewStyle = {
     '--preview-light': theme.preview.light,
@@ -42,6 +45,16 @@ export function BackgroundThemeCard({
       >
         {selected ? 'Выбрана ✓' : 'Применить'}
       </button>
+      {sell && (
+        <button
+          type="button"
+          className="btn sm wide ghost mt"
+          data-sell={sell.dataKey}
+          onClick={sell.onClick}
+        >
+          {sell.label}
+        </button>
+      )}
     </article>
   );
 }

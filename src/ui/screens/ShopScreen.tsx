@@ -54,6 +54,18 @@ import { BackgroundThemeCard } from '../BackgroundThemeCard';
 import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
 import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
 import { BuildingArt } from '../BuildingArt';
+import { Gem } from '../Icon';
+import {
+  CATALOG,
+  CATALOG_GROUPS,
+  catalogEntry,
+  ownsCatalog,
+  priceOf,
+  refundOf,
+  tintKey,
+  type CatalogEntry,
+} from '../../engine/catalog';
+import { catalogKey } from '../../engine/sold';
 
 /**
  * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
@@ -93,7 +105,7 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 ];
 
 /** Верхние уровни магазина: «чего хочу» и «что моё». */
-type View = 'vitrina' | 'wardrobe';
+type View = 'vitrina' | 'wardrobe' | 'sell';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
 type Cat = 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
@@ -152,6 +164,8 @@ function ShopCard(props: {
   actionLabel: string;
   actionTone: 'primary' | 'green' | 'ghost';
   actionDisabled?: boolean;
+  /** Дополнительная кнопка продажи owned-товара; видна только в витрине. */
+  sell?: { key: string; label: string; onClick: () => void };
   wished?: boolean;
   onWish?: () => void;
   onOpen: () => void;
@@ -192,6 +206,19 @@ function ShopCard(props: {
       >
         {props.actionLabel}
       </button>
+      {props.sell && (
+        <button
+          type="button"
+          className="btn sm wide ghost shop-sell-btn"
+          data-sell={props.sell.key}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.sell!.onClick();
+          }}
+        >
+          {props.sell.label}
+        </button>
+      )}
       {props.onWish && (
         <button
           type="button"
@@ -250,7 +277,14 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
   );
 }
 
-export function ShopScreen() {
+export function ShopScreen({
+  initialView = 'vitrina',
+  initialHangar = false,
+}: {
+  /** Меню ☰ может открыть сразу «Мои покупки» или сцену ангара. */
+  initialView?: View;
+  initialHangar?: boolean;
+} = {}) {
   const profile = useActiveProfile();
   const look = useLook();
   const buyItem = useApp((s) => s.buyItem);
@@ -259,6 +293,9 @@ export function ShopScreen() {
   const buyBaseSet = useApp((s) => s.buyBaseSet);
   const chooseBuilding = useApp((s) => s.chooseBuilding);
   const sellItem = useApp((s) => s.sellItem);
+  const sellAll = useApp((s) => s.sellAll);
+  const unlockAll = useApp((s) => s.unlockAll);
+  const buyCatalogItem = useApp((s) => s.buyCatalogItem);
   const toggleEquip = useApp((s) => s.toggleEquip);
   const choosePuzzleCostume = useApp((s) => s.choosePuzzleCostume);
   const toggleCostume = useApp((s) => s.toggleCostume);
@@ -271,7 +308,7 @@ export function ShopScreen() {
   const toggleWishlist = useApp((s) => s.toggleWishlist);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
-  const [view, setView] = useState<View>('vitrina');
+  const [view, setView] = useState<View>(initialView);
   const [cat, setCat] = useState<Cat>('outfits');
   const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   // Подробная карточка и её палитра (палитра — только в sheet)
@@ -281,7 +318,8 @@ export function ShopScreen() {
   const [askBuilding, setAskBuilding] = useState<BuildingItem | null>(null);
   const [askCrystalCostume, setAskCrystalCostume] = useState<Costume | null>(null);
   const [askBaseSet, setAskBaseSet] = useState<BaseSet | null>(null);
-  const [askSell, setAskSell] = useState<ShopItem | null>(null);
+  const [askSell, setAskSell] = useState<CatalogEntry | null>(null);
+  const [askSellAll, setAskSellAll] = useState(false);
   const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
   const [askSound, setAskSound] = useState<SoundPack | null>(null);
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
@@ -289,7 +327,7 @@ export function ShopScreen() {
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
   // «Ангар БУКа» (0.22.0): сцена коллекции техники, открывается из гардероба
   // и с полки «Техника» (ещё один вход — значок 🚗 в шапке главной, App.tsx).
-  const [hangarOpen, setHangarOpen] = useState(false);
+  const [hangarOpen, setHangarOpen] = useState(initialHangar);
 
   /** Sheet закрывается по фону, по Escape и — если играла примерка —
    *  возвратом к выбранной мелодии (примерка не остаётся «висеть»). */
@@ -343,6 +381,66 @@ export function ShopScreen() {
   const buildingsOwned = profile.shop?.buildingsOwned ?? [];
   const activeBuilding = profile.shop?.activeBuilding ?? null;
   const selectedBuilding = activeBuilding ? BUILDING_BY_ID[activeBuilding] ?? null : null;
+
+  // ── Единая продажа всего каталога ──────────────────────────────────────
+  const entryOf = (key: string) => catalogEntry(key);
+  const requestSell = (entry: CatalogEntry) => {
+    sfx.tap();
+    setAskSell(entry);
+  };
+  const saleLabel = (entry: CatalogEntry, prefix = 'Продать') =>
+    `${prefix} · +${refundOf(entry, profile)} 💎`;
+  /** Кнопка продажи для карточки витрины — только если товар сейчас есть. */
+  const cardSale = (key: string, owned: boolean, label?: string) => {
+    const entry = entryOf(key);
+    if (!entry || !owned || !ownsCatalog(profile, entry)) return undefined;
+    return {
+      key: entry.key,
+      label: label ?? saleLabel(entry),
+      onClick: () => requestSell(entry),
+    };
+  };
+  /** Та же кнопка внутри подробной карточки. */
+  const sellInline = (entry: CatalogEntry | null, label?: string) => {
+    if (!entry || !ownsCatalog(profile, entry)) return null;
+    return (
+      <button
+        type="button"
+        className="btn lg wide ghost mb"
+        data-sell={entry.key}
+        onClick={() => requestSell(entry)}
+      >
+        {label ?? saleLabel(entry)}
+      </button>
+    );
+  };
+  const buyBack = (entry: CatalogEntry) => {
+    const price = priceOf(entry, profile);
+    const ok = buyCatalogItem(entry.key);
+    sfx.tap();
+    if (ok) {
+      showToast({ emoji: entry.emoji, title: `«${entry.title}» снова твоё!`, text: `Выкуп за ${price} 💎` });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, price - gems)} 💎` });
+    }
+  };
+  const tintSale = (targetId: string) => (tintId: string) => {
+    const entry = entryOf(tintKey(targetId, tintId));
+    return entry && ownsCatalog(profile, entry)
+      ? { key: entry.key, label: saleLabel(entry) }
+      : null;
+  };
+  const requestTintSale = (targetId: string, tintId: string) => {
+    const entry = entryOf(tintKey(targetId, tintId));
+    if (entry) requestSell(entry);
+  };
+  const sellableEntries = CATALOG.filter(
+    (entry) => entry.kind !== 'baseSet' && ownsCatalog(profile, entry),
+  );
+  const totalSellRefund = sellableEntries.reduce(
+    (sum, entry) => sum + refundOf(entry, profile),
+    0,
+  );
 
   const tapWish = (id: string, title: string) => {
     sfx.tap();
@@ -508,18 +606,30 @@ export function ShopScreen() {
 
   const confirmSell = () => {
     if (!askSell) return;
-    const item = askSell;
-    const refund = sellPrice(item);
-    const ok = sellItem(item.id);
+    const entry = askSell;
+    const refund = refundOf(entry, profile);
+    const ok = sellItem(entry.key);
     setAskSell(null);
     if (ok) {
       sfx.tap();
+      if (entry.kind === 'track' && profile.shop?.musicTrack === entry.id) playMusic(null);
       showToast({
-        emoji: item.emoji ?? '🎩',
-        title: `+${refund} 💎 · «${item.title}» сдана`,
-        text: 'Часть стоимости вернулась; купить заново — за полную цену',
+        emoji: entry.emoji,
+        title: `+${refund} 💎 · «${entry.title}» продано`,
+        text: 'Часть стоимости вернулась; выкупить можно в разделе «Продать»',
       });
     }
+  };
+
+  const confirmSellAll = () => {
+    const refund = sellAll();
+    setAskSellAll(false);
+    sfx.reward();
+    showToast({
+      emoji: '💰',
+      title: `Продано всё · +${refund} 💎`,
+      text: 'Любой товар можно выкупить обратно в этом же разделе',
+    });
   };
 
   const tapWear = (item: ShopItem) => {
@@ -627,6 +737,7 @@ export function ShopScreen() {
         }
         actionTone={owned_ ? (wearing ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
         actionDisabled={!owned_ && !affordable}
+        sell={cardSale(catalogKey('item', item.id), owned_)}
         onOpen={() => openSheet({ kind: 'item', item })}
         onAction={() => {
           if (owned_) tapWear(item);
@@ -664,6 +775,7 @@ export function ShopScreen() {
         actionLabel={owned_ ? (wearing ? 'Снять' : 'Надеть') : gems >= price ? `Купить · 💎${price}` : `Ещё ${price - gems} 💎`}
         actionTone={owned_ ? (wearing ? 'green' : 'ghost') : gems >= price ? 'primary' : 'ghost'}
         actionDisabled={!owned_ && gems < price}
+        sell={cardSale(catalogKey('crystalCostume', c.id), owned_)}
         onOpen={() => owned_ ? tapCostume(c.id) : setAskCrystalCostume(c)}
         onAction={() => {
           if (owned_) tapCostume(c.id);
@@ -713,6 +825,7 @@ export function ShopScreen() {
         actionLabel={complete ? 'Уже всё твоё ✓' : gems >= price ? `Купить набор · 💎${price}` : `Ещё ${price - gems} 💎`}
         actionTone={complete ? 'green' : gems >= price ? 'primary' : 'ghost'}
         actionDisabled={complete || gems < price}
+        sell={cardSale(catalogKey('baseSet', setInfo.id), complete, `Продать набор · +${refundOf(entryOf(catalogKey('baseSet', setInfo.id))!, profile)} 💎`)}
         onOpen={() => openSheet({ kind: 'baseSet', set: setInfo })}
         onAction={() => !complete && setAskBaseSet(setInfo)}
       />
@@ -745,6 +858,7 @@ export function ShopScreen() {
         }
         actionTone={selected ? 'green' : owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
         actionDisabled={selected || (!owned_ && !affordable)}
+        sell={cardSale(catalogKey('building', building.id), owned_)}
         onOpen={() => openSheet({ kind: 'building', building })}
         onAction={() => {
           if (owned_) {
@@ -812,6 +926,7 @@ export function ShopScreen() {
                 : 'Собирать'
         }
         actionTone={done ? (wearing ? 'green' : 'ghost') : isCurrent ? 'primary' : 'ghost'}
+        sell={cardSale(catalogKey('puzzleCostume', c.id), done)}
         onOpen={() => openSheet({ kind: 'costume', costume: c })}
         onAction={() => {
           if (done) tapCostume(c.id);
@@ -856,6 +971,7 @@ export function ShopScreen() {
         }
         actionTone={ownedTrack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
         actionDisabled={!ownedTrack && !affordable}
+        sell={cardSale(catalogKey('track', track.id), ownedTrack)}
         onOpen={() => openSheet({ kind: 'track', track })}
         onAction={() => {
           if (ownedTrack) {
@@ -934,6 +1050,7 @@ export function ShopScreen() {
         }
         actionTone={ownedPack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
         actionDisabled={!ownedPack && !affordable}
+        sell={cardSale(catalogKey('sound', pack.id), ownedPack)}
         onOpen={() => openSheet({ kind: 'sound', pack })}
         onAction={() => {
           if (ownedPack) {
@@ -1075,19 +1192,16 @@ export function ShopScreen() {
                   targetId={item.id}
                   title={item.title}
                   tuning={profile.shop?.tuning}
+                  soldKeys={profile.sold ?? []}
                   onPick={(tint, unlocked) => tapTint({ id: item.id, title: item.title }, tint, unlocked)}
+                  sale={tintSale(item.id)}
+                  onSell={(tintId) => requestTintSale(item.id, tintId)}
                 />
               )}
-              <button
-                type="button"
-                className="btn lg wide ghost mb"
-                onClick={() => {
-                  sfx.tap();
-                  setAskSell(item);
-                }}
-              >
-                Сдать обратно · +{sellPrice(item)} 💎
-              </button>
+              {sellInline(
+                entryOf(catalogKey('item', item.id)),
+                `Сдать обратно · +${refundOf(entryOf(catalogKey('item', item.id))!, profile)} 💎`,
+              )}
             </>
           )}
         </>
@@ -1113,7 +1227,7 @@ export function ShopScreen() {
               {selected ? 'Уже стоит на участке' : owned_ ? 'В твоей коллекции' : `У тебя ${gems} 💎`}
             </span>
           </div>
-          <p className="tiny muted mb">Купленное здание останется у тебя. Можно переставлять его на участок и менять на другое.</p>
+          <p className="tiny muted mb">Здание можно переставлять на участок, менять на другое или продать.</p>
           <div className="row mb">
             {owned_ ? (
               <button
@@ -1140,6 +1254,7 @@ export function ShopScreen() {
               </button>
             )}
           </div>
+          {owned_ && sellInline(entryOf(catalogKey('building', building.id)))}
         </>
       );
     }
@@ -1193,11 +1308,16 @@ export function ShopScreen() {
           >
             {complete ? 'Уже всё твоё ✓' : affordable ? `Купить набор · 💎${price}` : `Ещё ${price - gems} 💎`}
           </button>
+          {complete && sellInline(entryOf(catalogKey('baseSet', setInfo.id)), `Продать набор · +${refundOf(entryOf(catalogKey('baseSet', setInfo.id))!, profile)} 💎`)}
         </>
       );
     }
     if (sheet.kind === 'costume') {
       const c = sheet.costume;
+      const isCrystal = CRYSTAL_COSTUMES.some((entry) => entry.id === c.id);
+      const costumeOwned = isCrystal
+        ? (profile.shop?.crystalCostumesOwned ?? []).includes(c.id)
+        : pz.assembled.includes(c.id);
       const done = pz.assembled.includes(c.id);
       const prog = costumeProgress(pz, c.id);
       const wearing = pz.worn === c.id;
@@ -1273,11 +1393,15 @@ export function ShopScreen() {
                   targetId={c.id}
                   title={c.title}
                   tuning={profile.shop?.tuning}
+                  soldKeys={profile.sold ?? []}
                   onPick={(tint, unlocked) => tapTint({ id: c.id, title: c.title }, tint, unlocked)}
+                  sale={tintSale(c.id)}
+                  onSell={(tintId) => requestTintSale(c.id, tintId)}
                 />
               )}
             </>
           )}
+          {costumeOwned && sellInline(entryOf(catalogKey(isCrystal ? 'crystalCostume' : 'puzzleCostume', c.id)))}
         </>
       );
     }
@@ -1329,6 +1453,7 @@ export function ShopScreen() {
               </button>
             )}
           </div>
+          {ownedPack && sellInline(entryOf(catalogKey('sound', pack.id)))}
           <p className="tiny muted">{pack.about}</p>
         </>
       );
@@ -1395,6 +1520,7 @@ export function ShopScreen() {
             {isWished(wishlist, track.id) ? '💜 В мечтах — убрать' : '🤍 В мечты'}
           </button>
         )}
+        {ownedTrack && sellInline(entryOf(catalogKey('track', track.id)))}
         {track.about && <p className="tiny muted">{track.about}</p>}
       </>
     );
@@ -1434,14 +1560,17 @@ export function ShopScreen() {
           <h1 className="grow" style={{ margin: 0 }}>
             Магазин БУКа 🎩
           </h1>
-          <div className="stat-pill gems">💎 {gems}</div>
+          <div className="stat-pill gems"><Gem value={gems} size={22} /></div>
         </div>
-        <div className="shop-seg" role="tablist" aria-label="Витрина или гардероб">
+        <div className="shop-seg shop-seg-3" role="tablist" aria-label="Витрина, гардероб или продажа">
           <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
             🛍️ Витрина
           </button>
           <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
             👕 Гардероб · {owned.length + pz.assembled.length + musicOwned.length + soundOwned.length}
+          </button>
+          <button role="tab" aria-selected={view === 'sell'} className={view === 'sell' ? 'on' : ''} onClick={() => setView('sell')}>
+            💰 Продать
           </button>
         </div>
         {view === 'vitrina' && (
@@ -1869,16 +1998,112 @@ export function ShopScreen() {
           </div>
           <div role="group" aria-label="Выбор оформления приложения">
             <ShowcaseGrid>
-              {THEME_STYLES.map((style) => (
-                <BackgroundThemeCard
-                  key={style.id}
-                  theme={style}
-                  selected={themeStyle === style.id}
-                  onSelect={() => selectThemeStyle(style.id)}
-                />
-              ))}
+              {THEME_STYLES.map((style) => {
+                const entry = entryOf(catalogKey('theme', style.id));
+                if (!entry || !ownsCatalog(profile, entry)) return null;
+                return (
+                  <BackgroundThemeCard
+                    key={style.id}
+                    theme={style}
+                    selected={themeStyle === style.id}
+                    onSelect={() => selectThemeStyle(style.id)}
+                    sell={{
+                      label: saleLabel(entry),
+                      dataKey: entry.key,
+                      onClick: () => requestSell(entry),
+                    }}
+                  />
+                );
+              })}
             </ShowcaseGrid>
           </div>
+        </section>
+      )}
+
+      {view === 'sell' && (
+        <section className="mt catalog-sell" aria-label="Продажа всего каталога">
+          <div className="card mb catalog-sell-hero">
+            <h2 style={{ marginTop: 0 }}>Абсолютно всё можно продать 💰</h2>
+            <p className="tiny muted">
+              Наряды, техника, здания, костюмы, музыка, звуки, цвета, облики сундуков,
+              фоны и наборы. Проданное не пропадает: здесь же его можно выкупить обратно.
+            </p>
+            <div className="row">
+              <button
+                type="button"
+                className="btn primary grow"
+                disabled={sellableEntries.length === 0}
+                onClick={() => setAskSellAll(true)}
+              >
+                Продать всё · +{totalSellRefund} 💎
+              </button>
+              <button
+                type="button"
+                className="btn ghost grow"
+                onClick={() => {
+                  unlockAll();
+                  showToast({ emoji: '✨', title: 'Всё снова открыто', text: 'История продаж очищена, каталог доступен целиком' });
+                }}
+              >
+                Открыть всё заново
+              </button>
+            </div>
+          </div>
+
+          {CATALOG_GROUPS.map((group) => {
+            const entries = CATALOG.filter((entry) => entry.kind === group.kind);
+            const ownedCount = entries.filter((entry) => ownsCatalog(profile, entry)).length;
+            return (
+              <details className="catalog-sell-group" key={group.kind}>
+                <summary>
+                  <span>{group.emoji} {group.title}</span>
+                  <span className="tiny muted">{ownedCount} / {entries.length}</span>
+                </summary>
+                <div className="catalog-sell-list">
+                  {entries.map((entry) => {
+                    const ownedEntry = ownsCatalog(profile, entry);
+                    const refund = refundOf(entry, profile);
+                    const price = priceOf(entry, profile);
+                    return (
+                      <div
+                        className={`catalog-sell-row${ownedEntry ? '' : ' sold'}`}
+                        key={entry.key}
+                        data-catalog-kind={entry.kind}
+                        data-catalog-id={entry.id}
+                      >
+                        <span className="grow">
+                          <b>{entry.emoji} {entry.title}</b>
+                          <span className="tiny muted">
+                            {ownedEntry ? `Вернёт ${refund} 💎` : `Выкуп ${price} 💎`}
+                          </span>
+                        </span>
+                        {ownedEntry ? (
+                          <button
+                            type="button"
+                            className="btn sm ghost"
+                            data-sell={entry.key}
+                            onClick={() => requestSell(entry)}
+                          >
+                            Продать · +{refund} 💎
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn sm primary"
+                            data-buy-back={entry.key}
+                            disabled={gems < price}
+                            onClick={() => buyBack(entry)}
+                          >
+                            Купить обратно · −{price} 💎
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })}
         </section>
       )}
 
@@ -2370,13 +2595,27 @@ export function ShopScreen() {
 
       {askSell && (
         <ConfirmDialog
-          emoji={askSell.emoji ?? '🎩'}
-          title={`Сдать «${askSell.title}» обратно?`}
-          text={`Получишь ${sellPrice(askSell)} 💎 вместо ${askSell.price} — вещи дешевеют после покупки. «${askSell.title}» уйдёт из гардероба навсегда.`}
-          stayLabel={`Сдать · +${sellPrice(askSell)} 💎`}
+          emoji={askSell.emoji}
+          title={askSell.kind === 'item'
+            ? `Сдать «${askSell.title}» обратно?`
+            : `Продать «${askSell.title}»?`}
+          text={`Получишь ${refundOf(askSell, profile)} 💎 вместо ${askSell.price} — товары дешевеют после покупки. Выкупить «${askSell.title}» можно в разделе «Продать».`}
+          stayLabel={`Продать · +${refundOf(askSell, profile)} 💎`}
           leaveLabel="Оставить"
           onStay={confirmSell}
           onLeave={() => setAskSell(null)}
+        />
+      )}
+
+      {askSellAll && (
+        <ConfirmDialog
+          emoji="💰"
+          title="Продать абсолютно всё?"
+          text={`Из коллекции уйдут все товары, а на счёт вернётся ${totalSellRefund} 💎. Любой товар можно выкупить обратно.`}
+          stayLabel={`Продать всё · +${totalSellRefund} 💎`}
+          leaveLabel="Не сейчас"
+          onStay={confirmSellAll}
+          onLeave={() => setAskSellAll(false)}
         />
       )}
 

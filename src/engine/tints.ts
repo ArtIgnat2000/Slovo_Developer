@@ -6,8 +6,9 @@
 //    и три за TINT_PRICE;
 //  • 1 💎 списывается один раз за оттенок, дальше переключение между открытыми
 //    бесплатно; повторный выбор текущего и возврат к базовому стоят 0 💎;
-//  • базовый оттенок в профиле не хранится: нет записи — значит база. Поэтому
-//    старые профили и выгрузки читаются без миграции, а «потерять» базу нельзя.
+//  • базовый оттенок в тюнинге не хранится: нет записи — значит база. Поэтому
+//    старые профили и выгрузки читаются без миграции. Продажа же базового цвета
+//    фиксируется отдельным ключом в `Profile.sold`, а не в tuning.
 //
 // Аксессуары красятся целиком (3 цвета деталей), у костюмов меняется ТОЛЬКО
 // акцент: свечение (визор, глаза, клинок, диадема — всё это в SVG рисуется через
@@ -18,6 +19,7 @@
 
 import type { ShopState, ShopTuning } from '../types';
 import { COSTUMES } from './puzzles';
+import { tintKey } from './sold';
 
 /** Цена открытия одного нового оттенка. */
 export const TINT_PRICE = 1;
@@ -50,7 +52,7 @@ export interface CostumeTint extends TintOption {
 }
 
 export interface TintPalette<T extends TintOption = TintOption> {
-  /** Базовый оттенок — бесплатный и всегда доступный */
+  /** Базовый оттенок — бесплатный; с 0.31.1 его тоже можно продать */
   base: T;
   /** Оттенки, которые открываются за кристаллы (по одному) */
   extra: T[];
@@ -508,14 +510,24 @@ export interface TintChoice {
 }
 
 /** Что показать в палитре: оттенки с ценой и отметкой «выбран». */
-export function tintChoices(tuning: ShopTuning | undefined, targetId: string): TintChoice[] {
+export function tintChoices(
+  tuning: ShopTuning | undefined,
+  targetId: string,
+  soldKeys: string[] = [],
+): TintChoice[] {
   if (!tintPalette(targetId)) return [];
   const open = unlockedTints(tuning, targetId);
   const current = currentTint(tuning, targetId);
-  return tintOptions(targetId).map((tint) => {
-    const unlocked = tint.id === BASE_TINT || open.includes(tint.id);
-    return { tint, unlocked, price: unlocked ? 0 : TINT_PRICE, selected: current?.id === tint.id };
-  });
+  const sold = new Set(soldKeys);
+  return tintOptions(targetId)
+    // Проданный оттенок (включая базовый) исчезает из палитры, но его можно
+    // выкупить в разделе «Продать». Базовый цвет остаётся запасным состоянием
+    // отрисовки, но как товар каталога не предлагается до выкупа.
+    .filter((tint) => !sold.has(tintKey(targetId, tint.id)))
+    .map((tint) => {
+      const unlocked = tint.id === BASE_TINT || open.includes(tint.id);
+      return { tint, unlocked, price: unlocked ? 0 : TINT_PRICE, selected: current?.id === tint.id };
+    });
 }
 
 export type RecolorOutcome = 'switched' | 'opened' | 'nothing' | 'no-gems' | 'not-owned';
