@@ -57,6 +57,10 @@ const ALTERNATES: Record<string, AlternatePhoto> = {
   'pet-cat-scottish': { path: 'products/gallery/pet-cat-scottish-alt.webp', label: 'В профиль — щёки и уши' },
   'pet-poodle': { path: 'products/gallery/pet-poodle-alt.webp', label: 'В профиль — кудри и хвост' },
   'pet-cat-british': { path: 'products/gallery/pet-cat-british-alt.webp', label: 'В профиль — окрас и лапы' },
+  'pet-cat-sphynx': { path: 'products/gallery/pet-cat-sphynx-alt.webp', label: 'В профиль — складки кожи и хвост' },
+  // Предметы: кулич снят сверху в три четверти, чтобы были видны и глазурь,
+  // и рёбра формы, и посыпка.
+  'food-kulich': { path: 'products/gallery/food-kulich-alt.webp', label: 'Сверху — глазурь и посыпка' },
 };
 
 export function isTechTourItem(id: string): boolean {
