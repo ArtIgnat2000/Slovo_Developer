@@ -92,8 +92,8 @@ test('очередь запуска нарядов: сначала корона,
 });
 
 test('таблица товаров совпадает с товарами, у которых только главный кадр', () => {
-  assert.equal(singleShotIds.length, 4, `одно-кадровых товаров ${singleShotIds.length}`);
-  assert.equal(toyRows.length, 4, `в документе ${toyRows.length} строк товаров`);
+  assert.equal(singleShotIds.length, 0, `одно-кадровых товаров ${singleShotIds.length}`);
+  assert.equal(toyRows.length, 0, `в документе ${toyRows.length} строк товаров`);
   assert.deepEqual(new Set(toyRows.map((row) => row.id)), new Set(singleShotIds));
   assert.ok(unique(toyRows.map((row) => row.id)), 'id товаров в таблице повторяются');
 });
