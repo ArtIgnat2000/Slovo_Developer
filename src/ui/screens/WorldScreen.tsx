@@ -110,10 +110,15 @@ function collectionAreas(profile: NonNullable<ReturnType<typeof useActiveProfile
 /** Полная визуальная коллекция: обзор областей → область → отдельная вещь. */
 export function WorldScreen({ onBack }: { onBack: () => void }) {
   const profile = useActiveProfile();
+  /**
+   * Надеть/снять прямо из коллекции (0.90.1). Раньше это умел только список
+   * «Мои покупки»: без этой кнопки слияние разделов забрало бы действие.
+   */
+  const toggleEquip = useApp((s) => s.toggleEquip);
+  const showToast = useApp((s) => s.showToast);
   const currentLook = useLook();
   const settings = useApp((s) => s.settings);
   const setSettings = useApp((s) => s.setSettings);
-  const showToast = useApp((s) => s.showToast);
   const [areaId, setAreaId] = useState<CollectionAreaId | null>(null);
   const [itemId, setItemId] = useState<string | null>(null);
   const [previewingTrack, setPreviewingTrack] = useState<string | null>(null);
@@ -294,6 +299,20 @@ export function WorldScreen({ onBack }: { onBack: () => void }) {
             {entry.kind === 'theme' && entry.theme && <p>{entry.theme.description}</p>}
             {entry.kind === 'shop-item' && entry.item && entry.item.kind !== 'toy' && (
               <div className="collection-detail-status">{currentLook[entry.item.slot] === entry.item.id ? 'Сейчас надето на Буке ✓' : 'Можно надеть в БУКе'}</div>
+            )}
+            {entry.kind === 'shop-item' && entry.item && entry.item.kind !== 'toy' && (
+              <button
+                type="button"
+                className={`btn lg ${currentLook[entry.item.slot] === entry.item.id ? 'ghost' : 'primary'}`}
+                data-collection-wear={entry.item.id}
+                onClick={() => {
+                  toggleEquip(entry.item!.id);
+                  sfx.tap();
+                  showToast({ emoji: '🎩', title: currentLook[entry.item!.slot] === entry.item!.id ? 'Снял с БУКа' : 'Надето на БУКа' });
+                }}
+              >
+                {currentLook[entry.item.slot] === entry.item.id ? 'Снять с Бука' : 'Надеть на Бука'}
+              </button>
             )}
             {entry.kind === 'theme' && entry.theme && (
               <div className="collection-detail-status">{settings.themeStyle === entry.theme.id ? 'Сейчас выбрано ✓' : 'Твоё оформление'}</div>

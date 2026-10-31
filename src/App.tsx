@@ -121,9 +121,12 @@ export default function App() {
   // Куда откроется БУК из меню главной; состояние выше ранних return'ов,
   // чтобы число хуков не менялось между рендерами. `cat` — сразу на нужную
   // полку витрины (дверь «🎵 Музыка» навигатора, 0.85.0).
-  const [shopEntry, setShopEntry] = useState<{ view: 'vitrina' | 'wardrobe' | 'world'; cat?: ShopCat }>({
-    view: 'vitrina',
-  });
+  const [shopEntry, setShopEntry] = useState<{
+    view: 'vitrina' | 'world';
+    cat?: ShopCat;
+    /** «Мой мир» открывается сразу списком вещей (дверь «🎩 Наряды», 0.90.1). */
+    worldMode?: 'collection' | 'items';
+  }>({ view: 'vitrina' });
 
   useEffect(() => {
     const apply = () => {
@@ -316,8 +319,8 @@ export default function App() {
   };
 
   /** Быстрый вход в нужную часть БУКа из меню главной и из навигатора БУКа. */
-  const openShop = (view: 'vitrina' | 'wardrobe' | 'world', cat?: ShopCat) => {
-    setShopEntry(cat ? { view, cat } : { view });
+  const openShop = (view: 'vitrina' | 'world', cat?: ShopCat, worldMode?: 'collection' | 'items') => {
+    setShopEntry({ view, ...(cat ? { cat } : {}), ...(worldMode ? { worldMode } : {}) });
     setProfilesOpen(false);
     setTab('shop');
   };
@@ -354,7 +357,8 @@ export default function App() {
         useHomeIntent.getState().fire('rewards');
       },
     },
-    { id: 'wardrobe', emoji: '🎩', label: 'Наряды', run: () => openShop('wardrobe') },
+    // «Наряды» ведут в «Мой мир → Вещи»: отдельной вкладки покупок больше нет.
+    { id: 'wardrobe', emoji: '🎩', label: 'Наряды', run: () => openShop('world', undefined, 'items') },
     { id: 'music', emoji: '🎵', label: 'Музыка', run: () => openShop('vitrina', 'music') },
     {
       id: 'chat',
@@ -436,9 +440,10 @@ export default function App() {
           // Ключ пересоздаёт экран, когда меняется точка входа: иначе тап по
           // нижней вкладке «БУК» из «Моих покупок» не вернул бы витрину —
           // useState(initialView) читается только при монтировании.
-          key={`${shopEntry.view}${shopEntry.cat ?? ''}`}
+          key={`${shopEntry.view}${shopEntry.cat ?? ''}${shopEntry.worldMode ?? ''}`}
           initialView={shopEntry.view}
           initialCat={shopEntry.cat}
+          initialWorldMode={shopEntry.worldMode}
         />
       ) : (
         <ParentScreen

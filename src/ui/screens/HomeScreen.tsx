@@ -39,8 +39,8 @@ interface Props {
   onOpenSupport: () => void;
   /** «Пора повторить» — отдельный режим тренировки, id урока не нужен */
   onStartReview: () => void;
-  /** Меню ведёт прямо в «Мои покупки» или «Мой мир» внутри БУКа. */
-  onOpenShop: (view: 'vitrina' | 'wardrobe' | 'world') => void;
+  /** Меню ведёт прямо в «Мой мир» (или на витрину) внутри БУКа. */
+  onOpenShop: (view: 'vitrina' | 'world', cat?: undefined, worldMode?: 'collection' | 'items') => void;
   /** Списки слов к контрольной (0.58.0): тренировка, полный контроль, ошибки. */
   onStartList: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
@@ -528,19 +528,8 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onOpenSupport, onSta
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>
 
-              <button
-                type="button"
-                className="menu-row"
-                data-menu="purchases"
-                onClick={() => openMenuSheet(() => onOpenShop('wardrobe'))}
-              >
-                <span className="menu-row-emoji" aria-hidden="true">🎒</span>
-                <span className="grow">
-                  <span className="menu-row-title">Мои покупки</span>
-                </span>
-                <span className="menu-row-arrow" aria-hidden="true">›</span>
-              </button>
-
+              {/* 0.90.1: «Мои покупки» слились с «Моим миром» — одна строка
+                  меню и одна вкладка БУКа вместо двух. */}
               <button
                 type="button"
                 className="menu-row"
@@ -550,6 +539,7 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onOpenSupport, onSta
                 <span className="menu-row-emoji" aria-hidden="true">🌍</span>
                 <span className="grow">
                   <span className="menu-row-title">Мой мир</span>
+                  <span className="tiny muted">Коллекция и вещи</span>
                 </span>
                 <span className="menu-row-arrow" aria-hidden="true">›</span>
               </button>

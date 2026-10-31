@@ -14,7 +14,7 @@ import type { Profile, PuzzleState } from '../src/types';
 import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
 import { COSTUME_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { useApp } from '../src/state/store';
-import { body, btnText, buttons, check, click, has, sleep } from './ui-helpers';
+import { body, btnText, buttons, check, click, has, openOwnItems, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
 
@@ -207,10 +207,10 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   await sleep(60);
   check('пазлы: «Надеть» возвращает костюм', active().puzzle?.worn === COSTUMES[0].id, String(active().puzzle?.worn));
 
-  // ── Мои покупки: иконки в строках «Костюмы» (жалоба 2026-10-19) ───────────
+  // ── «Мой мир → Вещи»: иконки в строках «Костюмы» (жалоба 2026-10-19) ──────
   // Собранный костюм обязан показываться в гардеробе строкой С КАРТИНКОЙ БУКа:
   // иконка живёт внутри плитки `.shop-wear-icon`, а не «плавает» по экрану.
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+  await openOwnItems();
   await sleep(40);
   const wearRows = Array.from(document.querySelectorAll('.shop-wear'));
   check(

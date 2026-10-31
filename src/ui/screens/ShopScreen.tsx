@@ -102,7 +102,14 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 ];
 
 /** Верхние уровни магазина: «чего хочу» и «что моё». */
-type View = 'vitrina' | 'wardrobe' | 'world';
+type View = 'vitrina' | 'world';
+/**
+ * Режим внутри «Моего мира» (0.90.1): коллекция — карта всех покупок по
+ * областям, вещи — примерочная и наряды по слотам с «Надеть/Снять».
+ * Раньше это были две равные вкладки БУКа («Мои покупки» и «Мой мир»),
+ * хотя обе отвечали на вопрос «что у меня есть» (docs/proposals/lessons-panel.md).
+ */
+type WorldMode = 'collection' | 'items';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
 /** Полка магазина. Экспортируется (0.85.0): навигатор БУКа входит витрину сразу на «Музыке». */
@@ -299,10 +306,14 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
 export function ShopScreen({
   initialView = 'vitrina',
   initialCat = 'outfits',
+  initialWorldMode = 'collection',
 }: {
+  /** `wardrobe` — старое имя раздела «Мои покупки»: ведёт в «Мой мир → Вещи». */
   initialView?: 'vitrina' | 'wardrobe' | 'world';
   /** С какой полки открывать витрину — вход двери «🎵 Музыка» (0.85.0). */
   initialCat?: Cat;
+  /** «Мой мир» открывается коллекцией или списком вещей (0.90.1). */
+  initialWorldMode?: WorldMode;
 } = {}) {
   const profile = useActiveProfile();
   const look = useLook();
@@ -323,7 +334,8 @@ export function ShopScreen({
   const buyBaseSet = useApp((s) => s.buyBaseSet);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
-  const [view, setView] = useState<View>(initialView);
+  const [view, setView] = useState<View>(initialView === 'wardrobe' ? 'world' : initialView);
+  const [worldMode, setWorldMode] = useState<WorldMode>(initialView === 'wardrobe' ? 'items' : initialWorldMode);
   const [cat, setCat] = useState<Cat>(initialCat);
   const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   // Подробная карточка и её палитра (палитра — только в sheet)
@@ -341,12 +353,13 @@ export function ShopScreen({
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
   // «Мой мир» — общий обзор всей коллекции; запоминаем место магазина,
   // чтобы по кнопке возврата восстановить его, а не сбрасывать в витрину.
-  const worldReturnView = useRef<View>(initialView === 'world' ? 'vitrina' : initialView);
+  const worldReturnView = useRef<View>('vitrina');
   const worldReturnScroll = useRef(0);
   const openMyWorld = () => {
-    worldReturnView.current = view === 'world' ? 'vitrina' : view;
+    if (view !== 'world') worldReturnView.current = view;
     worldReturnScroll.current = typeof window !== 'undefined' ? window.scrollY : 0;
     setView('world');
+    setWorldMode('collection');
     if (worldReturnScroll.current > 0) {
       requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
     }
@@ -1524,8 +1537,7 @@ export function ShopScreen({
     // --lux-cta (жалоба 2026-10-29 — см. блок «Единый акцент витрины»).
     <div className="screen shop-screen">
       {/* ── Шапка: название и баланс — и больше ничего ─────────────────── */}
-      {view !== 'world' && (
-        <div className="shop-sticky">
+      <div className="shop-sticky">
           <div className="row mb">
             <h1 className="grow" style={{ margin: 0 }}>
               БУК <Icon name="hat" size={22} />
@@ -1534,17 +1546,27 @@ export function ShopScreen({
               <Gem value={gems} size={22} />
             </div>
           </div>
+          {/* 0.90.1: две вкладки вместо трёх. «Мои покупки» и «Мой мир»
+              отвечали на один вопрос «что у меня есть», поэтому остался
+              «Мой мир», а внутри него — режимы «Коллекция» и «Вещи». */}
           <div className="shop-seg" role="tablist" aria-label="Разделы БУКа">
             <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
               🛍️ Витрина
             </button>
-            <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
-              🎒 Мои покупки
-            </button>
-            <button role="tab" aria-selected={false} onClick={openMyWorld}>
+            <button role="tab" aria-selected={view === 'world'} className={view === 'world' ? 'on' : ''} onClick={() => { setView('world'); setWorldMode('collection'); }}>
               🌍 Мой мир
             </button>
           </div>
+          {view === 'world' && (
+            <div className="shop-seg shop-seg-sub" role="tablist" aria-label="Мой мир: коллекция или вещи">
+              <button role="tab" aria-selected={worldMode === 'collection'} className={worldMode === 'collection' ? 'on' : ''} onClick={() => setWorldMode('collection')}>
+                🖼️ Коллекция
+              </button>
+              <button role="tab" aria-selected={worldMode === 'items'} className={worldMode === 'items' ? 'on' : ''} onClick={() => setWorldMode('items')}>
+                🎒 Вещи
+              </button>
+            </div>
+          )}
           {view === 'vitrina' && (
             <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
               {CATS.filter((c) => c.id !== 'naash' || SCHOOL.on).map((c) => (
@@ -1555,9 +1577,8 @@ export function ShopScreen({
             </div>
           )}
         </div>
-      )}
 
-      {view === 'world' && <WorldScreen onBack={closeMyWorld} />}
+      {view === 'world' && worldMode === 'collection' && <WorldScreen onBack={closeMyWorld} />}
 
       {/* ── Школа НААШ (0.74.0): форма БУКа и полка идей ──────────────────────
           Полка живёт своим компонентом: карточки ей передаёт магазин, поэтому
@@ -1947,7 +1968,7 @@ export function ShopScreen({
         </section>
       )}
 
-      {view === 'wardrobe' && (
+      {view === 'world' && worldMode === 'items' && (
         <>
           {/* Примерочная: кто сейчас наряжен */}
           <div className="card mb shop-stage">
