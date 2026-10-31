@@ -168,6 +168,33 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onOpenSupport, onSta
     else onStartLesson(next.lessonId ?? current.id);
   };
 
+  /**
+   * План на сегодня из списков к контрольной (0.90.0).
+   *
+   * Список — внешний дедлайн из школы, поэтому он живёт в плане рядом с уроком,
+   * а не отдельной полкой над ним. Порядок — по срочности: сначала списки с
+   * ошибками после контрольной, потом мало тренированные, потом новые.
+   * Скрытые родителем списки в план не попадают вовсе.
+   */
+  const listPlan = (profile.lists ?? [])
+    .filter((list) => !list.hidden)
+    .map((list) => {
+      const stats = listStats(list, profile.customWords ?? {});
+      const trained = list.words.filter((id) => (profile.words?.[id]?.ok ?? 0) > 0).length;
+      // «Трудные» — по всей истории заходов; запасной вариант — ошибки последней контрольной.
+      const errors = hardWords(list, 20).length || (list.lastCheck?.wrong.length ?? 0);
+      return { list, stats, trained, errors, perRun: drillLimit(profile, stats.total) };
+    })
+    .sort(
+      (a, b) =>
+        (b.errors > 0 ? b.errors : 0) - (a.errors > 0 ? a.errors : 0) ||
+        a.trained / Math.max(1, a.stats.total) - b.trained / Math.max(1, b.stats.total) ||
+        b.list.createdAt - a.list.createdAt,
+    );
+  // Больше двух списков план не показывает: это «сегодня», а не расписание.
+  const todayLists = listPlan.slice(0, 2);
+  const moreLists = Math.max(0, listPlan.length - todayLists.length);
+
   return (
     <div className="screen">
       {/* Шапка (0.33.0): три блока и два действия. 💎 — главный и единственный
@@ -215,74 +242,12 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onOpenSupport, onSta
         </button>
       </div>
 
-      {/* «Задания дня» — одной строкой над героем (0.35.0). Дети видят их
-          каждый день, но подробности, «Забрать» и сундук остаются в листе
-          наград: на главной ноль конкурирующих кнопок, «Начать ▶» — главное
-          действие. docs/proposals/daily-quests-on-home.md */}
-      {/* Слова к контрольной (0.58.0): списки создаёт родитель, ребёнок видит
-          их здесь — узкой карточкой с одной кнопкой. Если списков нет, блока
-          тоже нет: лишних обещаний на главной не появляется. */}
-      {(profile.lists ?? []).length > 0 && (
-        <div className="list-cards">
-          {(profile.lists ?? []).map((list) => {
-            const stats = listStats(list, profile.customWords ?? {});
-            const trained = list.words.filter((id) => (profile.words?.[id]?.ok ?? 0) > 0).length;
-            // 0.63.0: «трудные» — по всей истории заходов, а не только по
-            // последней контрольной; размер тренировки — отдельный параметр.
-            const errors = hardWords(list, 20).length || (list.lastCheck?.wrong.length ?? 0);
-            const perRun = drillLimit(profile, stats.total);
-            // 0.62.0: два режима вместо одного. Тренировка берёт часть слов
-            // (по размеру урока) и даёт подсказки; полный контроль проходит
-            // ВСЕ слова по одному заданию без подсказок и с отчётом.
-            return (
-              <div key={list.id} className="list-card-block">
-                <button
-                  type="button"
-                  className="list-card"
-                  data-list-card={list.id}
-                  aria-label={`Список «${list.title}», ${stats.total} слов. Начать тренировку`}
-                  onClick={() => onStartList(list.id, 'train')}
-                >
-                  <span className="list-card-icon" aria-hidden="true">🏫</span>
-                  <span className="list-card-text">
-                    <span className="list-card-title">{list.title}</span>
-                    <span className="list-card-meta">
-                      {stats.total} слов
-                      {trained > 0 ? ` · ${trained} ${plural(trained, 'слово знакомо', 'слова знакомы', 'слов знакомы')}` : ''}
-                      {list.lastCheck ? ` · контрольная: ${list.lastCheck.correct} из ${list.lastCheck.total}` : ''}
-                    </span>
-                  </span>
-                  <span className="list-card-go" aria-hidden="true">
-                    Тренировка · {perRun}
-                  </span>
-                </button>
-                <div className="list-card-modes">
-                  <button
-                    type="button"
-                    className="btn ghost sm"
-                    data-list-check={list.id}
-                    onClick={() => onStartList(list.id, 'check')}
-                  >
-                    📋 Проверить все {stats.total}
-                  </button>
-                  {errors > 0 && (
-                    <button
-                      type="button"
-                      className="btn ghost sm"
-                      data-list-errors={list.id}
-                      onClick={() => onStartList(list.id, 'errors')}
-                    >
-                      🔁 Трудные · {Math.min(errors, perRun)}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <DailyQuestStrip onOpen={() => setRewardsOpen(true)} />
+      {/* ── Блок «Сегодня» (0.90.0) ─────────────────────────────────────────
+          Один блок = одно дело. Герой с «Начать ▶» стоит первым, а задания дня
+          и списки к контрольной идут строками плана под ним: они объясняют,
+          что ещё осталось, но не спорят с главным действием за палец.
+          Разбор — docs/proposals/lessons-panel.md. */}
+      <section className="home-today" aria-label="План на сегодня">
 
       {classDone && !reviewDue ? (
         <button
@@ -332,6 +297,64 @@ export function HomeScreen({ onStartLesson, onOpenProfiles, onOpenSupport, onSta
           <span className="home-hero-cta">Начать ▶</span>
         </button>
       )}
+
+        <div className="today-steps">
+          {/* Задания дня: одна строка вместо отдельного блока. Тап открывает
+              лист наград — там «Забрать», сундук и подробности. */}
+          <DailyQuestStrip onOpen={() => setRewardsOpen(true)} />
+
+          {/* Списки к контрольной (0.90.0): шаг плана, а не полка над днём.
+              Тап по строке — тренировка; 📋 — полная контрольная; 🔁 — только
+              ошибки и только если они есть. */}
+          {todayLists.map(({ list, stats, errors, perRun }) => (
+            <div key={list.id} className="today-step today-list">
+              <button
+                type="button"
+                className="today-step-main"
+                data-list-card={list.id}
+                aria-label={`Список «${list.title}», ${stats.total} слов. Начать тренировку`}
+                onClick={() => onStartList(list.id, 'train')}
+              >
+                <span className="today-step-icon" aria-hidden="true">🏫</span>
+                <span className="today-step-text">
+                  <span className="today-step-title">{list.title}</span>
+                  <span className="today-step-meta">
+                    {stats.total} слов · тренировка {perRun}
+                    {list.lastCheck ? ` · контрольная: ${list.lastCheck.correct} из ${list.lastCheck.total}` : ''}
+                  </span>
+                </span>
+                <span className="today-step-go" aria-hidden="true">▶</span>
+              </button>
+              <button
+                type="button"
+                className="btn ghost sm today-step-side"
+                data-list-check={list.id}
+                aria-label={`Проверить все ${stats.total} слов списка «${list.title}»`}
+                onClick={() => onStartList(list.id, 'check')}
+              >
+                📋
+              </button>
+              {errors > 0 && (
+                <button
+                  type="button"
+                  className="btn ghost sm today-step-side"
+                  data-list-errors={list.id}
+                  aria-label={`Тренировать ошибки списка «${list.title}»`}
+                  onClick={() => onStartList(list.id, 'errors')}
+                >
+                  🔁
+                </button>
+              )}
+            </div>
+          ))}
+
+          {moreLists > 0 && (
+            <p className="today-note">
+              Ещё {moreLists} {plural(moreLists, 'список', 'списка', 'списков')} к контрольной — в разделе «Родителям»
+            </p>
+          )}
+        </div>
+      </section>
 
       {/* Класс живёт здесь, а не пилюлей над героем (0.33.0): заголовок уже
           есть, а подпись «· 2 класс» даёт ту же ориентацию за 0 px высоты. */}

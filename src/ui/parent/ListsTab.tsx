@@ -120,7 +120,7 @@ function ListHistory({
 }
 
 export function ListsTab({ profile, onTrain }: Props) {
-  const { addList, removeList, renameList, setCustomWordStress, setListDrillSize } = useApp.getState();
+  const { addList, removeList, renameList, setListHidden, setCustomWordStress, setListDrillSize } = useApp.getState();
   const drill = drillSizeOf(profile);
   const lists = profile.lists ?? [];
   const customWords = profile.customWords ?? {};
@@ -265,6 +265,7 @@ export function ListsTab({ profile, onTrain }: Props) {
                       {stats.total} {plural(stats.total, 'слово', 'слова', 'слов')}
                       {stats.custom > 0 ? ` · своих: ${stats.custom}` : ''}
                       {whenTrained(list)}
+                      {list.hidden ? ' · на главной не показывается' : ''}
                     </div>
                   </div>
                   <div className="list-row-actions">
@@ -295,6 +296,23 @@ export function ListsTab({ profile, onTrain }: Props) {
                         🔁 Ошибки · {list.lastCheck?.wrong.length}
                       </button>
                     )}
+                    {/* 0.90.0: видимость на главной — отдельно от удаления.
+                        Список на месяц не должен висеть в плане каждый день,
+                        но и терять его родитель не хочет. */}
+                    <button
+                      type="button"
+                      className={`btn sm ${list.hidden ? 'ghost' : 'green'}`}
+                      data-toggle-list={list.id}
+                      aria-pressed={!list.hidden}
+                      aria-label={
+                        list.hidden
+                          ? `Показывать «${list.title}» на главной`
+                          : `Скрыть «${list.title}» с главной`
+                      }
+                      onClick={() => setListHidden(list.id, !list.hidden)}
+                    >
+                      {list.hidden ? '🙈 Скрыт с главной' : '🏠 На главной'}
+                    </button>
                     <button
                       type="button"
                       className="btn ghost sm"

@@ -479,6 +479,7 @@ export function normalizeLists(raw: unknown): PracticeList[] {
       title: typeof l.title === 'string' && l.title.trim() ? l.title.trim().slice(0, 80) : 'Список к контрольной',
       words,
       createdAt: typeof l.createdAt === 'number' && Number.isFinite(l.createdAt) ? l.createdAt : Date.now(),
+      ...(l.hidden === true ? { hidden: true } : {}),
       ...(typeof l.lastRunAt === 'number' && Number.isFinite(l.lastRunAt) ? { lastRunAt: l.lastRunAt } : {}),
       ...(normalizeLastCheck(l.lastCheck) ? { lastCheck: normalizeLastCheck(l.lastCheck) } : {}),
       ...(() => {

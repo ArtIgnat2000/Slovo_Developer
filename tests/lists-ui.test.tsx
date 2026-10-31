@@ -583,6 +583,18 @@ export async function runListsChecks(): Promise<void> {
   }
   const listCard = document.querySelector('[data-list-card]') as HTMLButtonElement | null;
   check('списки: на «Уроках» видна карточка списка с числом слов', !!listCard && (listCard.textContent ?? '').includes('слов'), listCard?.textContent ?? body().slice(0, 120));
+  // 0.90.0: списки живут в плане на сегодня — ниже героя «Сегодня», а не над ним.
+  {
+    const hero = document.querySelector('.home-hero');
+    check(
+      'списки: строка списка стоит в блоке «Сегодня» под героем',
+      !!listCard &&
+        !!listCard.closest('.home-today') &&
+        !!hero &&
+        (hero.compareDocumentPosition(listCard) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      listCard ? listCard.parentElement?.className ?? '' : 'нет карточки',
+    );
+  }
   if (listCard) {
     click(listCard);
     await sleep(120);
@@ -600,6 +612,52 @@ export async function runListsChecks(): Promise<void> {
       const confirm = btnText('Выйти');
       if (confirm) click(confirm);
       await sleep(80);
+    }
+  }
+
+  // ── 6a2. Видимость списка на главной (0.90.0) ─────────────────────────────
+  // Родитель может скрыть список с «Уроков» — он остаётся тренируемым в
+  // «Родителям». Это видимость, а не удаление: слова и прогресс на месте.
+  {
+    const schoolList = active().lists?.[0];
+    check('списки: у списка есть флаг видимости', !!schoolList, String(active().lists?.length ?? 0));
+    if (schoolList) {
+      store().setListHidden(schoolList.id, true);
+      await sleep(40);
+      const onHome = document.querySelector(`[data-list-card="${schoolList.id}"]`);
+      check('списки: скрытый список пропадает из плана на сегодня', !onHome, onHome ? 'карточка на месте' : '');
+      check(
+        'списки: скрытый список остаётся в профиле',
+        (active().lists ?? []).some((l) => l.id === schoolList.id && l.hidden === true),
+        JSON.stringify((active().lists ?? []).map((l) => [l.id, l.hidden ?? false])),
+      );
+      await openParent();
+      await openParentSection('Списки');
+      const toggle = document.querySelector(`[data-toggle-list="${schoolList.id}"]`) as HTMLButtonElement | null;
+      check('списки: в «Родителям» есть переключатель «показывать на главной»', !!toggle, body().slice(0, 160));
+      if (toggle) {
+        click(toggle);
+        await sleep(60);
+        check(
+          'списки: переключатель возвращает список на главную',
+          (active().lists ?? []).some((l) => l.id === schoolList.id && !l.hidden),
+          JSON.stringify((active().lists ?? []).find((l) => l.id === schoolList.id)?.hidden ?? false),
+        );
+        click(toggle);
+        await sleep(60);
+      }
+      store().setListHidden(schoolList.id, false);
+      await sleep(40);
+      const homeTab2 = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
+      if (homeTab2) {
+        click(homeTab2);
+        await sleep(60);
+      }
+      check(
+        'списки: после включения строка списка снова в плане',
+        !!document.querySelector(`[data-list-card="${schoolList.id}"]`),
+        body().slice(0, 160),
+      );
     }
   }
 
