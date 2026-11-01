@@ -40,6 +40,11 @@ jobs:
       - run: npm run content:check
       - run: npm run test:smoke
       - run: npm run build
+        env:
+          # Путь сайта на GitHub Pages: https://<owner>.github.io/<repo>/. Берём его
+          # из имени репозитория, а не из REPO_BASE в vite.config.ts: после переноса
+          # или переименования репозитория сайт иначе открывается пустым.
+          VITE_BASE: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

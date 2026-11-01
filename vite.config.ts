@@ -6,14 +6,17 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { STARTER_TRACK_IDS } from './src/engine/music';
 
-// Имя репозитория на GitHub Pages. Если репозиторий назовёте иначе — поменяйте тут.
-const REPO_BASE = '/slovo2/';
+// Имя репозитория на GitHub Pages: https://artignat2000.github.io/Slovo_Developer/.
+// Если репозиторий назовёте иначе — поменяйте тут. Деплой (deploy.yml) всё равно
+// передаёт VITE_BASE из имени репозитория, так что сайт не опустеет и после
+// переименования; эта константа — для локальных `npm run build` и `npm run preview`.
+const REPO_BASE = '/Slovo_Developer/';
 
 /**
- * База сборки. Для GitHub Pages — '/slovo2/', а для локального показа в песочнице
+ * База сборки. Для GitHub Pages — '/Slovo_Developer/', а для локального показа в песочнице
  * (npm run preview:build) нужен корень: превью-прокси открывает приложение по адресу
- * без пути репозитория, иначе получается белый экран из-за путей к /slovo2/assets/*.
- * Переопределяется переменной окружения VITE_BASE (см. package.json).
+ * без пути репозитория, иначе получается белый экран из-за путей к /Slovo_Developer/assets/*.
+ * Переопределяется переменной окружения VITE_BASE (см. package.json и deploy.yml).
  */
 const buildBase = process.env.VITE_BASE ?? REPO_BASE;
 
