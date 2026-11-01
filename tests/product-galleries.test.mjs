@@ -72,7 +72,7 @@ const CARS = carTourIds();
 const MAIN = (id) => `public/products/${id}.webp`;
 
 test('второй кадр техники: файл есть, он не копия главного фото и не мелкий', () => {
-  assert.equal(ALTERNATES.size, 44, 'у 44 позиций должен быть второй кадр');
+  assert.equal(ALTERNATES.size, 45, 'у 45 позиций должен быть второй кадр');
   const seen = new Map();
   for (const [id, alternate] of ALTERNATES) {
     const path = `public/${alternate.path}`;
@@ -103,6 +103,27 @@ test('второй кадр техники: у каждого ракурса с�
     if (id.startsWith('phone-')) continue;
     assert.notEqual(alternate.label, 'Вид спереди', `${id}: телефонная подпись у техники`);
   }
+});
+
+test('рюкзак НААШ: четыре кадра продукта подключены и не повторяются', () => {
+  const source = read('src/ui/TechTour.tsx');
+  const main = 'public/products/school-backpack.webp';
+  const frames = [
+    'public/products/gallery/school-backpack-inside.webp',
+    'public/products/gallery/school-backpack-front.webp',
+    'public/products/gallery/school-backpack-pockets.webp',
+  ];
+  assert.ok(existsSync(fileUrl(main)), 'нет главного кадра рюкзака');
+  assert.ok(source.includes("'school-backpack': { path: 'products/gallery/school-backpack-inside.webp'"), 'первый кадр галереи рюкзака не подключён');
+  for (const frame of frames) {
+    assert.ok(existsSync(fileUrl(frame)), `нет файла галереи ${frame}`);
+    const size = webpSize(frame);
+    assert.ok(size && size.width >= 1000 && size.height >= 700, `${frame}: кадр недостаточного разрешения`);
+    assert.notEqual(hash(main), hash(frame), `${frame}: кадр — копия главного фото`);
+  }
+  assert.ok(source.includes("path: 'products/gallery/school-backpack-front.webp'"), 'нет общего вида рюкзака');
+  assert.ok(source.includes("path: 'products/gallery/school-backpack-pockets.webp'"), 'нет кадра карманов рюкзака');
+  assert.equal(new Set([hash(main), ...frames.map(hash)]).size, 4, 'кадры рюкзака не должны повторяться');
 });
 
 test('автомобили: салон и панель — отдельные крупные кадры, а не один и тот же', () => {

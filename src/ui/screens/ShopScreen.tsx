@@ -1800,7 +1800,7 @@ export function ShopScreen({
             <h2 className="mb">{cat === 'toys' ? 'Техника БУКа' : cat === 'pets' ? 'Питомцы' : cat === 'sport' ? 'Спорт' : 'Вкусняшки'}</h2>
           </div>
           {cat === 'toys' && <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
-            {TOY_SHELVES.filter(({ id }) => !['pet', 'sport', 'food'].includes(id)).map(({ id, title, emoji }) => (
+            {TOY_SHELVES.filter(({ id }) => !['pet', 'sport', 'food', 'school'].includes(id)).map(({ id, title, emoji }) => (
               <button
                 key={id}
                 type="button"

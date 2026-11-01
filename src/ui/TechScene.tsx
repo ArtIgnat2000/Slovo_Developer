@@ -18,7 +18,7 @@ import { ToyArt } from './ToyArt';
  */
 
 /** Тон арки/панели: гараж (авто), море (корабли), лавандовая витрина (телефоны). */
-export type Tone = 'car' | 'plane' | 'ship' | 'phone' | 'pet' | 'sport' | 'food';
+export type Tone = 'car' | 'plane' | 'ship' | 'phone' | 'pet' | 'sport' | 'food' | 'school';
 
 const BAYS: { kind: ToyKind; tone: Tone; label: string; fallback: string }[] = [
   { kind: 'car', tone: 'car', label: 'Авто', fallback: 'car-bmw' },
