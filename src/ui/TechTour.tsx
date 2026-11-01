@@ -61,6 +61,7 @@ const ALTERNATES: Record<string, AlternatePhoto> = {
   // Предметы: кулич снят сверху в три четверти, чтобы были видны и глазурь,
   // и рёбра формы, и посыпка.
   'food-kulich': { path: 'products/gallery/food-kulich-alt.webp', label: 'Сверху — глазурь и посыпка' },
+  'school-mug': { path: 'products/gallery/school-mug-alt.webp', label: 'Сверху — синяя глазурь и ручка' },
   'pet-cat-mainecoon': { path: 'products/gallery/pet-cat-mainecoon-alt.webp', label: 'В профиль — грива и хвост' },
   'pet-elephant': { path: 'products/gallery/pet-elephant-alt.webp', label: 'В профиль — ухо, хобот и хвост' },
   'tv-cinema': { path: 'products/gallery/tv-cinema-alt.webp', label: 'Сбоку — тонкая панель и подставка' },

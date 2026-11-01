@@ -9,10 +9,12 @@
 // вещей в приложении набираются настоящим текстом (src/engine/naash.ts).
 //
 // Запуск: node scripts/make-naash-gallery.mjs
-// Результат: public/naash/*.webp (12 файлов, ≈300 КБ) — вне precache PWA.
+// Результат: 12 основных плиток в public/naash/*.webp — вне precache PWA.
+// Три дополнительных кадра рюкзака (inside/pockets/packed) и знак mark-color.webp
+// лежат рядом отдельными файлами; это самостоятельные изображения, не кропы плитки.
 
 import sharp from 'sharp';
-import { mkdir, readdir } from 'node:fs/promises';
+import { access, mkdir, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SCHOOL_IDEAS } from '../src/engine/naash.ts';
@@ -78,4 +80,14 @@ for (const idea of SCHOOL_IDEAS) {
   void height;
 }
 
-console.log(`готово: ${SCHOOL_IDEAS.length} плиток в public/naash, ${(total / 1024).toFixed(0)} КБ`);
+const detailFrames = SCHOOL_IDEAS.flatMap((idea) => idea.gallery ?? []);
+for (const frame of detailFrames) {
+  const file = path.join(OUT, `${frame.file}.webp`);
+  try {
+    await access(file);
+  } catch {
+    throw new Error(`нет дополнительного кадра ${file} для галереи идеи`);
+  }
+}
+
+console.log(`готово: ${SCHOOL_IDEAS.length} плиток + ${detailFrames.length} кадров галереи в public/naash, ${(total / 1024).toFixed(0)} КБ превью`);

@@ -9220,7 +9220,7 @@ img.product-photo {
   background: color-mix(in srgb, #F4EFE4 62%, var(--card));
   color: #0A2C5E;
 }
-.naash-sign { flex: none; color: #0A2C5E; }
+.naash-sign { display: block; flex: none; width: 40px; height: 40px; object-fit: contain; }
 .naash-title { margin: 0 0 3px; font-size: 19px; line-height: 1.2; letter-spacing: 0.2px; }
 .naash-head .muted { color: color-mix(in srgb, #0A2C5E 66%, #FFFFFF); }
 .naash-ideas-title { margin-top: 20px; }
@@ -9266,7 +9266,9 @@ img.product-photo {
   text-align: center;
   box-shadow: 0 -10px 30px rgba(20, 18, 30, 0.24);
 }
-.naash-sheet img { display: block; width: 100%; height: auto; border-radius: 14px; }
+.naash-sheet > img { display: block; width: 100%; height: auto; border-radius: 14px; }
+.naash-gallery-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 9px 2px 0; }
+.naash-gallery-controls .tiny { flex: 1; text-align: center; }
 .naash-sheet-title { margin: 10px 0 4px; font-weight: 800; font-size: 17px; }
 .naash-sheet .naash-honest { color: #6B6480; }
 

@@ -691,8 +691,13 @@ async function main() {
   const naashTiles = () => Array.from(document.querySelectorAll('.naash-tile'));
   check('«Полка идей»: двенадцать картинок серии', naashTiles().length === 12, String(naashTiles().length));
   check(
-    'форма школы на месте: значок, кепка, шарф, худи',
-    ['Значок школы', 'Кепка школы', 'Шарф в триколоре', 'Худи школы'].every((title) => has(title)),
+    'форма и игровая кружка школы на месте',
+    ['Значок школы', 'Кепка школы', 'Шарф в триколоре', 'Худи школы', 'Кружка «НААШ»'].every((title) => has(title)),
+    '',
+  );
+  check(
+    'шапка показывает канонический цветной знак школы',
+    document.querySelector('.naash-sign')?.getAttribute('src')?.endsWith('/naash/mark-color.webp') ?? false,
     '',
   );
   check(
@@ -707,9 +712,15 @@ async function main() {
   );
   check('подпись честная: это идеи, а не товар', has('Это идеи, а не товар'), '');
   check('в разделе нет рублей и предзаказов', !/₽|руб\.|предзаказ|заказать/i.test(body()), '');
-  if (naashTiles()[0]) click(naashTiles()[0] as HTMLButtonElement);
+  const backpackTile = naashTiles().find((tile) => (tile.textContent ?? '').includes('Рюкзак'));
+  if (backpackTile) click(backpackTile as HTMLButtonElement);
   await sleep(40);
-  check('тап по картинке открывает её крупно', !!document.querySelector('.naash-sheet img'), '');
+  check('тап по рюкзаку открывает галерею крупно', !!document.querySelector('.naash-sheet img'), '');
+  check('галерея рюкзака включает четыре самостоятельных кадра', has('1 / 4'), body());
+  const nextBackpackShot = document.querySelector<HTMLButtonElement>('.naash-gallery-controls button[aria-label="Следующий кадр"]');
+  if (nextBackpackShot) click(nextBackpackShot);
+  await sleep(20);
+  check('следующий кадр показывает содержимое рюкзака', has('2 / 4') && (document.querySelector('.naash-sheet img')?.getAttribute('alt') ?? '').includes('вместимость'), body());
   click(buttons().find((b) => (b.textContent ?? '').includes('Закрыть')));
   await sleep(30);
   check('лист картинки закрывается', !document.querySelector('.naash-sheet'), '');
@@ -922,7 +933,7 @@ async function main() {
     const chip = shopChip(chipTitle);
     if (chip) click(chip);
     await sleep(40);
-    const expected = TOY_ITEMS.filter((item) => item.toy === kind);
+    const expected = TOY_ITEMS.filter((item) => item.toy === kind && !item.series);
     const cards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
     check(
       `полка «${chipTitle}» открывается отдельным разделом`,
