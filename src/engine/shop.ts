@@ -19,7 +19,7 @@ import { MUSIC_TRACKS, type MusicTrack } from './music';
 export type ShopItemKind = 'outfit' | 'toy';
 
 /** Разделы техники в магазине и ангаре: авто, самолёты, корабли и электроника. */
-export type ToyKind = 'car' | 'plane' | 'ship' | 'phone' | 'pet' | 'sport' | 'food';
+export type ToyKind = 'car' | 'plane' | 'ship' | 'phone' | 'pet' | 'sport' | 'food' | 'school';
 
 export interface ShopItem {
   id: string;
@@ -39,9 +39,9 @@ export interface ShopItem {
   /** Для техники баз — id базы, в стиле которой сделана вещь (engine/buildings.ts). */
   baseStyle?: string;
   /**
-   * Серия вещи, если она пришла из отдельной линейки (0.74.0: `naash` —
-   * форма школы). Полка серии фильтрует каталог по метке, а не заводит
-   * второй список товаров: правила покупки у всех вещей общие.
+   * Серия вещи из отдельной линейки (сейчас `naash`: форма и игровые школьные
+   * предметы). Полка серии фильтрует каталог по метке, а не заводит второй
+   * список товаров: правила покупки у всех вещей общие.
    */
   series?: ShopSeries;
 }
@@ -148,16 +148,17 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'shoes-sparkle', slot: 'feet', kind: 'outfit', title: 'Блестящие туфли', desc: 'Сверкают, как у принцессы на балу', price: 45 },
   { id: 'skates-ice', slot: 'feet', kind: 'outfit', title: 'Коньки', desc: 'Белые ботинки и острые лезвия для льда', price: 40 },
   // ── 0.74.0: школа НААШ (docs/proposals/naash-shop.md) ────────────────────
-  // Школьный уголок витрины. Вещи не «ещё четыре наряда»: их собирает метка
-  // `series`, поэтому своя полка не потребовала второго каталога — покупка,
-  // «Мечты», перекраска, сдача и выгрузка работают как у всех. Палитры красят
-  // ткань и эмаль, знак школы — всегда в своих цветах (engine/tints.ts).
+  // Школьный уголок витрины: четыре наряда и две игровые вещи для «Моего мира».
+  // Метка `series` собирает их на общей полке — покупка, «Мечты», сдача и
+  // выгрузка работают как у всех. Палитры красят ткань, знак школы всегда
+  // остаётся в своих цветах (engine/tints.ts).
   { id: 'school-pin', slot: 'badge', kind: 'outfit', series: 'naash', title: 'Значок школы', desc: 'Эмалевый знак на лацкане — видно издалека', price: 15 },
   { id: 'school-cap', slot: 'head', kind: 'outfit', series: 'naash', title: 'Кепка школы', desc: 'Знак вышит на шести панелях, как на настоящей', price: 20 },
   { id: 'school-scarf', slot: 'neck', kind: 'outfit', series: 'naash', title: 'Шарф в триколоре', desc: 'Полоса в цветах знака, с бахромой', price: 30 },
   { id: 'school-hoodie', slot: 'body', kind: 'outfit', series: 'naash', title: 'Худи школы', desc: 'Футер цвета знака, знак на груди', price: 45 },
-  // Игровая вещь школы в той же линейке: это предмет для «Моего мира», не обещание настоящего мерча.
-  { id: 'school-mug', slot: 'toy', kind: 'toy', toy: 'food', emoji: '☕', series: 'naash', title: 'Кружка «НААШ»', desc: 'Керамическая кружка со знаком школы — для своего стола', price: 35 },
+  // Игровые вещи школы в той же линейке: предметы для «Моего мира», не обещание настоящего мерча.
+  { id: 'school-mug', slot: 'toy', kind: 'toy', toy: 'school', emoji: '☕', series: 'naash', title: 'Кружка «НААШ»', desc: 'Керамическая кружка со знаком школы — для своего стола', price: 35 },
+  { id: 'school-backpack', slot: 'toy', kind: 'toy', toy: 'school', emoji: '🎒', series: 'naash', title: 'Рюкзак «Школа»', desc: 'Вместительный рюкзак со школьным знаком и карманами', price: 55 },
   // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
   { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус, полированные грани и одна камера', price: 25 },
   { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло, сатиновые грани и две камеры', price: 30 },

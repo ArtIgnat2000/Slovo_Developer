@@ -9267,8 +9267,6 @@ img.product-photo {
   box-shadow: 0 -10px 30px rgba(20, 18, 30, 0.24);
 }
 .naash-sheet > img { display: block; width: 100%; height: auto; border-radius: 14px; }
-.naash-gallery-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 9px 2px 0; }
-.naash-gallery-controls .tiny { flex: 1; text-align: center; }
 .naash-sheet-title { margin: 10px 0 4px; font-weight: 800; font-size: 17px; }
 .naash-sheet .naash-honest { color: #6B6480; }
 

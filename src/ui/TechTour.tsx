@@ -61,11 +61,20 @@ const ALTERNATES: Record<string, AlternatePhoto> = {
   // Предметы: кулич снят сверху в три четверти, чтобы были видны и глазурь,
   // и рёбра формы, и посыпка.
   'food-kulich': { path: 'products/gallery/food-kulich-alt.webp', label: 'Сверху — глазурь и посыпка' },
-  'school-mug': { path: 'products/gallery/school-mug-alt.webp', label: 'Сверху — синяя глазурь и ручка' },
+  'school-mug': { path: 'products/gallery/school-mug-alt.webp', label: 'Оборот — гладкая керамика и ручка' },
+  'school-backpack': { path: 'products/gallery/school-backpack-inside.webp', label: 'Внутри — основное отделение' },
   'pet-cat-mainecoon': { path: 'products/gallery/pet-cat-mainecoon-alt.webp', label: 'В профиль — грива и хвост' },
   'pet-elephant': { path: 'products/gallery/pet-elephant-alt.webp', label: 'В профиль — ухо, хобот и хвост' },
   'tv-cinema': { path: 'products/gallery/tv-cinema-alt.webp', label: 'Сбоку — тонкая панель и подставка' },
   'headphones-max': { path: 'products/gallery/headphones-max-alt.webp', label: 'Сложенные — обе чашки и оголовье' },
+};
+
+/** Дополнительные кадры к первым товарам с расширенной фотосерией. */
+const MORE_SHOTS: Record<string, AlternatePhoto[]> = {
+  'school-backpack': [
+    { path: 'products/gallery/school-backpack-front.webp', label: 'Общий вид спереди' },
+    { path: 'products/gallery/school-backpack-pockets.webp', label: 'Карман и органайзер' },
+  ],
 };
 
 export function isTechTourItem(id: string): boolean {
@@ -82,6 +91,7 @@ export function warmTechTour(id: string): void {
   const urls = [productPhotoUrl(id)];
   const alternate = ALTERNATES[id];
   if (alternate) urls.push(`${import.meta.env.BASE_URL}${alternate.path}`);
+  for (const frame of MORE_SHOTS[id] ?? []) urls.push(`${import.meta.env.BASE_URL}${frame.path}`);
   for (const src of urls) {
     const image = document.createElement('img');
     image.decoding = 'async';
@@ -92,31 +102,33 @@ export function warmTechTour(id: string): void {
 export function TechTour({ id, alt }: { id: string; alt: string }) {
   const item = ITEM_BY_ID[id];
   const alternate = ALTERNATES[id];
-  const [detail, setDetail] = useState(false);
-  useEffect(() => setDetail(false), [id]);
+  const [shotIndex, setShotIndex] = useState(0);
+  useEffect(() => setShotIndex(0), [id]);
   if (!item || !alternate || !isTechTourItem(id)) return null;
 
-  const viewName = detail
-    ? alternate.label
-    : item.toy === 'phone' ? 'Задняя панель' : 'Общий вид';
-  const nextView = detail ? 'общий вид' : alternate.label.toLowerCase();
+  const shots = [alternate, ...(MORE_SHOTS[id] ?? [])];
+  const total = shots.length + 1;
+  const frame = shotIndex === 0 ? null : shots[shotIndex - 1];
+  const viewName = frame?.label ?? (item.toy === 'phone' ? 'Задняя панель' : 'Общий вид');
+  const nextIndex = (shotIndex + 1) % total;
+  const nextView = nextIndex === 0 ? 'общий вид' : shots[nextIndex - 1].label.toLowerCase();
 
   return (
     <div className="tech-tour" data-tech-tour={id}>
       <button
         type="button"
         className="tech-tour-stage"
-        onClick={() => setDetail((value) => !value)}
+        onClick={() => setShotIndex((index) => (index + 1) % total)}
         aria-label={`${viewName}. Нажми, чтобы увидеть ${nextView}`}
       >
-        {!detail ? (
+        {!frame ? (
           <ProductPhoto key={`${id}-main`} id={id} alt={alt} className="tech-tour-photo" />
         ) : (
           <img
-            key={`${id}-alternate`}
-            className={`tech-tour-photo tech-tour-alt-photo${alternate.cutout ? ' is-cutout' : ''}`}
-            src={`${import.meta.env.BASE_URL}${alternate.path}`}
-            alt={`${alt}: ${alternate.label.toLowerCase()}`}
+            key={`${id}-shot-${shotIndex}`}
+            className={`tech-tour-photo tech-tour-alt-photo${frame.cutout ? ' is-cutout' : ''}`}
+            src={`${import.meta.env.BASE_URL}${frame.path}`}
+            alt={`${alt}: ${frame.label.toLowerCase()}`}
             width="1200"
             height="900"
             decoding="async"
@@ -127,9 +139,9 @@ export function TechTour({ id, alt }: { id: string; alt: string }) {
       </button>
       <div className="tech-tour-caption" aria-live="polite">
         <span>{viewName}</span>
-        <span className="tech-tour-count">{detail ? '2' : '1'} / 2</span>
+        <span className="tech-tour-count">{shotIndex + 1} / {total}</span>
       </div>
-      <div className="tech-tour-progress" aria-hidden="true"><i style={{ width: detail ? '100%' : '50%' }} /></div>
+      <div className="tech-tour-progress" aria-hidden="true"><i style={{ width: `${((shotIndex + 1) / total) * 100}%` }} /></div>
     </div>
   );
 }

@@ -18,7 +18,7 @@ import { DigitalCover } from '../DigitalCover';
 import { previewSoundCue, sfx } from '../../platform/sound';
 import type { ShopTuning } from '../../types';
 
-type CollectionAreaId = 'looks' | 'tech' | 'pets' | 'sport' | 'food' | 'bases' | 'music' | 'sounds' | 'style';
+type CollectionAreaId = 'looks' | 'tech' | 'pets' | 'sport' | 'food' | 'school' | 'bases' | 'music' | 'sounds' | 'style';
 type CollectionKind = 'shop-item' | 'costume' | 'building' | 'music' | 'sound' | 'theme';
 
 type CollectionItem = {
@@ -83,8 +83,8 @@ function collectionAreas(profile: NonNullable<ReturnType<typeof useActiveProfile
     ...ownedItems.filter((item) => item.kind !== 'toy').map((item) => ({ id: item.id, title: item.title, kind: 'shop-item' as const, item })),
     ...ALL_COSTUMES.filter((costume) => costumesOwned.includes(costume.id)).map((costume) => ({ id: costume.id, title: costume.title, kind: 'costume' as const, costume })),
   ];
-  const tech = ownedItems.filter((item) => item.kind === 'toy' && !['pet', 'sport', 'food'].includes(item.toy ?? '')).map((item) => ({ id: item.id, title: item.title, kind: 'shop-item' as const, item }));
-  const leisure = (toy: 'pet' | 'sport' | 'food') => ownedItems.filter((item) => item.kind === 'toy' && item.toy === toy).map((item) => ({ id: item.id, title: item.title, kind: 'shop-item' as const, item }));
+  const tech = ownedItems.filter((item) => item.kind === 'toy' && !['pet', 'sport', 'food', 'school'].includes(item.toy ?? '')).map((item) => ({ id: item.id, title: item.title, kind: 'shop-item' as const, item }));
+  const leisure = (toy: 'pet' | 'sport' | 'food' | 'school') => ownedItems.filter((item) => item.kind === 'toy' && item.toy === toy).map((item) => ({ id: item.id, title: item.title, kind: 'shop-item' as const, item }));
   const bases = BUILDINGS.filter((building) => (shop?.buildingsOwned ?? []).includes(building.id)).map((building) => ({ id: building.id, title: building.title, kind: 'building' as const, building }));
   const music = MUSIC_TRACKS.filter((track) => (shop?.musicOwned ?? []).includes(track.id)).map((track) => ({ id: track.id, title: track.title, kind: 'music' as const, track }));
   const sounds = SOUND_PACKS.filter((sound) => hasSoundPack(shop?.soundOwned, sound.id)).map((sound) => ({ id: sound.id, title: sound.title, kind: 'sound' as const, sound }));
@@ -97,6 +97,7 @@ function collectionAreas(profile: NonNullable<ReturnType<typeof useActiveProfile
     { id: 'pets', title: 'Питомцы', emoji: '🐾', items: leisure('pet') },
     { id: 'sport', title: 'Спорт', emoji: '⚽', items: leisure('sport') },
     { id: 'food', title: 'Вкусняшки', emoji: '🧁', items: leisure('food') },
+    { id: 'school', title: 'Школьные вещи', emoji: '🎒', items: leisure('school') },
     { id: 'bases', title: 'Базы', emoji: '🏙️', items: bases },
     { id: 'music', title: 'Музыка', emoji: '🎵', items: music },
     { id: 'sounds', title: 'Звуки', emoji: '🔊', items: sounds },

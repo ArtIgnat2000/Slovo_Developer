@@ -8,11 +8,11 @@ import { sfx } from '../platform/sound';
  * Раздел «НААШ» в магазине БУКа (0.74.0, docs/proposals/naash-shop.md).
  *
  * Школьный уголок, а не девятая полка товаров: две части на одном экране.
- *  • «Форма и вещи БУКа» — четыре наряда и игровая кружка линейки `series: 'naash'`;
+ *  • «Форма и вещи БУКа» — четыре наряда и две игровые школьные вещи линейки `series: 'naash'`;
  *    карточки те же, что на остальных полках (их рисует магазин и передаёт
  *    сюда готовыми), поэтому покупка, «Мечты», перекраска и сдача работают
  *    без отдельного каталога.
- *  • «Полка идей» — двенадцать картинок серии мерча. Тап открывает снимок
+ *  • «Полка идей» — десять картинок серии мерча; кружка и рюкзак живут в каталоге товаров. Тап открывает снимок
  *    крупно. Цен нет, «в мечты» нет: настоящих вещей школа не продаёт,
  *    и обещать ребёнку покупку нельзя.
  *
@@ -38,12 +38,7 @@ function SchoolSign({ size = 40 }: { size?: number }) {
 
 export function NaashPanel({ renderItem }: { renderItem: (item: ShopItem) => React.ReactNode }) {
   const [open, setOpen] = useState<SchoolIdea | null>(null);
-  const [shotIndex, setShotIndex] = useState(0);
   const items = SERIES_ITEMS('naash');
-  const shots = open
-    ? [{ file: open.file, label: 'Общий вид' }, ...(open.gallery ?? [])]
-    : [];
-  const activeShot = shots[shotIndex] ?? { file: open?.file ?? '', label: 'Общий вид' };
 
   useEffect(() => {
     if (!open) return;
@@ -79,7 +74,6 @@ export function NaashPanel({ renderItem }: { renderItem: (item: ShopItem) => Rea
             className="naash-tile"
             onClick={() => {
               sfx.tap();
-              setShotIndex(0);
               setOpen(idea);
             }}
             aria-label={`${idea.name} — открыть крупно`}
@@ -109,36 +103,13 @@ export function NaashPanel({ renderItem }: { renderItem: (item: ShopItem) => Rea
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={`${import.meta.env.BASE_URL}naash/${activeShot.file}.webp`}
+              src={`${import.meta.env.BASE_URL}naash/${open.file}.webp`}
               width={600}
               height={600}
-              alt={`${open.name}: ${activeShot.label.toLowerCase()}`}
+              alt={open.name}
               decoding="async"
               draggable={false}
             />
-            {shots.length > 1 && (
-              <div className="naash-gallery-controls" aria-label="Кадры галереи">
-                <button
-                  type="button"
-                  className="btn sm ghost"
-                  aria-label="Предыдущий кадр"
-                  onClick={() => setShotIndex((index) => (index - 1 + shots.length) % shots.length)}
-                >
-                  ‹
-                </button>
-                <span className="tiny muted" aria-live="polite">
-                  {activeShot.label} · {shotIndex + 1} / {shots.length}
-                </span>
-                <button
-                  type="button"
-                  className="btn sm ghost"
-                  aria-label="Следующий кадр"
-                  onClick={() => setShotIndex((index) => (index + 1) % shots.length)}
-                >
-                  ›
-                </button>
-              </div>
-            )}
             <div className="naash-sheet-title">{open.name}</div>
             <div className="tiny muted">{open.note}</div>
             <div className="tiny naash-honest">{SCHOOL.honest}</div>

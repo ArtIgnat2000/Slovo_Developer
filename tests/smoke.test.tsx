@@ -689,10 +689,10 @@ async function main() {
   if (naashChip) click(naashChip);
   await sleep(40);
   const naashTiles = () => Array.from(document.querySelectorAll('.naash-tile'));
-  check('«Полка идей»: двенадцать картинок серии', naashTiles().length === 12, String(naashTiles().length));
+  check('«Полка идей»: десять картинок после переноса кружки и рюкзака в товары', naashTiles().length === 10, String(naashTiles().length));
   check(
-    'форма и игровая кружка школы на месте',
-    ['Значок школы', 'Кепка школы', 'Шарф в триколоре', 'Худи школы', 'Кружка «НААШ»'].every((title) => has(title)),
+    'форма, кружка и рюкзак школы на месте в каталоге НААШ',
+    ['Значок школы', 'Кепка школы', 'Шарф в триколоре', 'Худи школы', 'Кружка «НААШ»', 'Рюкзак «Школа»'].every((title) => has(title)),
     '',
   );
   check(
@@ -712,18 +712,26 @@ async function main() {
   );
   check('подпись честная: это идеи, а не товар', has('Это идеи, а не товар'), '');
   check('в разделе нет рублей и предзаказов', !/₽|руб\.|предзаказ|заказать/i.test(body()), '');
-  const backpackTile = naashTiles().find((tile) => (tile.textContent ?? '').includes('Рюкзак'));
-  if (backpackTile) click(backpackTile as HTMLButtonElement);
+  if (naashTiles()[0]) click(naashTiles()[0] as HTMLButtonElement);
   await sleep(40);
-  check('тап по рюкзаку открывает галерею крупно', !!document.querySelector('.naash-sheet img'), '');
-  check('галерея рюкзака включает четыре самостоятельных кадра', has('1 / 4'), body());
-  const nextBackpackShot = document.querySelector<HTMLButtonElement>('.naash-gallery-controls button[aria-label="Следующий кадр"]');
-  if (nextBackpackShot) click(nextBackpackShot);
-  await sleep(20);
-  check('следующий кадр показывает содержимое рюкзака', has('2 / 4') && (document.querySelector('.naash-sheet img')?.getAttribute('alt') ?? '').includes('вместимость'), body());
+  check('тап по идее открывает изображение крупно', !!document.querySelector('.naash-sheet img'), '');
   click(buttons().find((b) => (b.textContent ?? '').includes('Закрыть')));
   await sleep(30);
-  check('лист картинки закрывается', !document.querySelector('.naash-sheet'), '');
+  check('лист идеи закрывается', !document.querySelector('.naash-sheet'), '');
+  const backpackCard = document.querySelector<HTMLElement>('.shop-item[aria-label="Рюкзак «Школа»"]');
+  if (backpackCard) click(backpackCard);
+  await sleep(40);
+  check('рюкзак в НААШ открывается как товар с галереей', !!document.querySelector('[data-tech-tour="school-backpack"]'), '');
+  check('галерея рюкзака содержит четыре кадра', has('1 / 4'), body());
+  for (let shot = 2; shot <= 4; shot++) {
+    const stage = document.querySelector<HTMLButtonElement>('[data-tech-tour="school-backpack"] .tech-tour-stage');
+    if (stage) click(stage);
+    await sleep(15);
+    check(`кадр рюкзака ${shot} из 4 доступен`, has(`${shot} / 4`), body());
+  }
+  click(document.querySelector('.shop-sheet-veil'));
+  await sleep(30);
+  check('лист товара рюкзака закрывается', !document.querySelector('[data-tech-tour="school-backpack"]'), '');
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды')));
   await sleep(30);
   check('в «Нарядах» нет дублей формы школы', !has('Значок школы') && has('Наряды БУКа'), '');
@@ -977,6 +985,16 @@ async function main() {
   // ещё): внутри маскота нет <image> с купленной машиной.
   check('купленная техника не рисуется на БУКе', !document.querySelector('.mascot svg image'), '');
 
+  // Категоризация купленных школьных товаров проверяется отдельно от покупки.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === s.activeId
+        ? { ...p, shop: { ...(p.shop ?? { owned: [], equipped: {} }), owned: [...new Set([...(p.shop?.owned ?? []), 'school-mug', 'school-backpack'])] } }
+        : p,
+    ),
+  }));
+  await sleep(30);
+
   // Техника — область полной коллекции, а не отдельная сцена/ангар.
   const myWorldTab = Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мой мир'));
   check('в шапке БУКа есть единый раздел «Мой мир»', !!myWorldTab, '');
@@ -984,6 +1002,13 @@ async function main() {
   await sleep(60);
   const techRegion = Array.from(document.querySelectorAll('.collection-area')).find((area) => (area.getAttribute('aria-label') ?? '').startsWith('Техника:'));
   check('«Мой мир» объединяет технику бывшего ангара с остальной коллекцией', !!techRegion && (techRegion.textContent ?? '').includes('Болид') && !!techRegion.querySelector('.collection-map-thumb') && !document.querySelector('.hangar'), body().slice(0, 200));
+  const schoolRegion = Array.from(document.querySelectorAll('.collection-area')).find((area) =>
+    (area.getAttribute('aria-label') ?? '').startsWith('Школьные вещи:'),
+  );
+  check('кружка и рюкзак в «Моём мире» лежат в области «Школьные вещи»',
+    !!schoolRegion && ['Кружка «НААШ»', 'Рюкзак «Школа»'].every((title) => (schoolRegion.textContent ?? '').includes(title)),
+    schoolRegion?.textContent ?? 'область не найдена',
+  );
   // 0.90.1: коллекция умеет надевать вещь. Без этой кнопки слияние «Моих
   // покупок» с «Моим миром» забрало бы единственное действие того раздела.
   {

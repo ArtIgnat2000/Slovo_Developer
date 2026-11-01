@@ -162,8 +162,8 @@ assert.ok(TOY_ITEMS.every((item) => !showsOnBuk(item)), 'техника не д�
 assert.ok(OUTFIT_ITEMS.every((item) => showsOnBuk(item)), 'наряды должны рисоваться на БУКе');
 assert.deepEqual(
   [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
-  ['car', 'food', 'pet', 'phone', 'plane', 'ship', 'sport'],
-  'техника и вещи БУКа: авто, самолёты, телефоны, корабли, питомцы, спорт и вкусняшки (0.72.0)',
+  ['car', 'food', 'pet', 'phone', 'plane', 'school', 'ship', 'sport'],
+  'подтипы каталога включают отдельные игровые школьные предметы',
 );
 // Авто и корабли идут рядом и доступны как отдельные полки.
 assert.deepEqual(
