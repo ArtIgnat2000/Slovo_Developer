@@ -78,7 +78,10 @@ export async function runShopCardChecks() {
     }
     await sleep(60);
     const cards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
-    const inShelf = PRODUCT_PHOTOS.filter((id) => TOY_ITEMS.find((item) => item.id === id)?.toy === kind);
+    const inShelf = PRODUCT_PHOTOS.filter((id) => {
+      const item = TOY_ITEMS.find((candidate) => candidate.id === id);
+      return item?.toy === kind && !item.series;
+    });
     const withPhoto = cards.filter((card) => !!card.querySelector('img.product-photo'));
     check(
       `карточка: на полке «${title}» каждый товар из списка фото показан снимком`,
@@ -96,7 +99,7 @@ export async function runShopCardChecks() {
   // сокращается с каждой партией. Если кто-то вернёт рисунок вместо готового
   // снимка, проверка упадёт и напомнит, что полка уже переехала в студию.
   const stillDrawn = TOY_ITEMS.filter(
-    (item) => ['pet', 'sport', 'food', 'plane', 'ship'].includes(item.toy ?? '') && !hasProductPhoto(item.id),
+    (item) => !item.series && ['pet', 'sport', 'food', 'plane', 'ship'].includes(item.toy ?? '') && !hasProductPhoto(item.id),
   ).map((item) => item.id);
   check(
     'фото товаров: у всех зверей, спорта, вкусняшек, самолётов и кораблей есть снимок',

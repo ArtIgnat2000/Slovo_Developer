@@ -8,10 +8,10 @@ import { sfx } from '../platform/sound';
  * Раздел «НААШ» в магазине БУКа (0.74.0, docs/proposals/naash-shop.md).
  *
  * Школьный уголок, а не девятая полка товаров: две части на одном экране.
- *  • «Форма БУКа» — четыре вещи линейки `series: 'naash'` за кристаллы;
+ *  • «Форма и вещи БУКа» — четыре наряда и игровая кружка линейки `series: 'naash'`;
  *    карточки те же, что на остальных полках (их рисует магазин и передаёт
  *    сюда готовыми), поэтому покупка, «Мечты», перекраска и сдача работают
- *    без единой новой ветки.
+ *    без отдельного каталога.
  *  • «Полка идей» — двенадцать картинок серии мерча. Тап открывает снимок
  *    крупно. Цен нет, «в мечты» нет: настоящих вещей школа не продаёт,
  *    и обещать ребёнку покупку нельзя.
@@ -21,30 +21,29 @@ import { sfx } from '../platform/sound';
  * (vite.config.ts, кэш `slovo2-naash`).
  */
 
-/** Знак школы: крыша, четыре стебля букв, полка — та же геометрия, что на вещах БУКа. */
-function SchoolSign({ size = 34 }: { size?: number }) {
+/** Фирменный знак школы: подключаем канон из docs/naash, не перерисовываем его в упрощённом SVG. */
+function SchoolSign({ size = 40 }: { size?: number }) {
   return (
-    <svg
+    <img
       className="naash-sign"
+      src={`${import.meta.env.BASE_URL}naash/mark-color.webp`}
       width={size}
-      height={(size * 10) / 16}
-      viewBox="0 0 16 10"
+      height={size}
+      alt=""
       aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M-0.4 3.4 L8 -0.4 L16.4 3.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="1.1" y="4.5" width="1.5" height="3.6" rx="0.3" fill="#D4212B" />
-      <rect x="4.05" y="4.5" width="1.5" height="3.6" rx="0.3" fill="#F0A31C" />
-      <rect x="7" y="4.5" width="1.5" height="3.6" rx="0.3" fill="#2E8B45" />
-      <rect x="11.1" y="4.5" width="1.5" height="3.6" rx="0.3" fill="#0F4CA0" />
-      <rect x="0.6" y="8.6" width="14.8" height="1.2" rx="0.3" fill="currentColor" />
-    </svg>
+      draggable={false}
+    />
   );
 }
 
 export function NaashPanel({ renderItem }: { renderItem: (item: ShopItem) => React.ReactNode }) {
   const [open, setOpen] = useState<SchoolIdea | null>(null);
+  const [shotIndex, setShotIndex] = useState(0);
   const items = SERIES_ITEMS('naash');
+  const shots = open
+    ? [{ file: open.file, label: 'Общий вид' }, ...(open.gallery ?? [])]
+    : [];
+  const activeShot = shots[shotIndex] ?? { file: open?.file ?? '', label: 'Общий вид' };
 
   useEffect(() => {
     if (!open) return;
@@ -80,6 +79,7 @@ export function NaashPanel({ renderItem }: { renderItem: (item: ShopItem) => Rea
             className="naash-tile"
             onClick={() => {
               sfx.tap();
+              setShotIndex(0);
               setOpen(idea);
             }}
             aria-label={`${idea.name} — открыть крупно`}
@@ -109,13 +109,36 @@ export function NaashPanel({ renderItem }: { renderItem: (item: ShopItem) => Rea
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={`${import.meta.env.BASE_URL}naash/${open.file}.webp`}
+              src={`${import.meta.env.BASE_URL}naash/${activeShot.file}.webp`}
               width={600}
               height={600}
-              alt={open.name}
+              alt={`${open.name}: ${activeShot.label.toLowerCase()}`}
               decoding="async"
               draggable={false}
             />
+            {shots.length > 1 && (
+              <div className="naash-gallery-controls" aria-label="Кадры галереи">
+                <button
+                  type="button"
+                  className="btn sm ghost"
+                  aria-label="Предыдущий кадр"
+                  onClick={() => setShotIndex((index) => (index - 1 + shots.length) % shots.length)}
+                >
+                  ‹
+                </button>
+                <span className="tiny muted" aria-live="polite">
+                  {activeShot.label} · {shotIndex + 1} / {shots.length}
+                </span>
+                <button
+                  type="button"
+                  className="btn sm ghost"
+                  aria-label="Следующий кадр"
+                  onClick={() => setShotIndex((index) => (index + 1) % shots.length)}
+                >
+                  ›
+                </button>
+              </div>
+            )}
             <div className="naash-sheet-title">{open.name}</div>
             <div className="tiny muted">{open.note}</div>
             <div className="tiny naash-honest">{SCHOOL.honest}</div>

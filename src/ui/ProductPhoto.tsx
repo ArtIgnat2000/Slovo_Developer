@@ -46,6 +46,8 @@ export const PRODUCT_PHOTOS: readonly string[] = [
   'sport-skate',
   'sport-dumbbell',
   'sport-racket',
+  // Школа НААШ: игровая кружка из идеи серии (не реальный товар)
+  'school-mug',
   // Вкусняшки
   'food-donut',
   'food-kulich',

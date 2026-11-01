@@ -422,11 +422,10 @@ export function ShopScreen({
   const toyGoal = toysByShelf(toyShelf)
     .filter((item) => !isOwned(owned, item.id))
     .reduce<ShopItem | null>((best, item) => (!best || item.price < best.price ? item : best), null);
-  const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id));
-  // 0.74.0: форма школы — отдельной группой в «Моих покупках»: её ищут вместе,
-  // а не по слотам («кепка» рядом с короной, «худи» рядом с платьями).
-  const ownedSchool = ownedOutfits.filter((item) => item.series === 'naash');
-  const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id));
+  // Вся линейка НААШ собрана отдельно в покупках: и наряды, и кружка-игрушка.
+  const ownedSchool = SHOP_ITEMS.filter((item) => item.series === 'naash' && isOwned(owned, item.id));
+  const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id) && item.series !== 'naash');
+  const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id) && item.series !== 'naash');
   /**
    * Покупок ещё нет ни одной (0.32.1). Раньше «Мои покупки» у новичка
    * показывали четыре пустые карточки подряд — стена «Пока пусто»,
@@ -434,7 +433,7 @@ export function ShopScreen({
    * Теперь пустые секции не рисуются, а вместо них — одна строка-приглашение.
    */
   const noPurchases =
-    ownedOutfits.length === 0 && ownedToys.length === 0 && pz.assembled.length === 0 && musicOwned.length === 0 && buildingsOwned.length === 0 && crystalOwned.length === 0;
+    ownedSchool.length === 0 && ownedOutfits.length === 0 && ownedToys.length === 0 && pz.assembled.length === 0 && musicOwned.length === 0 && buildingsOwned.length === 0 && crystalOwned.length === 0;
 
   const tapWish = (id: string, title: string) => {
     sfx.tap();
@@ -1999,29 +1998,33 @@ export function ShopScreen({
             </div>
           )}
 
+          {/* Вещи линейки НААШ собираются вместе: надетая форма и кружка в «Моём мире». */}
+          {ownedSchool.length > 0 && (
+            <section className="mb" aria-label="Школа НААШ">
+              <h2 className="mb">🏫 Школа НААШ</h2>
+              <div className="col">
+                {ownedSchool.map((item) => {
+                  const toy = isToy(item);
+                  const wearing = !toy && isWearing(look, item);
+                  return wardrobeRow(
+                    item.id,
+                    { kind: 'item', item },
+                    toy ? <ToyArt id={item.id} size={44} tuning={profile.shop?.tuning} /> : <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={44} />,
+                    item.title,
+                    toy ? 'В коллекции «Моего мира»' : item.desc,
+                    wearing,
+                    toy ? 'Посмотреть' : wearing ? 'Снять' : 'Надеть',
+                    () => (toy ? openMyWorld() : tapWear(item)),
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {/* Наряды: по слотам, только купленное. Пустая секция не рисуется. */}
           {ownedOutfits.length > 0 && (
           <section className="mb" aria-label="Наряды">
             <h2 className="mb">Наряды</h2>
-            {ownedSchool.length > 0 && (
-              <div className="mb">
-                <h3 className="music-shelf-title">🏫 Школа НААШ</h3>
-                <div className="col">
-                  {ownedSchool.map((item) =>
-                    wardrobeRow(
-                      item.id,
-                      { kind: 'item', item },
-                      <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={44} />,
-                      item.title,
-                      item.desc,
-                      isWearing(look, item),
-                      isWearing(look, item) ? 'Снять' : 'Надеть',
-                      () => tapWear(item),
-                    ),
-                  )}
-                </div>
-              </div>
-            )}
             {(['head', 'face', 'neck', 'badge', 'back', 'body', 'feet'] as const).map((slot) => {
               const items = ownedBySlot(slot);
               if (!items.length) return null;

@@ -17,8 +17,8 @@ export const SCHOOL = {
   on: true,
   title: 'Школа НААШ',
   lead: 'Знак школы — на вещах БУКа. Это игра: настоящую форму школа не продаёт.',
-  formTitle: 'Форма БУКа',
-  formLead: 'Надень — и знак будет с тобой на уроках.',
+  formTitle: 'Форма и вещи БУКа',
+  formLead: 'Надень форму или возьми школьную кружку в «Мой мир».',
   ideasTitle: 'Полка идей',
   ideasLead: 'Какие вещи бывают со знаком школы. Это картинки, а не товар.',
   honest: 'Это идеи, а не товар: настоящих вещей школа пока не выпускает.',
@@ -30,6 +30,8 @@ export interface SchoolIdea {
   file: string;
   name: string;
   note: string;
+  /** Дополнительные фото для листа идеи (путь — файл в `public/naash/`). */
+  gallery?: { file: string; label: string }[];
 }
 
 /**
@@ -47,7 +49,16 @@ export const SCHOOL_IDEAS: SchoolIdea[] = [
   { file: 'pins-enamel', name: 'Значки «Три»', note: 'Эмаль с золотой окантовкой: знак, крыша, 1995' },
   { file: 'notebook-a5', name: 'Блокнот A5', note: 'Твёрдая обложка, резинка, 96 страниц в точку' },
   { file: 'mug-home', name: 'Кружка «Утро»', note: 'Керамика 330 мл, печать под глазурью' },
-  { file: 'backpack-school', name: 'Рюкзак «Школа»', note: 'Ортопедическая спинка, светоотражатели, 18 л' },
+  {
+    file: 'backpack-school',
+    name: 'Рюкзак «Школа»',
+    note: 'Ортопедическая спинка, светоотражатели, 18 л',
+    gallery: [
+      { file: 'backpack-school-inside', label: 'Вместимость и вещи' },
+      { file: 'backpack-school-pockets', label: 'Карман и органайзер' },
+      { file: 'backpack-school-packed', label: 'Что помещается внутри' },
+    ],
+  },
   { file: 'bus-city', name: 'Автобус «Школьный»', note: 'Ливрея городского маршрута, номер рейса — класс' },
   { file: 'tram-nn', name: 'Трамвай «Нижний»', note: 'Ретро-трамвай в цветах школы — для фото у входа' },
   { file: 'plane-livery', name: 'Лайнер «НААШ Эйр»', note: 'Полная ливрея: тёмный хвост, триколор, знак на киле' },

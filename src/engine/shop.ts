@@ -156,6 +156,8 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'school-cap', slot: 'head', kind: 'outfit', series: 'naash', title: 'Кепка школы', desc: 'Знак вышит на шести панелях, как на настоящей', price: 20 },
   { id: 'school-scarf', slot: 'neck', kind: 'outfit', series: 'naash', title: 'Шарф в триколоре', desc: 'Полоса в цветах знака, с бахромой', price: 30 },
   { id: 'school-hoodie', slot: 'body', kind: 'outfit', series: 'naash', title: 'Худи школы', desc: 'Футер цвета знака, знак на груди', price: 45 },
+  // Игровая вещь школы в той же линейке: это предмет для «Моего мира», не обещание настоящего мерча.
+  { id: 'school-mug', slot: 'toy', kind: 'toy', toy: 'food', emoji: '☕', series: 'naash', title: 'Кружка «НААШ»', desc: 'Керамическая кружка со знаком школы — для своего стола', price: 35 },
   // ── Техника (полка «Техника»): телефоны ─────────────────────────────────
   { id: 'phone-smart', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone Air', desc: 'Тонкий серебристый корпус, полированные грани и одна камера', price: 25 },
   { id: 'phone-flip', slot: 'toy', kind: 'toy', toy: 'phone', emoji: '📱', title: 'iPhone 17', desc: 'Лавандовое стекло, сатиновые грани и две камеры', price: 30 },
@@ -266,7 +268,8 @@ export function showsOnBuk(item: ShopItem): boolean {
 }
 
 export function toysByShelf(kind: ToyKind): ShopItem[] {
-  return TOY_ITEMS.filter((item) => item.toy === kind);
+  // Линейки живут на собственной полке (например, кружка НААШ — не на общей полке «Вкусняшки»).
+  return TOY_ITEMS.filter((item) => item.toy === kind && !item.series);
 }
 
 export function isOwned(owned: string[], id: string): boolean {
