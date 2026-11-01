@@ -7,7 +7,7 @@ import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { body, btn, btnText, buttons, check, click, currentWord, failureCount, gemAmounts, has, hasGem, hintButton, openHomeMenu, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, gemAmounts, has, hasGem, hintButton, openHomeMenu, openOwnItems, openParentSection, openRewardsSheet, openWorldCollection, shopSegment, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
@@ -545,22 +545,39 @@ async function main() {
   check('во вкладках есть магазин БУКа', !!shopTab);
   click(shopTab!);
   await sleep(80);
-  // 0.32.1: раздел называется «БУК», потому что внутри и витрина, и покупки.
-  // Сегмент покупок — «Мои покупки» (слово «Гардероб» устарело), а внутри
-  // него секции без повтора «Мои»: Наряды, Техника, Костюмы, Музыка, Звуки.
+  // 0.90.1: в БУКе две вкладки — «Витрина» и «Мой мир». «Мои покупки» слились
+  // с «Моим миром» (docs/proposals/lessons-panel.md): обе отвечали на один
+  // вопрос «что у меня есть», а внутри «Моего мира» теперь два режима.
   check(
-    'раздел БУКа открылся: «БУК 🎩», «Витрина», «Мои покупки»',
+    'раздел БУКа открылся: «БУК 🎩», «Витрина», «Мой мир»',
     (document.querySelector('.screen h1')?.textContent ?? '').includes('БУК') &&
       has('Витрина') &&
-      has('Мои покупки'),
+      !!shopSegment('Мой мир'),
     document.querySelector('.screen h1')?.textContent ?? '--',
   );
   check(
-    'сегмент покупок называется «Мои покупки», а не «Гардероб»',
-    !!Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки')) &&
+    'в БУКе ровно две вкладки: «Витрина» и «Мой мир»',
+    document.querySelectorAll('.shop-seg:not(.shop-seg-sub) button').length === 2 &&
+      !!shopSegment('Витрина') &&
+      !!shopSegment('Мой мир') &&
+      !shopSegment('Мои покупки') &&
       !has('Гардероб'),
     Array.from(document.querySelectorAll('.shop-seg button')).map((b) => b.textContent).join(' | '),
   );
+  click(shopSegment('Мой мир'));
+  await sleep(60);
+  check(
+    'внутри «Моего мира» два режима: коллекция и вещи',
+    !!shopSegment('Коллекция') && !!shopSegment('Вещи'),
+    Array.from(document.querySelectorAll('.shop-seg-sub button')).map((b) => b.textContent).join(' | '),
+  );
+  check(
+    '«Мой мир» открывается коллекцией — это режим по умолчанию',
+    !!document.querySelector('.collection-map') && shopSegment('Коллекция')?.getAttribute('aria-selected') === 'true',
+    shopSegment('Коллекция')?.getAttribute('aria-selected') ?? 'нет',
+  );
+  click(shopSegment('Витрина'));
+  await sleep(40);
   check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
   // 0.75.2: полки нарядов и костюмов объединены (PR #141), поэтому цену сверяем
   // отдельно в витрине нарядов и отдельно в витрине «Костюмы за кристаллы».
@@ -608,13 +625,14 @@ async function main() {
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
   check('показан баланс кристаллов', hasGem(useApp.getState().profiles[0].gems), gemAmounts().join(' / '));
 
-  // «Мой мир» — третий верхний раздел БУКа, доступный даже при пустой коллекции.
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
-  await sleep(40);
+  // «Мой мир» — единый раздел БУКа про «что у меня есть», доступный даже при
+  // пустой коллекции.
+  await openWorldCollection();
   check(
     '«Мой мир» доступен из БУКа и при пустой коллекции техники',
     (useApp.getState().profiles[0].shop?.owned ?? []).length === 0 &&
-      !!Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мой мир')),
+      !!shopSegment('Мой мир') &&
+      !!document.querySelector('.collection-map'),
     `куплено вещей: ${(useApp.getState().profiles[0].shop?.owned ?? []).length}`,
   );
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
@@ -955,11 +973,59 @@ async function main() {
   await sleep(60);
   const techRegion = Array.from(document.querySelectorAll('.collection-area')).find((area) => (area.getAttribute('aria-label') ?? '').startsWith('Техника:'));
   check('«Мой мир» объединяет технику бывшего ангара с остальной коллекцией', !!techRegion && (techRegion.textContent ?? '').includes('Болид') && !!techRegion.querySelector('.collection-map-thumb') && !document.querySelector('.hangar'), body().slice(0, 200));
+  // 0.90.1: коллекция умеет надевать вещь. Без этой кнопки слияние «Моих
+  // покупок» с «Моим миром» забрало бы единственное действие того раздела.
+  {
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) =>
+        p.id === s.activeId && !(p.shop?.owned ?? []).includes('crown')
+          ? { ...p, shop: { ...(p.shop ?? { owned: [], equipped: {} }), owned: [...(p.shop?.owned ?? []), 'crown'] } }
+          : p,
+      ),
+    }));
+    await sleep(60);
+    const looks = Array.from(document.querySelectorAll('.collection-area')).find((area) =>
+      (area.getAttribute('aria-label') ?? '').startsWith('Образы:'),
+    ) as HTMLButtonElement | undefined;
+    check('коллекция: образы — отдельная область', !!looks, '');
+    if (looks) {
+      click(looks);
+      await sleep(50);
+      const card = Array.from(document.querySelectorAll('.collection-item-card')).find((el) =>
+        (el.textContent ?? '').includes('Корона'),
+      ) as HTMLButtonElement | undefined;
+      check('коллекция: купленная вещь открывается карточкой', !!card, '');
+      if (card) {
+        click(card);
+        await sleep(50);
+        const wear = document.querySelector('[data-collection-wear]') as HTMLButtonElement | null;
+        check('коллекция: в карточке вещи есть «Надеть на Бука»', !!wear, body().slice(0, 160));
+        if (wear) {
+          const before = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId)?.shop?.equipped?.head;
+          click(wear);
+          await sleep(60);
+          const after = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId)?.shop?.equipped?.head;
+          check('коллекция: кнопка надевает вещь прямо из коллекции', after === 'crown' || after !== before, `${before} → ${after}`);
+          click(document.querySelector('[data-collection-wear]') as HTMLButtonElement);
+          await sleep(60);
+        }
+        // Назад к карте: карточка → область → карта.
+        click(buttons().find((b) => (b.textContent ?? '').includes('К области')));
+        await sleep(40);
+        click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));
+        await sleep(40);
+      }
+      if (!document.querySelector('.collection-map')) {
+        click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));
+        await sleep(40);
+      }
+    }
+  }
   click(buttons().find((b) => (b.textContent ?? '').includes('Назад в БУК')));
   await sleep(60);
   check('возврат из «Моего мира» сохранил исходную полку «Техника»', (document.querySelector('.shop-cats .chip.on')?.textContent ?? '').includes('Техника'));
 
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+  await openOwnItems();
   await sleep(40);
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(40);
@@ -1212,7 +1278,7 @@ async function main() {
   await sleep(30);
 
   // «Мои покупки»: примерочная и коллекция музыки (единственный вход — полка)
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+  await openOwnItems();
   await sleep(30);
   check('покупки: примерочная с БУком', has('мой наряд'), '');
   check(
@@ -1258,7 +1324,7 @@ async function main() {
     profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, shop: shopBeforeEmpty } : p)),
   }));
   await sleep(60);
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+  await openOwnItems();
   await sleep(40);
   check(
     'после покупки секция появляется: «Музыка» снова видна',
@@ -1312,7 +1378,7 @@ async function main() {
     await sleep(50);
     check('надевание обратно работает', Object.keys(useApp.getState().profiles[0].shop?.equipped ?? {}).length === 1, '');
     // Купленное живёт в гардеробе, сгруппированное по слотам
-    click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+    await openOwnItems();
     await sleep(30);
     check('купленная вещь живёт в гардеробе по слотам', has('Головные уборы'), '');
     check('секция «Мечты 🤍» отображает отложенную вещь', has('Мечты 🤍') && has(wishItem.title) && !!document.querySelector('.wishlist-card'), '');
@@ -1542,7 +1608,7 @@ async function main() {
 
   // ── Рост БУКа (пункт 5) ───────────────────────────────────────────────────
   // Ступень роста живёт в примерочной гардероба
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мои покупки'))!);
+  await openOwnItems();
   await sleep(30);
   check('магазин показывает ступень роста', /Птенец|Ученик|Знаток|Магистр/.test(body()), body().slice(0, 300));
   const before = useApp.getState().profiles[0];
@@ -1621,11 +1687,13 @@ async function main() {
     (menu?.textContent ?? '').includes('Кристаллы') && !(menu?.textContent ?? '').includes('Тратятся в БУКе'),
     menu?.querySelector('.menu-status')?.textContent ?? '',
   );
+  // 0.90.1: пункта «Мои покупки» больше нет — он вёл в тот же вопрос, что и
+  // «Мой мир» (две вкладки БУКа слились в одну).
   check(
-    'в меню есть награды, покупки, «Мой мир», класс, смена ученика, поддержка и отправка ссылки',
-    ['support', 'rewards', 'purchases', 'world', 'class', 'profiles', 'share'].every(
+    'в меню есть награды, «Мой мир», класс, смена ученика, поддержка и отправка ссылки',
+    ['support', 'rewards', 'world', 'class', 'profiles', 'share'].every(
       (key) => !!menu?.querySelector(`[data-menu="${key}"]`),
-    ),
+    ) && !menu?.querySelector('[data-menu="purchases"]'),
     Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
   );
   check(
@@ -1683,14 +1751,15 @@ async function main() {
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
 
-  // «Мои покупки» и «Мой мир» из меню ведут в соответствующие части БУКа.
+  // «Мой мир» из меню ведёт в «Мой мир» БУКа (0.90.1: единственная строка про
+  // «что у меня есть» — «Мои покупки» слились с ним).
   await openHomeMenu();
-  click(document.querySelector('[data-menu="purchases"]'));
+  click(document.querySelector('[data-menu="world"]'));
   await sleep(80);
-  const wardrobeTab = document.querySelector('.shop-seg button[aria-selected="true"]');
+  const worldTab = document.querySelector('.shop-seg:not(.shop-seg-sub) button[aria-selected="true"]');
   check(
-    '«Мои покупки» из меню открывают БУК на сегменте покупок',
-    !!wardrobeTab && (wardrobeTab.textContent ?? '').includes('Мои покупки') && !document.querySelector('.home-menu'),
+    '«Мой мир» из меню открывает БУК на сегменте «Мой мир»',
+    !!worldTab && (worldTab.textContent ?? '').includes('Мой мир') && !document.querySelector('.home-menu'),
     body().slice(0, 200),
   );
   click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab')));

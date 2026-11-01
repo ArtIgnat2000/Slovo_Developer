@@ -31,6 +31,49 @@ export async function expandPath(): Promise<void> {
   }
 }
 
+/** Сегмент БУКа по тексту: «Витрина», «Мой мир», «Коллекция», «Вещи». */
+export function shopSegment(text: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll('.shop-seg button')).find((b) =>
+    (b.textContent ?? '').includes(text),
+  ) as HTMLButtonElement | undefined;
+}
+
+/**
+ * БУК → «Мой мир → Вещи» (0.90.1).
+ *
+ * Раньше это был отдельный сегмент «Мои покупки». После слияния разделов вещи
+ * живут внутри «Моего мира» вторым режимом, поэтому тестам нужны два клика.
+ * Идемпотентно: если режим «Вещи» уже открыт, второй клик не вредит.
+ */
+export async function openOwnItems(): Promise<void> {
+  const world = shopSegment('Мой мир');
+  if (world && !document.querySelector('.shop-stage')) {
+    click(world);
+    await sleep(50);
+  }
+  const items = shopSegment('Вещи');
+  if (items && items.getAttribute('aria-selected') !== 'true') {
+    click(items);
+    await sleep(50);
+  }
+}
+
+/**
+ * БУК → «Мой мир → Коллекция». Возврат на витрину — тем же сегментом.
+ */
+export async function openWorldCollection(): Promise<void> {
+  const world = shopSegment('Мой мир');
+  if (world) {
+    click(world);
+    await sleep(50);
+  }
+  const collection = shopSegment('Коллекция');
+  if (collection && collection.getAttribute('aria-selected') !== 'true') {
+    click(collection);
+    await sleep(50);
+  }
+}
+
 /** Меню ☰ на главной (0.33.0). Идемпотентно, если уже открыто. */
 export async function openHomeMenu(): Promise<void> {
   if (document.querySelector('.home-menu')) return;

@@ -575,6 +575,11 @@ interface AppState {
   /** Удалить список. Свои слова остаются в профиле: они могут быть в другом списке. */
   removeList: (listId: string) => void;
   renameList: (listId: string, title: string) => void;
+  /**
+   * Показывать список на главной или нет (0.90.0). Скрытие — видимость, а не
+   * удаление: список остаётся в «Родителям» и тренируется оттуда.
+   */
+  setListHidden: (listId: string, hidden: boolean) => void;
   /** Переставить ударение своего слова и пересчитать «опасные» буквы. */
   setCustomWordStress: (wordId: string, index: number) => void;
   /** Отметить, что список тренировали (подпись «последний раз — вчера»). */
@@ -1834,6 +1839,13 @@ export const useApp = create<AppState>()(
           ...p,
           lists: (p.lists ?? []).map((l) =>
             l.id === listId ? { ...l, title: title.trim() ? title.trim().slice(0, 80) : l.title } : l,
+          ),
+        }))),
+      setListHidden: (listId, hidden) =>
+        set((s) => patchActive(s, (p) => ({
+          ...p,
+          lists: (p.lists ?? []).map((l) =>
+            l.id === listId ? (hidden ? { ...l, hidden: true } : { ...l, hidden: undefined }) : l,
           ),
         }))),
       setCustomWordStress: (wordId, index) =>

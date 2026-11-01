@@ -253,20 +253,40 @@ export async function runQuestUiChecks(): Promise<void> {
     !!document.querySelector('.home-hero') && has('Сегодня') && !!btnText('Начать'),
     bodyText(),
   );
-  // 0.35.0: задания вернулись на главную полоской-итогом (одна кнопка),
-  // а подробности и «Забрать» остались в листе наград.
+  // 0.90.0: «Задания дня» больше не отдельная полоска над героем — это строка
+  // плана внутри блока «Сегодня», под главным действием. Разбор —
+  // docs/proposals/lessons-panel.md: полоска над героем конкурировала с
+  // «Начать», и до главного действия было четыре кнопки.
   const strip = document.querySelector('.quest-strip') as HTMLButtonElement | null;
-  check('главная: «Задания дня» видны сразу — полоской над героем', !!strip, bodyText().slice(0, 160));
+  check('главная: «Задания дня» видны сразу — строкой плана «Сегодня»', !!strip, bodyText().slice(0, 160));
   check(
-    'главная: полоска стоит выше героя',
+    'главная: задания стоят в блоке «Сегодня», а не над ним',
+    !!strip && !!strip.closest('.home-today') && !!strip.closest('.today-steps'),
+    strip?.parentElement?.className ?? 'нет полоски',
+  );
+  check(
+    'главная: герой «Сегодня» стоит выше заданий — главное действие первое',
     !!strip &&
       !!document.querySelector('.home-hero') &&
-      (strip.compareDocumentPosition(document.querySelector('.home-hero')!) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      (strip.compareDocumentPosition(document.querySelector('.home-hero')!) & Node.DOCUMENT_POSITION_PRECEDING) !== 0,
     '',
   );
   check(
-    'главная: в полоске прогресс и обещание сундука',
-    !!strip && /0 из 3|1 из 3|2 из 3|3 из 3/.test(strip.textContent ?? '') && (strip.textContent ?? '').includes('сундук'),
+    'главная: до «Начать» нет ни одной кнопки-конкурента',
+    (() => {
+      const hero = document.querySelector('.home-hero');
+      if (!hero) return false;
+      const before = Array.from(document.querySelectorAll('.screen button')).filter(
+        (b) => (hero.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING) !== 0,
+      );
+      // Только шапка: профиль и меню ☰.
+      return before.every((b) => !!b.closest('.topbar'));
+    })(),
+    '',
+  );
+  check(
+    'главная: в строке заданий прогресс и обещание сундука',
+    !!strip && /0 из 3|1 из 3|2 из 3|3 из 3/.test(strip.textContent ?? '') && (strip.textContent ?? '').toLowerCase().includes('сундук'),
     strip?.textContent ?? '',
   );
   check(
@@ -275,10 +295,10 @@ export async function runQuestUiChecks(): Promise<void> {
     bodyText(),
   );
   {
-    // Одна кнопка: тап по полоске открывает тот же лист наград.
+    // Одна кнопка: тап по строке открывает тот же лист наград.
     click(strip);
     await sleep(60);
-    check('главная: полоска открывает лист наград', !!document.querySelector('.rewards-sheet'), bodyText().slice(0, 160));
+    check('главная: строка заданий открывает лист наград', !!document.querySelector('.rewards-sheet'), bodyText().slice(0, 160));
     click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
     await sleep(40);
     check('главная: после закрытия листа главная на месте', !!document.querySelector('.quest-strip') && !document.querySelector('.rewards-sheet'), '');
