@@ -3,50 +3,90 @@
 // диалог выхода из урока, монотонную полоску прогресса, пометку отработки ошибки,
 // экран результатов с целью дня, выдачу награды за задания дня и сундук.
 import './setup';
-import { readFileSync } from 'node:fs';
 import './adaptive.test';
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
-import { body, btn, btnText, buttons, check, click, currentWord, failureCount, has, openParentSection, openRewardsSheet, sleep } from './ui-helpers';
+import { body, btn, btnText, buttons, check, click, currentWord, failureCount, gemAmounts, has, hasGem, hintButton, openHomeMenu, openOwnItems, openParentSection, openRewardsSheet, openWorldCollection, shopSegment, sleep } from './ui-helpers';
 import { runAdaptiveUiChecks } from './adaptive-ui.test';
 import { runQuestUiChecks } from './quests-ui.test';
 import { runInstallHintChecks } from './install-hint.test';
 import { runChestCeremonyChecks } from './chest-ceremony-ui.test';
 import { runChestSkinsUiChecks } from './chest-skins-ui.test';
 import { runParentUiChecks } from './parent-ui.test';
+import { runListsChecks } from './lists-ui.test';
 import { runPretestAuditChecks } from './pretest-audit.test';
 import { runPuzzleUiChecks } from './puzzles-ui.test';
-import { runBuildingUiChecks } from './buildings-ui.test';
-import './buildings.test';
+import { runShopCardChecks } from './cards-ui.test';
 import { runDiagnosticsRouteChecks } from './diagnostics-ui.test';
+import { runUpdateCheckUiChecks } from './update-check-ui.test';
+import { runQuickSoundChecks } from './quick-sound-ui.test';
 import { runShareAppChecks } from './share-ui.test';
 import { runThemeChecks } from './theme-ui.test';
 import { runFloatingMascotChecks } from './mascot-ui.test';
+import { runBukChatChecks } from './buk-chat-ui.test';
 import { runBukLessonChecks } from './buk-lesson-ui.test';
 import { runLessonArtChecks } from './lesson-art-ui.test';
 import { runVerdictChecks } from './verdict-ui.test';
+import { runTypingChecks } from './typing-ui.test';
+import { runUiCleanupChecks } from './ui-cleanup.test';
+import { runHomePathChecks } from './home-path.test';
+import { runDictionaryUiChecks } from './dictionary-ui.test';
+import { runClassChecks } from './classes.test';
+import { runWorldUiChecks } from './world-ui.test';
+import { runBaseTourUiChecks } from './base-tour-ui.test';
+import { runRatingUiChecks } from './rating-ui.test';
+// Смена цвета купленной вещи не должна включать музыку (регрессия магазина).
+import './recolor-music.test';
 import { LESSONS, WORDS } from '../src/content/words';
-import { MUSIC_TRACKS, STARTER_TRACK_IDS } from '../src/engine/music';
+import { MUSIC_TRACKS } from '../src/engine/music';
 import { SOUND_PACKS, STARTER_SOUND_IDS } from '../src/engine/sounds';
+import { BASE_SETS } from '../src/engine/base-sets';
 import { resolvePhotoSize, resolveWordCardVariant } from '../src/ui/WordView';
 import { buildLesson, lessonCardLimit } from '../src/engine/scheduler';
-import { dayKey, dayPlan, ENDLESS_GEMS, setEndlessGemsForTests, useApp } from '../src/state/store';
+import { dayKey, dayPlan, useApp } from '../src/state/store';
 import { idbStorage } from '../src/platform/storage';
 import { MAIN_KEY } from '../src/platform/vault';
 import { questTitle } from '../src/engine/quests';
-import { normalizeWorld, toggleWorldPick } from '../src/engine/world';
-import { compareByRarity, ITEM_BY_ID, RARITY_LABEL, SHOP_ITEMS, TOY_ITEMS, growthStage, rarityOf, sellPrice } from '../src/engine/shop';
+import { ITEM_BY_ID, SHOP_ITEMS, TOY_ITEMS, growthStage, sellPrice } from '../src/engine/shop';
+import { hasProductPhoto } from '../src/ui/ProductPhoto';
+import { isTechTourItem } from '../src/ui/TechTour';
 import { TINT_PALETTES, TINT_PRICE } from '../src/engine/tints';
-import { BUILDINGS } from '../src/engine/buildings';
-import { CHEST_SKINS } from '../src/engine/chests';
-import { COSTUMES, CRYSTAL_COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
+import { hasProductPhoto } from '../src/ui/ProductPhoto';
+import { hasOutfitPair } from '../src/ui/PhotoPair';
 import { THEME_STYLES } from '../src/engine/theme-styles';
 import { masteredCount } from '../src/state/store';
 import { runStudyEngineChecks } from './study.test';
 
 // Общая обвязка (клики, поиск кнопок, счётчик проверок) — в tests/ui-helpers.ts:
 // её же использует блок интеграционных проверок адаптации.
+
+/**
+ * Проверяет, что товарные карточки внутри витрины стоят по возрастанию цены.
+ *
+ * С 0.79.0 ценник — компактная плашка в подвале карточки (`.shop-foot`), и в
+ * неё попадают только настоящие числа. Фильтр `/^\d+$/` остаётся страховкой:
+ * счётчики фрагментов и плашки состояний — не цены, в сравнение не идут.
+ */
+function pricesAscending(selector: string, root: ParentNode = document): boolean {
+  const prices = Array.from(root.querySelectorAll(selector))
+    .map((card) => (card.querySelector('.shop-price')?.textContent ?? '').trim())
+    .filter((text) => /^\d+$/.test(text))
+    .map(Number);
+  return prices.length > 0 && prices.every((price, index) => index === 0 || prices[index - 1] <= price);
+}
+
+/** Витрины полки в порядке появления — у объединённой полки их несколько. */
+function shopGrids(shelf: string): Element[] {
+  return Array.from(document.querySelectorAll(`section[aria-label="${shelf}"] .shop-boutique`));
+}
+
+/** Кнопка-чип полки магазина по названию. */
+function shopChip(title: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll('.shop-cats .chip')).find((chip) =>
+    (chip.textContent ?? '').includes(title),
+  ) as HTMLButtonElement | undefined;
+}
 
 /** Полоска прогресса именно урока (в шапке), а не уровня на главной. */
 function lessonBarWidth(): number {
@@ -200,7 +240,7 @@ async function playLesson(second = false) {
     }
 
     // 6. Любая подсказка — если задание почему-то не поддаётся
-    const anyHint = btn((b) => (b.textContent ?? '').trim().startsWith('💡'));
+    const anyHint = hintButton();
     if (anyHint) {
       idle = 0;
       click(anyHint);
@@ -223,9 +263,6 @@ async function playLesson(second = false) {
 
 
 async function main() {
-  // Точная арифметика алмазов (списано ровно N 💎) проверяется при выключенном
-  // восполнении; продуктовое поведение «бесконечные алмазы» — в конце прогона.
-  setEndlessGemsForTests(false);
   // Как в main.tsx: сначала дожидаемся чтения сохранения. Сторож записи держит
   // запись замороженной до подтверждённого чтения, иначе тесты писали бы впустую.
   await useApp.persist.rehydrate();
@@ -311,25 +348,7 @@ async function main() {
     plan.map((q) => questTitle(q.spec, q.target)).join(' / '),
   );
   check('сундук начинает с нулём ключей', has('Ключи: 0 из 3'), '');
-  check(
-    'новый профиль стартует с бесконечным запасом кристаллов',
-    useApp.getState().profiles[0].gems === ENDLESS_GEMS,
-    String(useApp.getState().profiles[0].gems),
-  );
-  {
-    // Всё открыто с первого запуска: наряды, техника, здания, костюмы, музыка, звуки, облики сундука.
-    const fresh = useApp.getState().profiles[0];
-    const everything =
-      (fresh.shop?.owned ?? []).length === SHOP_ITEMS.length &&
-      (fresh.shop?.buildingsOwned ?? []).length === BUILDINGS.length &&
-      Boolean(fresh.shop?.activeBuilding) &&
-      (fresh.shop?.musicOwned ?? []).length === MUSIC_TRACKS.length &&
-      (fresh.shop?.soundOwned ?? []).length === SOUND_PACKS.length &&
-      (fresh.puzzle?.assembled ?? []).length === COSTUMES.length &&
-      Object.values(fresh.puzzle?.pieces ?? {}).every((n) => n === PUZZLE_SIZE) &&
-      (fresh.chestSkins ?? []).length === CHEST_SKINS.length;
-    check('всё открыто с первого запуска: вещи, здания, костюмы, музыка, звуки, облики сундука', everything, '');
-  }
+  check('кристаллов пока 0', hasGem(0), gemAmounts().join(' / '));
   click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
   await sleep(40);
 
@@ -340,12 +359,12 @@ async function main() {
   check('диалог «Выйти из урока?» показан, урок продолжился', run.sawDialog, '');
   check('экрана результатов достигли', run.reachedResults, `ответов с вердиктом: ${run.verdicts}`);
   check('на экране результатов виден плавающий БУК', document.querySelectorAll('.app > .mascot').length === 1, '');
-  check('склонение слов на экране результатов («1 слово»)', has('1 слово'), body().slice(0, 220));
+  check('склонение ошибок на экране результатов («1 ошибка»)', has('1 ошибка'), body().slice(0, 220));
   check('ошибка в уроке засчитана (вердикт «Ошибка» видели)', run.madeMistake, `вердиктов: ${run.verdicts}`);
   check('задания-отработки после ошибок встречались', run.repairBadges > 0, '');
   check('на отработке счётчик уступает место пометке «ещё раз»', run.counterHiddenOnRepair, '');
   check('результаты показывают цель дня', has('цель 120') && has('Цель дня'), body().slice(0, 300));
-  check('видно, что урок принёс опыт', /Урок принёс|Тренировка дала|Прогресс есть/.test(body()), '');
+  check('опыт показан один раз без пояснения-дубля', has('Опыт за урок') && !/Урок принёс|Тренировка дала|Прогресс есть/.test(body()), '');
   click(btnText('К урокам')!);
   await sleep(80);
 
@@ -526,16 +545,98 @@ async function main() {
   check('во вкладках есть магазин БУКа', !!shopTab);
   click(shopTab!);
   await sleep(80);
-  check('магазин открылся', has('Магазин БУКа'), body().slice(0, 200));
+  // 0.90.1: в БУКе две вкладки — «Витрина» и «Мой мир». «Мои покупки» слились
+  // с «Моим миром» (docs/proposals/lessons-panel.md): обе отвечали на один
+  // вопрос «что у меня есть», а внутри «Моего мира» теперь два режима.
+  check(
+    'раздел БУКа открылся: «БУК 🎩», «Витрина», «Мой мир»',
+    (document.querySelector('.screen h1')?.textContent ?? '').includes('БУК') &&
+      has('Витрина') &&
+      !!shopSegment('Мой мир'),
+    document.querySelector('.screen h1')?.textContent ?? '--',
+  );
+  check(
+    'в БУКе ровно две вкладки: «Витрина» и «Мой мир»',
+    document.querySelectorAll('.shop-seg:not(.shop-seg-sub) button').length === 2 &&
+      !!shopSegment('Витрина') &&
+      !!shopSegment('Мой мир') &&
+      !shopSegment('Мои покупки') &&
+      !has('Гардероб'),
+    Array.from(document.querySelectorAll('.shop-seg button')).map((b) => b.textContent).join(' | '),
+  );
+  click(shopSegment('Мой мир'));
+  await sleep(60);
+  check(
+    'внутри «Моего мира» два режима: коллекция и вещи',
+    !!shopSegment('Коллекция') && !!shopSegment('Вещи'),
+    Array.from(document.querySelectorAll('.shop-seg-sub button')).map((b) => b.textContent).join(' | '),
+  );
+  check(
+    '«Мой мир» открывается коллекцией — это режим по умолчанию',
+    !!document.querySelector('.collection-map') && shopSegment('Коллекция')?.getAttribute('aria-selected') === 'true',
+    shopSegment('Коллекция')?.getAttribute('aria-selected') ?? 'нет',
+  );
+  click(shopSegment('Витрина'));
+  await sleep(40);
   check('витрина по умолчанию — полка нарядов', has('Наряды БУКа'), '');
+  // 0.75.2: полки нарядов и костюмов объединены (PR #141), поэтому цену сверяем
+  // отдельно в витрине нарядов и отдельно в витрине «Костюмы за кристаллы».
+  const outfitShelves = shopGrids('Наряды');
+  check(
+    'наряды в витрине идут от меньшей цены к большей',
+    pricesAscending('.shop-item', outfitShelves[0]),
+    Array.from(outfitShelves[0]?.querySelectorAll('.shop-title') ?? []).map((el) => el.textContent).join(' → '),
+  );
+  // 0.89.0: фотосерия нарядов подключена к витрине. В нише карточки — сам
+  // предмет (раньше сова в вещи на 96 px, по которой очки и брошь не узнать),
+  // в листе — пара кадров с переключением по тапу (жалоба «не нашёл фото»).
+  const crownCard = Array.from(document.querySelectorAll('.shop-item')).find((el) => (el.textContent ?? '').includes('Корона'));
+  check(
+    'наряд с фотопарой показывает в нише студийный снимок',
+    !!crownCard?.querySelector('.shop-case-photo img[src*="products/crown.webp"]'),
+    crownCard?.querySelector('.shop-case img')?.getAttribute('src') ?? 'нет снимка',
+  );
+  click(crownCard);
+  await sleep(60);
+  check(
+    'в листе наряда — пара кадров: главный и второй ракурс',
+    document.querySelectorAll('.photo-tour').length === 1 &&
+      (document.querySelector('.photo-tour img')?.getAttribute('src') ?? '').includes('products/crown.webp') &&
+      (document.querySelector('.photo-tour-caption')?.textContent ?? '').includes('1 / 2'),
+    document.querySelector('.photo-tour-caption')?.textContent ?? 'пары нет',
+  );
+  click(document.querySelector('.photo-tour-stage'));
+  await sleep(40);
+  check(
+    'тап по кадру переключает на второй ракурс пары',
+    (document.querySelector('.photo-tour img')?.getAttribute('src') ?? '').includes('products/gallery/crown-alt.webp') &&
+      (document.querySelector('.photo-tour-caption')?.textContent ?? '').includes('2 / 2'),
+    document.querySelector('.photo-tour-caption')?.textContent ?? '--',
+  );
+  click(document.querySelector('.shop-sheet-veil'));
+  await sleep(40);
+  check('лист наряда закрывается тапом по затемнению', !document.querySelector('.photo-tour'), '');
+
   check(
     'полки — чипами, «Звуки» уже открыты',
     has('Костюмы') && has('Музыка') && !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки') && !c.hasAttribute('disabled')) && !has('скоро'),
     '',
   );
   check('полка «Фоны» активна', !!Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны') && !c.hasAttribute('disabled')), '');
-  check('показан баланс кристаллов', has(`💎 ${useApp.getState().profiles[0].gems}`), '');
-  await runBuildingUiChecks();
+  check('показан баланс кристаллов', hasGem(useApp.getState().profiles[0].gems), gemAmounts().join(' / '));
+
+  // «Мой мир» — единый раздел БУКа про «что у меня есть», доступный даже при
+  // пустой коллекции.
+  await openWorldCollection();
+  check(
+    '«Мой мир» доступен из БУКа и при пустой коллекции техники',
+    (useApp.getState().profiles[0].shop?.owned ?? []).length === 0 &&
+      !!shopSegment('Мой мир') &&
+      !!document.querySelector('.collection-map'),
+    `куплено вещей: ${(useApp.getState().profiles[0].shop?.owned ?? []).length}`,
+  );
+  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
+  await sleep(40);
 
   const backgroundShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Фоны'));
   click(backgroundShelf);
@@ -576,121 +677,295 @@ async function main() {
     useApp.getState().settings.themeStyle === originalThemeStyle && document.documentElement.dataset.themeStyle === originalThemeStyle,
   );
 
-  // Всё открыто с первого запуска, поэтому сценарий техники начинаем без уже купленной
-  // техники: проверяем покупку, слот и ангар так же, как в пустом магазине.
-  useApp.setState((s) => ({
-    profiles: s.profiles.map((p) => (p.id === s.activeId
-      ? { ...p, shop: { ...p.shop!, owned: (p.shop?.owned ?? []).filter((id) => ITEM_BY_ID[id]?.kind !== 'toy'), equipped: { ...p.shop?.equipped, toy: undefined } } }
-      : p)),
-  }));
+  // ── Школа НААШ: школьный уголок витрины (0.74.0) ───────────────────────────
+  // Раздел — не девятая полка товаров: форма БУКа за кристаллы и «полка идей»
+  // с картинками серии. Цен в рублях и «заказать» здесь быть не может.
+  const naashChip = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('НААШ'));
+  check(
+    'в витрине есть школьный уголок «НААШ»',
+    !!naashChip,
+    Array.from(document.querySelectorAll('.shop-cats .chip')).map((c) => c.textContent).join(' | '),
+  );
+  if (naashChip) click(naashChip);
+  await sleep(40);
+  const naashTiles = () => Array.from(document.querySelectorAll('.naash-tile'));
+  check('«Полка идей»: десять картинок после переноса кружки и рюкзака в товары', naashTiles().length === 10, String(naashTiles().length));
+  check(
+    'форма, кружка и рюкзак школы на месте в каталоге НААШ',
+    ['Значок школы', 'Кепка школы', 'Шарф в триколоре', 'Худи школы', 'Кружка «НААШ»', 'Рюкзак «Школа»'].every((title) => has(title)),
+    '',
+  );
+  check(
+    'шапка показывает канонический цветной знак школы',
+    document.querySelector('.naash-sign')?.getAttribute('src')?.endsWith('/naash/mark-color.webp') ?? false,
+    '',
+  );
+  check(
+    'у каждой картинки есть подпись для скринридера',
+    naashTiles().every((tile) => (tile.getAttribute('aria-label') ?? '').length > 5),
+    '',
+  );
+  check(
+    'картинки полки грузятся лениво — установка не тяжелеет',
+    naashTiles().every((tile) => tile.querySelector('img')?.getAttribute('loading') === 'lazy'),
+    '',
+  );
+  check('подпись честная: это идеи, а не товар', has('Это идеи, а не товар'), '');
+  check('в разделе нет рублей и предзаказов', !/₽|руб\.|предзаказ|заказать/i.test(body()), '');
+  if (naashTiles()[0]) click(naashTiles()[0] as HTMLButtonElement);
+  await sleep(40);
+  check('тап по идее открывает изображение крупно', !!document.querySelector('.naash-sheet img'), '');
+  click(buttons().find((b) => (b.textContent ?? '').includes('Закрыть')));
   await sleep(30);
+  check('лист идеи закрывается', !document.querySelector('.naash-sheet'), '');
+  const backpackCard = document.querySelector<HTMLElement>('.shop-item[aria-label="Рюкзак «Школа»"]');
+  if (backpackCard) click(backpackCard);
+  await sleep(40);
+  check('рюкзак в НААШ открывается как товар с галереей', !!document.querySelector('[data-tech-tour="school-backpack"]'), '');
+  check('галерея рюкзака содержит четыре кадра', has('1 / 4'), body());
+  for (let shot = 2; shot <= 4; shot++) {
+    const stage = document.querySelector<HTMLButtonElement>('[data-tech-tour="school-backpack"] .tech-tour-stage');
+    if (stage) click(stage);
+    await sleep(15);
+    check(`кадр рюкзака ${shot} из 4 доступен`, has(`${shot} / 4`), body());
+  }
+  click(document.querySelector('.shop-sheet-veil'));
+  await sleep(30);
+  check('лист товара рюкзака закрывается', !document.querySelector('[data-tech-tour="school-backpack"]'), '');
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды')));
+  await sleep(30);
+  check('в «Нарядах» нет дублей формы школы', !has('Значок школы') && has('Наряды БУКа'), '');
+
   // ── Полка «Техника»: отдельные разделы авто, кораблей и телефонов ──────
   const toyShelf = Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Техника'));
   check('в витрине есть полка «Техника»', !!toyShelf, '');
   if (toyShelf) click(toyShelf);
   await sleep(30);
   const toyTabs = () => Array.from(document.querySelectorAll('.shop-toy-cats [role="tab"]'));
-  check('разделы авто, самолётов, кораблей и телефонов доступны отдельными вкладками', ['Авто', 'Самолёты', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))), '');
-  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 14 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
   check(
-    '«Авто»: десять прежних машин и четыре машины в стиле баз',
-    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход'].every((title) => has(title)),
+    'разделы авто, кораблей и телефонов доступны отдельными вкладками',
+    ['Авто', 'Самолёты', 'Корабли', 'Телефоны'].every((title) => toyTabs().some((tab) => (tab.textContent ?? '').includes(title))),
+    toyTabs().map((tab) => tab.textContent).join(' | '),
+  );
+  // 0.75.2: питомцы, спорт и вкусняшки больше не делят полку с техникой —
+  // у них собственные разделы магазина (PR #141).
+  check(
+    'питомцы, спорт и вкусняшки вынесены из техники в отдельные полки',
+    ['Питомцы', 'Спорт', 'Вкусняшки'].every((title) => shopChip(title)) && !toyTabs().some((tab) => /Питомцы|Спорт|Вкусняшки/.test(tab.textContent ?? '')),
+    toyTabs().map((tab) => tab.textContent).join(' | '),
+  );
+  check('«Авто» открывается первым и не смешивается с другими товарами', document.querySelectorAll('.shop-item.toy-item').length === 19 && has('Болид') && !has('Морская яхта') && !has('iPhone Air'), '');
+  check('авто внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
+  check(
+    '«Авто»: девятнадцать машин стоят на отдельной полке (0.76.0: паровоз «Огнедышащий»)',
+    ['Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Болид', 'Скалолаз', 'Жёлтый кэб', 'Квант', 'Импульс', 'Полярник', 'Луноход', 'Огнедышащий', 'Розовая машина', 'Розовая звезда', 'Тесла', 'Розовый танк'].every((title) => has(title)),
     '',
   );
   // Каждая машина — отдельный цветной карандашный рисунок (public/cars/*.webp).
   {
-    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход/;
-    const carArt = Array.from(document.querySelectorAll('.shop-item.toy-item'))
-      .filter((el) => carTitles.test(el.textContent ?? ''))
-      .map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
-    check('«Авто»: у каждой машины свой карандашный рисунок', carArt.length === 14 && new Set(carArt).size === carArt.length && carArt.every((src) => /\/cars\/car-[a-z-]+\.webp$/.test(src)), `уникальных рисунков: ${new Set(carArt).size}/${carArt.length}`);
+    const carTitles = /Звезда|Стрела|Кубик|Адмирал|Лорд|Бык|Молния|Болид|Скалолаз|Жёлтый кэб|Квант|Импульс|Полярник|Луноход|Огнедышащий|Розовая машина|Розовая звезда|Тесла/;
+    const carCards = Array.from(document.querySelectorAll('.shop-item.toy-item')).filter((el) => carTitles.test(el.textContent ?? ''));
+    const carArt = carCards.map((el) => el.querySelector('img')?.getAttribute('src') ?? '');
+    // 0.80.0: машины переводятся на студийные снимки партиями — рисунок
+    // остаётся только у тех, кого ещё не пересняли, и это видно по адресу.
+    check(
+      '«Авто»: у каждой машины своя картинка, без повторов',
+      carArt.length === 18 &&
+        new Set(carArt).size === carArt.length &&
+        carArt.every((src) => /\/(cars|products)\/car-[a-z-]+\.webp$/.test(src)),
+      `уникальных: ${new Set(carArt).size}/${carArt.length}`,
+    );
+    check(
+      '«Авто»: переснятые машины показывают студийный снимок',
+      carCards.every((el) => {
+        const src = el.querySelector('img')?.getAttribute('src') ?? '';
+        return !src.includes('/products/') || !!el.querySelector('.shop-icon > img.product-photo');
+      }),
+      carArt.join(', ').slice(0, 160),
+    );
+    const tankCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Розовый танк'));
+    check(
+      '«Авто»: розовый танк — либо снимок, либо рисунок, но не пустая ниша',
+      !!tankCard?.querySelector('.shop-icon img') || !!tankCard?.querySelector('.shop-icon svg'),
+      tankCard?.querySelector('.shop-icon')?.innerHTML.slice(0, 60) ?? 'нет карточки',
+    );
   }
   check('«Авто»: витрина-бутик показывает отдельные карточки машин', document.querySelectorAll('.shop-boutique').length === 1 && !!document.querySelector('.shop-boutique-mint'), '');
-
-  const planeTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Самолёты'));
-  if (planeTab) click(planeTab);
-  await sleep(30);
-  const planeCards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
-  const planeArts = Array.from(document.querySelectorAll('.shop-item.toy-item .airplane-art'));
-  check('«Самолёты»: есть обычный самолёт и четыре модели в стилях баз', planeCards.length === 5 && ['Стриж', 'Схемолёт', 'Северный ветер', 'Лунный орёл', 'Атомный дозор'].every((title) => has(title)), '');
-  check('«Самолёты»: пять разных моделей используют отдельные WebP-иллюстрации', planeArts.length === 5 && new Set(planeArts.map((art) => art.getAttribute('data-airplane-id'))).size === 5 && planeArts.every((art) => {
-    const id = art.getAttribute('data-airplane-id');
-    return !!id && art.querySelector('img')?.getAttribute('src')?.endsWith(`/planes/${id}.webp`);
-  }), '');
-  const atomicPlane = planeCards.find((card) => card.textContent?.includes('Атомный дозор'));
-  if (atomicPlane) click(atomicPlane.querySelector('.shop-title'));
-  await sleep(30);
-  const atomicPlaneSheet = document.querySelector('.shop-sheet');
-  check('подробная карточка самолёта открывает крупную иллюстрацию и описание', !!atomicPlaneSheet?.querySelector('.airplane-art[data-airplane-id="plane-atomic-base"]') && atomicPlaneSheet.textContent?.includes('атомная эмблема'), '');
-  if (atomicPlaneSheet) click(document.querySelector('.shop-sheet-veil'));
-  await sleep(20);
+  const galleryItems = TOY_ITEMS.filter((item) => (item.toy === 'phone' && item.id.startsWith('phone-')) || item.toy === 'ship' || item.toy === 'plane');
+  check(
+    'фотогалерея назначена всем 19 телефонам, кораблям и самолётам',
+    galleryItems.length === 19 && galleryItems.every((item) => isTechTourItem(item.id)),
+    `покрыто ${galleryItems.filter((item) => isTechTourItem(item.id)).length} из ${galleryItems.length}`,
+  );
 
   const shipTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Корабли'));
   if (shipTab) click(shipTab);
   await sleep(30);
-  check('«Корабли» — отдельная полка из четырёх больших судов', document.querySelectorAll('.shop-item.toy-item').length === 4 && ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец'].every((title) => has(title)), '');
+  check('«Корабли» — отдельная полка из пяти судов (0.72.0: добавлен «Титаник»)', document.querySelectorAll('.shop-item.toy-item').length === 5 && ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец', 'Титаник'].every((title) => has(title)), '');
+  check('корабли внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
   {
     const shipArt = Array.from(document.querySelectorAll('.shop-item.toy-item img')).map((img) => img.getAttribute('src') ?? '');
-    check('у яхты, контейнеровоза, танкера и авианосца — свои цветные иллюстрации', shipArt.length === 4 && new Set(shipArt).size === 4 && shipArt.every((src) => /\/ships\/ship-(yacht|container|tanker|carrier)\.webp$/.test(src)), `рисунков: ${shipArt.join(', ')}`);
+    // 0.79.0: у всех пяти судов — фотореалистичные студийные снимки моделей.
+    check(
+      'у каждого судна свой фотореалистичный снимок из папки продуктов',
+      shipArt.length === 5 && new Set(shipArt).size === 5 && shipArt.every((src) => /\/products\/ship-[a-z]+\.webp$/.test(src)),
+      `снимков: ${shipArt.join(', ')}`,
+    );
+    const titanicCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Титаник'));
+    check(
+      '«Титаник» снят с четырьмя трубами, а не нарисован схемой',
+      !!titanicCard?.querySelector('.shop-icon > img.product-photo') && !titanicCard.querySelector('.shop-icon svg'),
+      '',
+    );
   }
   const yachtCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Морская яхта'));
   if (yachtCard) click(yachtCard);
   await sleep(20);
   const yachtDetail = document.querySelector('.shop-sheet');
-  const yachtImage = yachtDetail?.querySelector('.shop-bigart-toy .ship-art img');
+  const yachtGallery = yachtDetail?.querySelector('.tech-tour');
   check(
-    'подробная карточка судна показывает крупное изображение без подписи про карандаш',
-    has('Морская яхта') && !!yachtImage && yachtImage.getAttribute('alt') === 'Морская яхта — морская яхта' && !yachtDetail?.textContent?.includes('карандаш'),
-    yachtDetail?.textContent ?? 'карточка не открылась',
+    'корабль: два согласованных фотографических кадра',
+    !!yachtGallery?.querySelector('.tech-tour-photo') && yachtGallery.querySelector('.tech-tour-count')?.textContent === '1 / 2',
+    yachtGallery?.textContent ?? 'галерея не открылась',
   );
+  check('товарная галерея не смешивает фотографии с рисунками', !yachtGallery?.querySelector('svg, .ship-art, .airplane-art, .phone-dream, .adventure-scene'), '');
+  const yachtImage = yachtDetail?.querySelector('.shop-bigart-toy img.product-photo');
+  check(
+    'подробная карточка судна показывает крупный снимок без подписи про карандаш',
+    has('Морская яхта') &&
+      !!yachtImage &&
+      yachtImage.getAttribute('src') === '/products/ship-paper.webp' &&
+      yachtImage.getAttribute('alt') === 'Морская яхта — морская яхта' &&
+      !yachtDetail?.textContent?.includes('карандаш'),
+    yachtDetail?.textContent?.slice(0, 120) ?? 'карточка не открылась',
+  );
+  const yachtGalleryStage = yachtGallery?.querySelector('.tech-tour-stage');
+  if (yachtGalleryStage) click(yachtGalleryStage);
+  await sleep(10);
+  check(
+    'корабль: второй кадр — студийное фото того же судна',
+    yachtGallery?.querySelector('.tech-tour-alt-photo')?.getAttribute('src') === '/products/gallery/ship-paper-alt.webp' && yachtGallery.querySelector('.tech-tour-count')?.textContent === '2 / 2',
+    '',
+  );
+  if (yachtGalleryStage) click(yachtGalleryStage);
+  await sleep(10);
+  check('корабль: тапом можно вернуться к общему виду', yachtGallery?.querySelector('.tech-tour-count')?.textContent === '1 / 2', '');
   const closeShipSheet = document.querySelector('.shop-sheet-veil');
   if (closeShipSheet) click(closeShipSheet);
+  await sleep(20);
+
+  const planeTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Самолёты'));
+  if (planeTab) click(planeTab);
+  await sleep(20);
+  const planeCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('Стриж'));
+  if (planeCard) click(planeCard);
+  await sleep(20);
+  const planeGallery = document.querySelector('.shop-sheet .tech-tour');
+  check('самолёт: два кадра без рисованной подмены фото', !!planeGallery?.querySelector('.tech-tour-photo') && !!planeGallery.querySelector('.tech-tour-count'), '');
+  const planeGalleryStage = planeGallery?.querySelector('.tech-tour-stage');
+  if (planeGalleryStage) click(planeGalleryStage);
+  await sleep(10);
+  check(
+    'самолёт: второй кадр остаётся студийной фотографией',
+    planeGallery?.querySelector('.tech-tour-alt-photo')?.getAttribute('src') === '/products/gallery/plane-swift-alt.webp' && planeGallery.querySelector('.tech-tour-count')?.textContent === '2 / 2',
+    '',
+  );
+  const closePlaneSheet = document.querySelector('.shop-sheet-veil');
+  if (closePlaneSheet) click(closePlaneSheet);
   await sleep(20);
 
   const phoneTab = toyTabs().find((tab) => (tab.textContent ?? '').includes('Телефоны'));
   if (phoneTab) click(phoneTab);
   await sleep(30);
   const phoneCard = Array.from(document.querySelectorAll('.shop-item.toy-item')).find((el) => (el.textContent ?? '').includes('iPhone Air'));
-  check('телефоны и электроника остаются отдельным разделом', document.querySelectorAll('.shop-item.toy-item').length === 7 && document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 7 && !!phoneCard?.querySelector('.phone-rotate'), '');
-  const rotatingPhone = phoneCard?.querySelector('.phone-rotate');
-  click(rotatingPhone);
-  await sleep(30);
-  check('тап по телефону поворачивает его, не открывая карточку', rotatingPhone?.getAttribute('aria-pressed') === 'true' && !!rotatingPhone.querySelector('.is-front') && !document.querySelector('.shop-sheet'), '');
-  click(rotatingPhone);
-  await sleep(30);
-  check('повторный тап возвращает заднюю панель', rotatingPhone?.getAttribute('aria-pressed') === 'false', '');
+  // 0.82.0: телефоны пересняты студийными снимками, поэтому полка считается
+  // как «арт + фото = 11» и не ломается на каждой новой фотографии.
+  const electronicsCards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
+  const expectedPhotos = TOY_ITEMS.filter((item) => item.toy === 'phone' && hasProductPhoto(item.id)).length;
+  const electronicsPhotos = electronicsCards.filter((el) => !!el.querySelector('img.product-photo')).length;
+  check(
+    'телефоны и электроника остаются отдельным разделом',
+    electronicsCards.length === 11 &&
+      electronicsPhotos === expectedPhotos &&
+      document.querySelectorAll('.shop-item.toy-item .electronics-art').length === 11 - electronicsPhotos,
+    `карточек=${electronicsCards.length} фото=${electronicsPhotos} ожидалось=${expectedPhotos}`,
+  );
+  check('телефоны внутри полки идут от меньшей цены к большей', pricesAscending('.shop-item.toy-item'));
+  check(
+    'телефон со снимком показывает фотографию, а не 3D-арт',
+    !!phoneCard?.querySelector('img.product-photo') && !phoneCard?.querySelector('.electronics-art'),
+    '',
+  );
+
+  // Телефоны не имитируют 3D-поворот: в карточке доступны настоящие фото сторон.
+  check(
+    'телефон больше не притворяется поворотным',
+    !document.querySelector('.shop-item.toy-item .phone-rotate') &&
+      !document.querySelector('.shop-item.toy-item .phone-turntable'),
+    '',
+  );
+
   click(phoneCard?.querySelector('.shop-title'));
   await sleep(30);
-  const detailPhone = document.querySelector('.shop-sheet .phone-rotate');
-  check('подробная карточка показывает телефон, а не сову', !!detailPhone && !document.querySelector('.shop-sheet .shop-bigart .mascot'), '');
-  click(detailPhone);
-  await sleep(30);
-  check('телефон поворачивается и в подробной карточке', detailPhone?.getAttribute('aria-pressed') === 'true', '');
-  click(document.querySelector('.shop-sheet-veil'));
-  await sleep(30);
-  check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && has('💎 25'), '');
-  // Подробный просмотр техники — про сам товар: крупный рисунок телефона,
-  // БУКа на примерке нет (технику он не носит).
-  if (phoneCard) click(phoneCard);
-  await sleep(20);
   {
     const phoneSheet = document.querySelector('.shop-sheet');
-    const phoneArt = phoneSheet?.querySelector('.shop-bigart-toy > .phone-rotate.shop-bigart-toy-art');
+    const phonePhoto = phoneSheet?.querySelector('.shop-bigart-toy img.product-photo');
     check(
-      'в подробной карточке телефона — сам телефон крупно и без БУКа',
-      !!phoneArt &&
-        (phoneArt.getAttribute('aria-label') ?? '').includes('iPhone Air') &&
+      'подробная карточка показывает снимок телефона, а не сову',
+      !!phonePhoto &&
+        phonePhoto.getAttribute('src') === '/products/phone-smart.webp' &&
         !phoneSheet?.querySelector('.mascot'),
       phoneSheet?.innerHTML.slice(0, 200) ?? 'карточка не открылась',
     );
+    const phoneGallery = phoneSheet?.querySelector('.tech-tour');
+    check('телефон: спинка и второй студийный кадр', !!phoneGallery?.querySelector('.tech-tour-count') && !!phoneGallery.querySelector('.tech-tour-photo'), '');
+    const phoneGalleryStage = phoneGallery?.querySelector('.tech-tour-stage');
+    if (phoneGalleryStage) click(phoneGalleryStage);
+    await sleep(10);
+    check(
+      'телефон: второй кадр — настоящая фотография экрана',
+      phoneGallery?.querySelector('.tech-tour-alt-photo')?.getAttribute('src') === '/products/gallery/phone-smart-front.webp' && phoneGallery.querySelector('.tech-tour-count')?.textContent === '2 / 2',
+      '',
+    );
+    check('у телефона со снимком нет подсказки про поворот', !phoneSheet?.querySelector('.art-hint'), '');
   }
   const closePhoneSheet = document.querySelector('.shop-sheet-veil');
   if (closePhoneSheet) click(closePhoneSheet);
   await sleep(20);
+  check('ближайшая покупка соответствует открытому разделу', has('Ближайшая покупка') && hasGem(25), gemAmounts().join(' / '));
+
+  // ── Отдельные полки «Питомцы», «Спорт» и «Вкусняшки» (0.75.2, PR #141) ───
+  // Раньше они жили вкладками внутри «Техники»; теперь у каждой своя полка,
+  // и товары не перемешиваются с авто, кораблями и телефонами.
+  for (const [chipTitle, kind] of [['Питомцы', 'pet'], ['Спорт', 'sport'], ['Вкусняшки', 'food']] as const) {
+    const chip = shopChip(chipTitle);
+    if (chip) click(chip);
+    await sleep(40);
+    const expected = TOY_ITEMS.filter((item) => item.toy === kind && !item.series);
+    const cards = Array.from(document.querySelectorAll('.shop-item.toy-item'));
+    check(
+      `полка «${chipTitle}» открывается отдельным разделом`,
+      !!document.querySelector(`section[aria-label="${chipTitle}"]`) && !document.querySelector('.shop-toy-cats'),
+      document.querySelectorAll('.screen section').length.toString(),
+    );
+    check(
+      `полка «${chipTitle}»: только свои товары (${expected.length})`,
+      cards.length === expected.length && expected.every((item) => has(item.title)) && !has('Болид'),
+      `карточек: ${cards.length}`,
+    );
+    check(`${chipTitle.toLowerCase()} внутри полки идут от меньшей цены к большей`, pricesAscending('.shop-item.toy-item'));
+  }
+  // Возвращаемся на «Технику»: следующие проверки покупают машину с полки «Авто».
+  click(shopChip('Техника')!);
+  await sleep(40);
+  const backToCars = toyTabs().find((tab) => (tab.textContent ?? '').includes('Авто'));
+  if (backToCars) click(backToCars);
+  await sleep(30);
 
   // Покупка вещи кладёт её в слот `toy` — с 0.22.0 это «любимая вещь на
   // главном подиуме ангара»; на БУКе техника больше не рисуется.
   const gemsBeforeToy = useApp.getState().profiles[0].gems;
+  const ownedBeforeToy = [...(useApp.getState().profiles[0].shop?.owned ?? [])];
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: Math.max(p.gems, 35) } : p)),
   }));
@@ -705,250 +980,108 @@ async function main() {
     toyBought && useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer',
     JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
   );
-  check('купленная вещь показывает «На подиуме ✓»', has('На подиуме ✓'), '');
+  check('купленная техника отмечена как часть «Моего мира»', has('В Моём мире ✓'), '');
   // 0.22.0: техника больше не рисуется на БУКе (ни на сцене полки, ни где
   // ещё): внутри маскота нет <image> с купленной машиной.
   check('купленная техника не рисуется на БУКе', !document.querySelector('.mascot svg image'), '');
 
-  // ── Ангар БУКа (0.22.0): отдельная сцена коллекции техники ──────────────
-  // Вход на полке «Техника» открывает сцену; купленный «Болид» стоит на
-  // главном подиуме со звездой, тап убирает и возвращает вещь с подиума.
-  const hangarBtn = buttons().find((b) => (b.textContent ?? '').includes('Мой ангар'));
-  check('на полке «Техника» есть вход «Мой ангар»', !!hangarBtn, '');
-  click(hangarBtn);
-  await sleep(60);
-  check('ангар открылся', !!document.querySelector('.hangar') && has('Ангар БУКа'), body().slice(0, 200));
-  const hangarItems = Array.from(document.querySelectorAll('.hangar-item'));
-  check(
-    'в ангаре одна купленная вещь — «Болид» со звездой ★',
-    hangarItems.length === 1 &&
-      (hangarItems[0].textContent ?? '').includes('Болид') &&
-      !!document.querySelector('.hangar-item.star'),
-    `плашек: ${hangarItems.length}`,
-  );
-  // 0.26.0+: одна большая сцена выбранной части и выбор части под ней —
-  // полка, пристань, гараж и ангар самолётов.
-  const partTabs = Array.from(document.querySelectorAll('.hangar-bays [role="tab"]'));
-  const partLabels = partTabs.map((t) => (t.textContent ?? '').trim());
-  check(
-    'под сценой четыре части: полка, пристань, гараж и самолёты',
-    partTabs.length === 4 &&
-      partLabels[0].includes('Полка') &&
-      partLabels[1].includes('Пристань') &&
-      partLabels[2].includes('Гараж') &&
-      partLabels[3].includes('Самолёты'),
-    partLabels.join(' | '),
-  );
-  check(
-    'сцена открыта на части любимой вещи — гараж «Болид»',
-    (document.querySelector('.hangar-scene-title')?.textContent ?? '').includes('Гараж для машины'),
-    document.querySelector('.hangar-scene-title')?.textContent ?? 'нет заголовка сцены',
-  );
-  click(partTabs[0]);
-  await sleep(40);
-  check(
-    'выбор «Полка» показывает полку для телефона с подсказкой о пустоте',
-    (document.querySelector('.hangar-scene-title')?.textContent ?? '').includes('Полка для телефона') &&
-      !!document.querySelector('.hangar-empty') &&
-      document.querySelectorAll('.hangar-item').length === 0,
-    document.querySelector('.hangar-scene-title')?.textContent ?? '',
-  );
-  click(partTabs[2]);
-  await sleep(40);
-  check(
-    'выбор «Гараж» возвращает «Болид» на сцену',
-    document.querySelectorAll('.hangar-item').length === 1 && !!document.querySelector('.hangar-item.star'),
-    `плашек: ${document.querySelectorAll('.hangar-item').length}`,
-  );
-  click(document.querySelector('.hangar-item.star'));
-  await sleep(50);
-  check(
-    'тап по вещи на подиуме убирает её с подиума',
-    useApp.getState().profiles[0].shop?.equipped?.toy === undefined && !document.querySelector('.hangar-item.star'),
-    JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
-  );
-  click(document.querySelector('.hangar-item'));
-  await sleep(50);
-  check(
-    'тап по вещи возвращает её на подиум',
-    useApp.getState().profiles[0].shop?.equipped?.toy === 'car-racer' && !!document.querySelector('.hangar-item.star'),
-    JSON.stringify(useApp.getState().profiles[0].shop?.equipped),
-  );
-  click(partTabs[3]);
-  await sleep(40);
-  check('в ангаре самолётам выделена отдельная взлётная площадка', (document.querySelector('.hangar-scene-title')?.textContent ?? '').includes('Ангар для самолёта') && !!document.querySelector('.hangar-panel-plane .tech-runway'), '');
-  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
-  await sleep(50);
-  check('ангар закрывается крестиком', !document.querySelector('.hangar'), '');
+  // Категоризация купленных школьных товаров проверяется отдельно от покупки.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) =>
+      p.id === s.activeId
+        ? { ...p, shop: { ...(p.shop ?? { owned: [], equipped: {} }), owned: [...new Set([...(p.shop?.owned ?? []), 'school-mug', 'school-backpack'])] } }
+        : p,
+    ),
+  }));
+  await sleep(30);
 
-  // Вход из гардероба: у полки «Моя техника» своя кнопка.
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
-  await sleep(40);
-  const wardrobeHangarBtn = buttons().find((b) => (b.textContent ?? '').includes('Открыть ангар'));
-  check('в гардеробе есть вход «Открыть ангар ➜»', !!wardrobeHangarBtn, '');
-  click(wardrobeHangarBtn);
+  // Техника — область полной коллекции, а не отдельная сцена/ангар.
+  const myWorldTab = Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Мой мир'));
+  check('в шапке БУКа есть единый раздел «Мой мир»', !!myWorldTab, '');
+  click(myWorldTab);
   await sleep(60);
-  check('ангар открылся из гардероба', !!document.querySelector('.hangar'), '');
-  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
+  const techRegion = Array.from(document.querySelectorAll('.collection-area')).find((area) => (area.getAttribute('aria-label') ?? '').startsWith('Техника:'));
+  check('«Мой мир» объединяет технику бывшего ангара с остальной коллекцией', !!techRegion && (techRegion.textContent ?? '').includes('Болид') && !!techRegion.querySelector('.collection-map-thumb') && !document.querySelector('.hangar'), body().slice(0, 200));
+  const schoolRegion = Array.from(document.querySelectorAll('.collection-area')).find((area) =>
+    (area.getAttribute('aria-label') ?? '').startsWith('Школьные вещи:'),
+  );
+  check('кружка и рюкзак в «Моём мире» лежат в области «Школьные вещи»',
+    !!schoolRegion && ['Кружка «НААШ»', 'Рюкзак «Школа»'].every((title) => (schoolRegion.textContent ?? '').includes(title)),
+    schoolRegion?.textContent ?? 'область не найдена',
+  );
+  // 0.90.1: коллекция умеет надевать вещь. Без этой кнопки слияние «Моих
+  // покупок» с «Моим миром» забрало бы единственное действие того раздела.
+  {
+    useApp.setState((s) => ({
+      profiles: s.profiles.map((p) =>
+        p.id === s.activeId && !(p.shop?.owned ?? []).includes('crown')
+          ? { ...p, shop: { ...(p.shop ?? { owned: [], equipped: {} }), owned: [...(p.shop?.owned ?? []), 'crown'] } }
+          : p,
+      ),
+    }));
+    await sleep(60);
+    const looks = Array.from(document.querySelectorAll('.collection-area')).find((area) =>
+      (area.getAttribute('aria-label') ?? '').startsWith('Образы:'),
+    ) as HTMLButtonElement | undefined;
+    check('коллекция: образы — отдельная область', !!looks, '');
+    if (looks) {
+      click(looks);
+      await sleep(50);
+      const card = Array.from(document.querySelectorAll('.collection-item-card')).find((el) =>
+        (el.textContent ?? '').includes('Корона'),
+      ) as HTMLButtonElement | undefined;
+      check('коллекция: купленная вещь открывается карточкой', !!card, '');
+      if (card) {
+        click(card);
+        await sleep(50);
+        const wear = document.querySelector('[data-collection-wear]') as HTMLButtonElement | null;
+        check('коллекция: в карточке вещи есть «Надеть на Бука»', !!wear, body().slice(0, 160));
+        if (wear) {
+          const before = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId)?.shop?.equipped?.head;
+          click(wear);
+          await sleep(60);
+          const after = useApp.getState().profiles.find((p) => p.id === useApp.getState().activeId)?.shop?.equipped?.head;
+          check('коллекция: кнопка надевает вещь прямо из коллекции', after === 'crown' || after !== before, `${before} → ${after}`);
+          click(document.querySelector('[data-collection-wear]') as HTMLButtonElement);
+          await sleep(60);
+        }
+        // Назад к карте: карточка → область → карта.
+        click(buttons().find((b) => (b.textContent ?? '').includes('К области')));
+        await sleep(40);
+        click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));
+        await sleep(40);
+      }
+      if (!document.querySelector('.collection-map')) {
+        click(buttons().find((b) => (b.textContent ?? '').includes('К карте')));
+        await sleep(40);
+      }
+    }
+  }
+  click(buttons().find((b) => (b.textContent ?? '').includes('Назад в БУК')));
+  await sleep(60);
+  check('возврат из «Моего мира» сохранил исходную полку «Техника»', (document.querySelector('.shop-cats .chip.on')?.textContent ?? '').includes('Техника'));
+
+  await openOwnItems();
   await sleep(40);
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(40);
 
-  // Вход с главной: значок 🚗 в шапке экрана «Уроки».
+  // Вход с главной (0.32.0): значка 🚗 в шапке больше нет — ангар живёт
+  // в гардеробе и на полке «Техника», а первый экран разгружен.
   click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'))!);
   await sleep(60);
-  const homeHangarBtn = document.querySelector('button[aria-label="Ангар БУКа"]');
-  check('в шапке главной есть значок «Ангар БУКа»', !!homeHangarBtn, '');
-  click(homeHangarBtn);
-  await sleep(60);
-  check('ангар открылся с главной', !!document.querySelector('.hangar'), '');
-  click(document.querySelector('.hangar [aria-label="Закрыть ангар"]'));
-  await sleep(50);
-  check('после ангара видна главная', !document.querySelector('.hangar') && has('Мой путь'), '');
+  check(
+    'в шапке главной больше нет значка 🚗',
+    !document.querySelector('.topbar [aria-label="Ангар БУКа"]') && has('Мой путь'),
+    '',
+  );
   click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab'))!);
   await sleep(60);
 
-  // ── Мой мир (0.26.0): вкладка с тремя выбранными вещами ───────────────
-  // Чистая логика: до трёх мест, только купленное, без повторов.
-  check('«Мой мир»: в третье место нельзя поставить четвёртую вещь', toggleWorldPick(['cap', 'bow', 'scarf'], 'glasses', ['cap', 'bow', 'scarf', 'glasses']).result === 'full', '');
-  const testCrystalCostume = CRYSTAL_COSTUMES[0];
-  check('«Мой мир»: купленный костюм можно добавить', toggleWorldPick([], testCrystalCostume.id, [], [testCrystalCostume.id]).result === 'added', '');
-  check('«Мой мир»: костюм сохраняется после нормализации', normalizeWorld([testCrystalCostume.id], [], [testCrystalCostume.id])[0] === testCrystalCostume.id, '');
-  // Тип вещи (0.27.0): каждой вещи назначен один из четырёх типов по цене.
-  const rarities = SHOP_ITEMS.map((item) => rarityOf(item));
-  check(
-    'каждая вещь магазина имеет тип: обычный, крутой, легендарный или ТОПОВЫЙ',
-    rarities.every((r) => r in RARITY_LABEL) && SHOP_ITEMS.length > 0,
-    rarities.join(','),
-  );
-  check(
-    'типы по цене: кепка — обычный, Болид — крутой, Бык — легендарный, авианосец — ТОПОВЫЙ',
-    rarityOf(ITEM_BY_ID['cap']) === 'common' &&
-      rarityOf(ITEM_BY_ID['car-racer']) === 'cool' &&
-      rarityOf(ITEM_BY_ID['car-lambo']) === 'legendary' &&
-      rarityOf(ITEM_BY_ID['ship-carrier']) === 'top' &&
-      RARITY_LABEL.top === 'ТОПОВЫЙ',
-    `${rarityOf(ITEM_BY_ID['cap'])}, ${rarityOf(ITEM_BY_ID['car-racer'])}, ${rarityOf(ITEM_BY_ID['car-lambo'])}, ${rarityOf(ITEM_BY_ID['ship-carrier'])}`,
-  );
-  check(
-    '«Мой мир»: типы идут по возрастанию — обычный, крутой, легендарный, ТОПОВЫЙ',
-    ['car-bugatti', 'cap', 'car-lambo', 'car-racer']
-      .map((id) => ITEM_BY_ID[id])
-      .sort(compareByRarity)
-      .map((item) => item.id)
-      .join(',') === 'cap,car-racer,car-lambo,car-bugatti',
-    '',
-  );
-  // Картинки техники имеют явный размер в слотах и в списке (иначе рисунок схлопывается).
-  const worldCss = readFileSync('src/styles/app.css', 'utf8');
-  check(
-    '«Мой мир»: рисунки техники в слотах и списке имеют свой размер',
-    /\.world-slot-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss) && /\.world-slot-art\s+\.mascot[^}]*position:\s*static/.test(worldCss) && /\.world-pick-art\s*>\s*\.car-art[^}]*width:\s*\d+px/.test(worldCss),
-    '',
-  );
-  check('«Мой мир»: некупленную вещь не ставим', toggleWorldPick([], 'x', []).result === 'locked', '');
-  check(
-    '«Мой мир»: при загрузке отбрасываются повторы, чужие и некупленные вещи',
-    JSON.stringify(normalizeWorld(['car-racer', 'car-racer', 'zz', 'phone-pro'], ['car-racer', 'phone-pro'])) ===
-      JSON.stringify(['car-racer', 'phone-pro']),
-    '',
-  );
-  const worldBaseBefore = useApp.getState().profiles[0].shop?.worldBase ?? null;
-  const worldTab = buttons().find((b) => b.className.includes('tab') && (b.textContent ?? '').includes('Мой мир'));
-  check('в нижнем ряду есть вкладка «Мой мир»', !!worldTab, '');
-  click(worldTab);
-  await sleep(60);
-  check('вкладка «Мой мир» открывается', has('Мой мир') && document.querySelectorAll('.world-slot').length === 3, '');
-  check('«Мой мир»: есть отдельное место для базы и её фона', !!document.querySelector('.world-base-current') && has('ОСНОВА МИРА'), '');
-  click(btnText('Выбрать базу'));
-  await sleep(40);
-  check('«Мой мир»: можно выбрать только купленные базы', document.querySelectorAll('.world-base-pick-item').length === 4, String(document.querySelectorAll('.world-base-pick-item').length));
-  click(document.querySelector('.world-base-pick-item[aria-label^="Арктическая база"]'));
-  await sleep(40);
-  const worldBaseScreen = document.querySelector('.world-screen') as HTMLElement | null;
-  check(
-    'выбранная арктическая база меняет фон «Моего мира»',
-    useApp.getState().profiles[0].shop?.worldBase === 'arctic-base' &&
-      !!worldBaseScreen?.classList.contains('has-world-base') &&
-      worldBaseScreen?.style.getPropertyValue('--world-base-image').includes('arctic-base.webp') === true,
-    worldBaseScreen?.style.getPropertyValue('--world-base-image') ?? 'фон не задан',
-  );
-  check('база мира показывается отдельной сценой и не занимает один из трёх слотов', !!document.querySelector('.world-base-current-art img[alt=""]') && document.querySelectorAll('.world-slot').length === 3);
-  check('неизвестное здание нельзя поставить вместо научной базы фоном мира', useApp.getState().chooseWorldBase('unknown-building') === false, '');
-  click(btnText('Убрать базу'));
-  await sleep(40);
-  check(
-    'базу можно убрать, вернув обычный фон',
-    useApp.getState().profiles[0].shop?.worldBase === null && !document.querySelector('.world-screen')?.classList.contains('has-world-base'),
-    '',
-  );
-  click(btnText('Готово'));
-  await sleep(30);
-  const worldCount = (useApp.getState().profiles[0].shop?.world ?? []).length;
-  check(
-    'пустые места — это свободные из трёх',
-    document.querySelectorAll('.world-slot.empty').length === 3 - worldCount,
-    `пустых: ${document.querySelectorAll('.world-slot.empty').length}, выбрано: ${worldCount}`,
-  );
-  click(document.querySelector('.world-slot.empty'));
-  await sleep(40);
-  check('«Выбрать» открывает список купленных вещей', !!document.querySelector('.world-picker') && document.querySelectorAll('.world-pick-item').length > 0, '');
-  click(document.querySelector('.world-pick-item[aria-label^="Болид"]'));
-  await sleep(40);
-  check(
-    'на слоте «Моего мира» виден тип вещи: Болид — «Крутой»',
-    document.querySelector('.world-slot .rarity-chip')?.textContent === 'Крутой',
-    document.querySelector('.world-slot .rarity-chip')?.textContent ?? 'нет бейджа',
-  );
-  check(
-    'на слоте «Моего мира» есть класс типа (фон по типу)',
-    !!document.querySelector('.world-slot.tier-cool'),
-    '',
-  );
-  check(
-    'вещь из списка попадает в «Мой мир» и на сцену',
-    (useApp.getState().profiles[0].shop?.world ?? []).includes('car-racer') && !!document.querySelector('.world-slot .world-slot-title') && has('Болид'),
-    JSON.stringify(useApp.getState().profiles[0].shop?.world),
-  );
-  click(document.querySelector('.world-slot [class*="btn"]'));
-  await sleep(40);
-  check('«Убрать» возвращает вещь в список', !(useApp.getState().profiles[0].shop?.world ?? []).includes('car-racer'), '');
-  const crystalCostumePick = Array.from(document.querySelectorAll<HTMLButtonElement>('.world-pick-item'))
-    .find((button) => button.getAttribute('aria-label')?.startsWith(testCrystalCostume.title));
-  check('костюмы доступны в списке выбора для «Моего мира»', !!crystalCostumePick, '');
-  if (crystalCostumePick) click(crystalCostumePick);
-  await sleep(40);
-  check('костюм ставится в отдельный слот «Моего мира»', (useApp.getState().profiles[0].shop?.world ?? []).includes(testCrystalCostume.id) && has(testCrystalCostume.title), '');
-  const costumeSlot = Array.from(document.querySelectorAll('.world-slot')).find((slot) => slot.textContent?.includes(testCrystalCostume.title));
-  if (costumeSlot) click(costumeSlot.querySelector('button'));
-  await sleep(40);
-  check('костюм можно убрать из «Моего мира»', !(useApp.getState().profiles[0].shop?.world ?? []).includes(testCrystalCostume.id), '');
-  click(btnText('Готово'));
-  await sleep(30);
-  // Возвращаем вкладку БУК: дальнейшие блоки ждут её экран.
-  click(buttons().find((b) => b.className.includes('tab') && (b.textContent ?? '').includes('БУК')));
-  await sleep(40);
-
-  // Возвращаем профиль к покупкам с нуля: следующие блоки считают покупки
-  // нарядов, музыки и звуков так же, как у новичка (стартовые наборы открыты).
+  // Возвращаем профиль: следующие блоки считают покупки нарядов с нуля.
   useApp.setState((s) => ({
     profiles: s.profiles.map((p) =>
-      p.id === s.activeId
-        ? {
-            ...p,
-            gems: gemsBeforeToy,
-            shop: {
-              ...p.shop!,
-              owned: [],
-              equipped: {},
-              worldBase: worldBaseBefore,
-              musicOwned: [...STARTER_TRACK_IDS],
-              soundOwned: [...STARTER_SOUND_IDS],
-              soundPack: 'classic',
-              tuning: { current: {}, unlocked: {} },
-            },
-          }
-        : p,
+      p.id === s.activeId ? { ...p, gems: gemsBeforeToy, shop: { ...p.shop!, owned: ownedBeforeToy, equipped: {} } } : p,
     ),
   }));
   await sleep(30);
@@ -958,12 +1091,57 @@ async function main() {
   await sleep(30);
   check('в музыкальном магазине все мелодии каталога', document.querySelectorAll('.music-item').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item').length));
   check('полки «Спокойный фон» и «Коллекция» разведены', has('Спокойный фон') && has('Коллекция и награды'), '');
-  check('магазин честно называет лицензию', has('CC BY 4.0') && has('Kevin MacLeod'), '');
-  // Раздел «Авторы и лицензии» доступен прямо из приложения
+  // Цифровые обложки (0.88.0): у трека лицо с типографикой и оборот с
+  // настоящими метаданными. Эмодзи на градиенте больше нет.
+  check('у каждой мелодии на витрине своя цифровая обложка', document.querySelectorAll('.music-item .digital-cover').length === MUSIC_TRACKS.length, String(document.querySelectorAll('.music-item .digital-cover').length));
+  const carefreeCard = Array.from(document.querySelectorAll('.music-item')).find((card) => (card.textContent ?? '').includes('Беззаботный день'));
+  // 0.89.10: в карточке первой идёт картинка, а не типографика с номером —
+  // дети выбирают музыку по картинке.
+  check(
+    'в карточке мелодии первой показана картинка',
+    !!carefreeCard?.querySelector('.digital-cover[data-side="art"] .dc-art-svg') && !carefreeCard?.querySelector('.dc-front'),
+    carefreeCard?.querySelector('.digital-cover')?.getAttribute('data-side') ?? '',
+  );
+  check(
+    'карточка «Беззаботного дня» показывает воздушного змея',
+    !!carefreeCard?.querySelector('.dc-art [data-motif="kite"]'),
+    carefreeCard?.querySelector('.dc-art [data-motif]')?.getAttribute('data-motif') ?? 'нет мотива',
+  );
+  if (carefreeCard) click(carefreeCard);
+  await sleep(40);
+  const trackCover = document.querySelector('.shop-bigart .dc-frame');
+  check(
+    'лист трека открывается картинкой',
+    trackCover?.getAttribute('data-side') === 'art' && !!trackCover.querySelector('.dc-art .dc-art-svg') && (document.querySelector('.dc-caption')?.textContent ?? '').includes('1 / 3'),
+    trackCover?.getAttribute('data-side') ?? '',
+  );
+  check(
+    'на картинке — предмет по названию: воздушный змей',
+    !!trackCover?.querySelector('.dc-art [data-motif="kite"]'),
+    trackCover?.querySelector('.dc-art [data-motif]')?.getAttribute('data-motif') ?? 'нет мотива',
+  );
+  const coverFlip = trackCover?.querySelector('.dc-stage') as HTMLElement | null;
+  if (coverFlip) click(coverFlip);
+  await sleep(40);
+  check('второй тап показывает лицевую сторону с типографикой и спектром', trackCover?.getAttribute('data-side') === 'front' && !!trackCover?.querySelector('.dc-spectrum') && (document.querySelector('.dc-caption')?.textContent ?? '').includes('2 / 3'), trackCover?.getAttribute('data-side') ?? '');
+  check('лицо обложки: название и абстрактный спектр', (trackCover?.textContent ?? '').includes('Беззаботный день') && !!trackCover?.querySelector('.dc-spectrum'), '');
+  if (coverFlip) click(coverFlip);
+  await sleep(40);
+  check('третий тап показывает оборот', trackCover?.getAttribute('data-side') === 'back' && !!trackCover.querySelector('.dc-back'), '');
+  check(
+    'оборот трека: оригинал, ISRC и лицензия',
+    (trackCover?.textContent ?? '').includes('Carefree') && (trackCover?.textContent ?? '').includes('USUAN1400037') && (trackCover?.textContent ?? '').includes('CC BY 4.0'),
+    trackCover?.textContent ?? '',
+  );
+  check('счётчик сторон переключился на 3 / 3', (document.querySelector('.dc-caption')?.textContent ?? '').includes('3 / 3'), document.querySelector('.dc-caption')?.textContent ?? '');
+  document.querySelector('.shop-sheet-veil')?.click();
+  await sleep(30);
+  // Лицензия не загромождает полку, но доступна по запросу.
   const creditsBtn = buttons().find((b) => (b.textContent ?? '').includes('Авторы и лицензии'));
-  check('кнопка «Авторы и лицензии» видна в магазине', !!creditsBtn, '');
+  check('лицензия скрыта за подписанной кнопкой', !!creditsBtn && !has('CC BY 4.0'), '');
   if (creditsBtn) click(creditsBtn);
   await sleep(30);
+  check('магазин честно называет лицензию после раскрытия', has('CC BY 4.0') && has('Kevin MacLeod'), '');
   check(
     'раздел лицензий показывает оригинальные названия и источник',
     has('Carefree') && has('incompetech.com') && has('creativecommons.org') && has('Изменения аудио'),
@@ -1049,11 +1227,57 @@ async function main() {
     await sleep(30);
   }
 
+  // Полка «Наборы» (0.89.8): состав виден картинками, а не строкой описания.
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наборы'))!);
+  await sleep(30);
+  check('в «Наборах» все наборы', document.querySelectorAll('.base-set-card').length === BASE_SETS.length, String(document.querySelectorAll('.base-set-card').length));
+  const firstSetCard = document.querySelector('.base-set-card') as HTMLElement | null;
+  if (firstSetCard) click(firstSetCard);
+  await sleep(40);
+  const setTiles = Array.from(document.querySelectorAll('.set-parts .set-part'));
+  check('лист набора показывает состав из четырёх плиток', setTiles.length === 4, String(setTiles.length));
+  check(
+    'у каждой части набора своя картинка и настоящее название',
+    setTiles.length === 4 &&
+      setTiles.every((tile) => (tile.querySelector('.set-part-art')?.children.length ?? 0) > 0 && (tile.querySelector('.set-part-name')?.textContent ?? '').length > 2),
+    setTiles.map((tile) => tile.querySelector('.set-part-name')?.textContent ?? '').join(' | '),
+  );
+  check('база, машина и самолёт показаны снимками', document.querySelectorAll('.set-parts .set-part-photo').length === 3, String(document.querySelectorAll('.set-parts .set-part-photo').length));
+  // БУК в плитке — картинка, а не плавающий виджет: проверяем и разметку, и класс,
+  // на который опирается CSS-сброс позиции (`.set-part-art .mascot`).
+  const costumeTile = document.querySelector('.set-parts .set-part[data-part="costume"]');
+  check(
+    'костюм набора показан на БУКе внутри плитки',
+    !!costumeTile?.querySelector('.set-part-art .mascot .buk-stage svg') && (costumeTile?.querySelector('.set-part-name')?.textContent ?? '').length > 2,
+    costumeTile?.querySelector('.set-part-name')?.textContent ?? '',
+  );
+  document.querySelector('.shop-sheet-veil')?.click();
+  await sleep(30);
+
   // Полка «Звуки»: мелодии правильного ответа и ошибки
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Звуки'))!);
   await sleep(30);
   check('в «Звуках» показаны все наборы', document.querySelectorAll('.sound-item').length === SOUND_PACKS.length, String(document.querySelectorAll('.sound-item').length));
+  check('наборы звуков идут от меньшей цены к большей', pricesAscending('.sound-item'));
   check('у каждого набора — «послушать» верный ответ и ошибку', document.querySelectorAll('.sound-item .sound-try button').length === SOUND_PACKS.length * 2, '');
+  check('у каждого набора звуков своя цифровая обложка', document.querySelectorAll('.sound-item .digital-cover').length === SOUND_PACKS.length, String(document.querySelectorAll('.sound-item .digital-cover').length));
+  const classicCard = Array.from(document.querySelectorAll('.sound-item')).find((card) => (card.textContent ?? '').includes(SOUND_PACKS[0].title));
+  if (classicCard) click(classicCard);
+  await sleep(40);
+  const packCover = document.querySelector('.shop-bigart .dc-frame');
+  check('лист набора показывает обложку, а не эмодзи', !!packCover?.querySelector('.dc-front') && packCover?.getAttribute('data-kind') === 'sound', '');
+  const packFlip = packCover?.querySelector('.dc-stage') as HTMLElement | null;
+  if (packFlip) click(packFlip);
+  await sleep(40);
+  check(
+    'оборот набора — партитура реальных нот: верный ответ и ошибка',
+    packCover?.querySelectorAll('.dc-roll').length === 2 &&
+      (packCover?.textContent ?? '').includes('Верный ответ') &&
+      (packCover?.textContent ?? '').includes('Ошибка'),
+    String(packCover?.querySelectorAll('.dc-roll').length),
+  );
+  document.querySelector('.shop-sheet-veil')?.click();
+  await sleep(30);
   check('новый профиль звучит классикой', useApp.getState().profiles[0].shop?.soundPack === 'classic', String(useApp.getState().profiles[0].shop?.soundPack));
   const xyloCard = Array.from(document.querySelectorAll('.sound-item')).find((card) => (card.textContent ?? '').includes('Ксилофон'));
   const xyloPick = Array.from(xyloCard?.querySelectorAll('button') ?? []).find((b) => (b.textContent ?? '').includes('Выбрать')) as HTMLButtonElement | undefined;
@@ -1089,23 +1313,60 @@ async function main() {
   }));
   await sleep(30);
 
-  // Гардероб: примерочная и коллекция музыки (единственный вход — полка)
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  // «Мои покупки»: примерочная и коллекция музыки (единственный вход — полка)
+  await openOwnItems();
   await sleep(30);
-  check('гардероб: примерочная с БУком', has('мой наряд'), '');
-  check('гардероб: честная пустота, когда ничего не куплено', has('Пока без обновок'), '');
-  const musicChoice = Array.from(document.querySelectorAll('.music-choice'))
-    .find((button) => (button.textContent ?? '').includes('Лимончик')) as HTMLButtonElement | undefined;
-  check('коллекция предлагает стартовые мелодии', !!musicChoice, '');
-  if (musicChoice) click(musicChoice);
-  await sleep(30);
-  check('выбранная музыка сохраняется в профиле', useApp.getState().profiles[0].shop?.musicTrack === 'easy-lemon', String(useApp.getState().profiles[0].shop?.musicTrack));
-  const silenceRow = Array.from(document.querySelectorAll('.music-choice')).find((button) => (button.textContent ?? '').includes('Тишина'));
-  check('у играющей мелодии есть строка «Тишина»', !!silenceRow, '');
-  if (silenceRow) click(silenceRow);
-  await sleep(30);
-  check('музыку можно выключить из коллекции', useApp.getState().profiles[0].shop?.musicTrack === null, String(useApp.getState().profiles[0].shop?.musicTrack));
-  check('гардероб показывает «Мои звуки» со стартовыми наборами', has('Мои звуки') && document.querySelectorAll('.sound-choice').length === STARTER_SOUND_IDS.length, '');
+  check('покупки: примерочная с БУком', has('мой наряд'), '');
+  check(
+    'покупки: примерочная не дублирует состояние коллекции текстом',
+    !(document.querySelector('.shop-stage')?.textContent ?? '').includes('Пока без обновок'),
+    document.querySelector('.shop-stage')?.textContent ?? '',
+  );
+  // 0.32.1: пустые секции не рисуются — вместо четырёх «Пока пусто» у новичка
+  // одно приглашение в витрину. Проверяем на честно пустом профиле: временно
+  // снимаем стартовые мелодии и звуки, потом возвращаем.
+  const shopBeforeEmpty = useApp.getState().profiles[0].shop!;
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, shop: { ...p.shop!, owned: [], musicOwned: [], soundOwned: [] } } : p)),
+  }));
+  await sleep(60);
+  check(
+    'покупки новичка: одна карточка «Пока ничего не куплено» вместо стены пустоты',
+    (document.querySelector('.shop-empty')?.textContent ?? '').includes('Пока ничего не куплено') &&
+      Array.from(document.querySelectorAll('.screen section, .shop-empty')).filter((s) => /Пока пусто|Пока ни одного/.test(s.textContent ?? '')).length === 0,
+    Array.from(document.querySelectorAll('.screen section')).map((s) => s.getAttribute('aria-label')).join(' | '),
+  );
+  const emptySections = Array.from(document.querySelectorAll('.screen section')).map((s) => s.getAttribute('aria-label'));
+  check(
+    'пустые «Наряды», «Костюмы» и «Музыка» не рисуются, «Техника» и «Звуки» на месте',
+    !emptySections.includes('Наряды') && !emptySections.includes('Костюмы') && !emptySections.includes('Музыка') &&
+      emptySections.includes('Техника') && emptySections.includes('Звуки'),
+    emptySections.join(' | '),
+  );
+  check(
+    'в покупках секции без повтора «Мои»',
+    !has('Мои наряды') && !has('Моя техника') && !has('Мои костюмы') && !has('Моя музыка'),
+    body().slice(0, 160),
+  );
+  const toVitrina = Array.from(document.querySelectorAll('.shop-empty button')).find((b) => (b.textContent ?? '').includes('В витрину')) as HTMLButtonElement | undefined;
+  check('из пустых покупок есть кнопка «В витрину»', !!toVitrina, '');
+  if (toVitrina) {
+    click(toVitrina);
+    await sleep(40);
+    check('кнопка возвращает на витрину', !!document.querySelector('.shop-cats .chip'), '');
+  }
+  // Возвращаем покупки как были и снова открываем «Мои покупки» для музыки.
+  useApp.setState((s) => ({
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, shop: shopBeforeEmpty } : p)),
+  }));
+  await sleep(60);
+  await openOwnItems();
+  await sleep(40);
+  check(
+    'после покупки секция появляется: «Музыка» снова видна',
+    Array.from(document.querySelectorAll('.screen section')).some((s) => s.getAttribute('aria-label') === 'Музыка'),
+    Array.from(document.querySelectorAll('.screen section')).map((s) => s.getAttribute('aria-label')).join(' | '),
+  );
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(30);
   click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'))!);
@@ -1153,7 +1414,7 @@ async function main() {
     await sleep(50);
     check('надевание обратно работает', Object.keys(useApp.getState().profiles[0].shop?.equipped ?? {}).length === 1, '');
     // Купленное живёт в гардеробе, сгруппированное по слотам
-    click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+    await openOwnItems();
     await sleep(30);
     check('купленная вещь живёт в гардеробе по слотам', has('Головные уборы'), '');
     check('секция «Мечты 🤍» отображает отложенную вещь', has('Мечты 🤍') && has(wishItem.title) && !!document.querySelector('.wishlist-card'), '');
@@ -1163,106 +1424,173 @@ async function main() {
     // ── Тюнинг цвета купленной вещи: 1 💎 за оттенок, дальше бесплатно ────────
     // Палитра живёт в подробной карточке (sheet), а не на витрине:
     // сначала вещь — потом краски.
-    const ownedIds = useApp.getState().profiles[0].shop?.owned ?? [];
-    const itemId = ownedIds[0];
-    const itemTitle = ITEM_BY_ID[itemId].title;
-    const paids = () => Array.from(document.querySelectorAll('.tint-swatch')) as HTMLButtonElement[];
-    const cardSvg = () =>
-      Array.from(document.querySelectorAll('.shop-item'))
-        .find((el) => (el.textContent ?? '').includes(itemTitle))
-        ?.querySelector('.shop-icon svg')?.innerHTML ?? '';
+    // 0.89.0: у вещи с фотографией палитры нет (снимок не перекрасить).
+    // Фотосерия нарядов растёт каждый релиз, поэтому вещь для проверки красок
+    // выбираем по правилу, а не по id: первая вещь в каталоге, у которой есть
+    // палитра и нет фото. Иначе тест ломается на каждом новом снимке.
     const vitrinaCard = (title: string) =>
       Array.from(document.querySelectorAll('.shop-item:not(.music-item):not(.costume-card)'))
         .find((el) => (el.textContent ?? '').includes(title));
+    /**
+     * 0.89.4: вещи с палитрой и без фото закончились на полке «НААШ»
+     * (школьные кепка, шарф и худи). Витрина открыта на «Нарядах», поэтому
+     * карточку ищем по всем полкам: щёлкаем чипы, пока нужная не появится.
+     * Тест больше не зависит от того, на какой полке живёт красивая вещь.
+     */
+    const openTintCard = async (title: string) => {
+      if (!vitrinaCard(title)) {
+        const chips = Array.from(document.querySelectorAll('.shop-cats .chip')) as HTMLButtonElement[];
+        for (const chip of chips) {
+          if (chip.classList.contains('on')) continue;
+          click(chip);
+          await sleep(25);
+          if (vitrinaCard(title)) break;
+        }
+      }
+      const card = vitrinaCard(title);
+      if (!card) throw new Error(`тюнинг: карточка «${title}» не нашлась ни на одной полке`);
+      click(card);
+      await sleep(30);
+    };
     const closeSheet = () => {
       document.querySelector('.shop-sheet-veil')?.click();
     };
-    // У некупленной вещи палитры нет даже в sheet
-    click(vitrinaCard('Шарфик')!);
-    await sleep(30);
-    check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
-    closeSheet();
-    await sleep(30);
-    check('тюнинг: карточка купленной вещи открывает sheet', !!vitrinaCard(itemTitle), '');
-    click(vitrinaCard(itemTitle)!);
-    await sleep(30);
-    check('тюнинг: в sheet купленной вещи есть «🎨 Цвет»', !!btnText('🎨 Цвет'), '');
-    click(btnText('🎨 Цвет'));
-    await sleep(60);
-    check('тюнинг: палитра из 4 оттенков', paids().length === 4, `кружков: ${paids().length}`);
-    check(
-      'тюнинг: у трёх новых оттенков видна цена 💎1',
-      paids().filter((s) => (s.textContent ?? '').includes('💎1')).length === 3,
-      '',
-    );
-    const gemsBeforeTint = useApp.getState().profiles[0].gems;
-    click(paids()[1]); // первый платный оттенок
-    await sleep(50);
-    check('тюнинг: новый оттенок спрашивает подтверждение', has('Открыть цвет'), body().slice(0, 160));
-    click(btnText('Открыть за'));
-    await sleep(80);
-    let tuned = useApp.getState().profiles[0];
-    const extraTint = TINT_PALETTES[itemId].extra[0];
-    check(
-      `тюнинг: за новый оттенок списан ровно 1 💎 (${gemsBeforeTint} → ${tuned.gems})`,
-      tuned.gems === gemsBeforeTint - TINT_PRICE,
-      '',
-    );
-    check(
-      'тюнинг: выбранный оттенок записан в профиль',
-      tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
-      JSON.stringify(tuned.shop?.tuning),
-    );
-    check(
-      'тюнинг: карточка вещи перекрашена в выбранный цвет',
-      cardSvg().includes(extraTint.colors[0]),
-      `${extraTint.colors[0]} не найден в SVG`,
-    );
-    // Повторный тап по тому же оттенку — без списания (двойной тап не стоит денег)
-    click(paids()[1]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    check('тюнинг: повторный выбор того же цвета ничего не списывает', tuned.gems === gemsBeforeTint - TINT_PRICE, '');
-    // База и уже открытые оттенки — бесплатны
-    click(paids()[0]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    check(
-      'тюнинг: возврат к базовому цвету бесплатен и не хранится',
-      tuned.gems === gemsBeforeTint - TINT_PRICE && !tuned.shop?.tuning?.current?.[itemId],
-      JSON.stringify(tuned.shop?.tuning),
-    );
-    click(paids()[1]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    check(
-      'тюнинг: переключение на открытый оттенок бесплатно',
-      tuned.gems === gemsBeforeTint - TINT_PRICE && tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
-      '',
-    );
-    // Без кристаллов краска не открывается: подсказка вместо списания
-    useApp.setState((s) => ({
-      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 0 } : p)),
-    }));
-    await sleep(30);
-    click(paids()[2]);
-    await sleep(50);
-    tuned = useApp.getState().profiles[0];
-    const unlockedNow = Object.values(tuned.shop?.tuning?.unlocked ?? {}).flat().length;
-    check(
-      'тюнинг: без кристаллов цвет не меняется и есть подсказка',
-      tuned.gems === 0 && unlockedNow === 1 && has('нужен ещё 1 💎'),
-      `кристаллов: ${tuned.gems}, открыто: ${unlockedNow}`,
-    );
-    // Возвращаем баланс как был: он нужен следующим блокам смоука
-    useApp.setState((s) => ({
-      profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeTint } : p)),
-    }));
-    await sleep(30);
-    click(btnText('🎨 Готово'));
-    await sleep(40);
-    closeSheet();
-    await sleep(30);
+
+    // 0.89.5: серия закрыта — все 38 нарядов с фото, и других вещей без снимка
+    // в каталоге нет. Значит палитру сейчас не показать ни одной карточке:
+    // правило 0.89.0 «снимок не перекрашивается» держится до конца серии.
+    // Полный прогон красок ниже остаётся на случай новой векторной вещи
+    // (так было с полкой школы в 0.74.0), а пока проверяем само правило.
+    const tintable = (i: { id: string }) =>
+      !!TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id);
+    const tintItem = SHOP_ITEMS.find(tintable);
+    if (!tintItem) {
+      // Берём наряд с фотопарой: он на полке «Наряды», которая уже открыта.
+      const photographed =
+        SHOP_ITEMS.find((i) => hasOutfitPair(i.id)) ?? SHOP_ITEMS.find((i) => hasProductPhoto(i.id));
+      if (!photographed) throw new Error('тюнинг: в каталоге нет ни снимка, ни палитры — проверять нечего');
+      await openTintCard(photographed.title);
+      check(
+        'тюнинг: у вещи со снимком палитры нет (снимок не перекрасить)',
+        !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')),
+        photographed.title,
+      );
+      closeSheet();
+      await sleep(30);
+      const palettes = Object.keys(TINT_PALETTES).length;
+      check('тюнинг: палитры на месте для будущих векторных вещей', palettes >= 90, `палитр: ${palettes}`);
+      const broken = Object.entries(TINT_PALETTES).filter(
+        ([, p]) => !p.base || !p.extra.length || !p.base.colors.length,
+      );
+      check('тюнинг: у каждой палитры есть база и хотя бы один оттенок', broken.length === 0, broken.map(([id]) => id).join(', '));
+      check(
+        'тюнинг: ни у одной вещи в каталоге нет палитры без снимка',
+        SHOP_ITEMS.filter((i) => TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id)).length === 0,
+        '',
+      );
+    } else {
+      if (!tintItem) throw new Error('тюнинг: не осталось вещей с палитрой и без фото — проверку красок нужно переписать');
+      useApp.setState((s) => ({
+        profiles: s.profiles.map((p) => (p.id === s.activeId
+          ? { ...p, shop: { ...p.shop!, owned: [...p.shop!.owned, tintItem.id] } }
+          : p)),
+      }));
+      await sleep(40);
+      const itemId = tintItem.id;
+      const itemTitle = tintItem.title;
+      const paids = () => Array.from(document.querySelectorAll('.tint-swatch')) as HTMLButtonElement[];
+      const cardSvg = () =>
+        Array.from(document.querySelectorAll('.shop-item'))
+          .find((el) => (el.textContent ?? '').includes(itemTitle))
+          ?.querySelector('.shop-icon svg')?.innerHTML ?? '';
+      // У некупленной вещи палитры нет даже в sheet: берём другую вещь с
+      // палитрой и без фото, которой у профиля точно нет.
+      const unownedTintItem = SHOP_ITEMS.find((i) => i !== tintItem && TINT_PALETTES[i.id] && !hasProductPhoto(i.id) && !hasOutfitPair(i.id));
+      if (!unownedTintItem) throw new Error('тюнинг: нет второй вещи с палитрой и без фото для проверки «не куплено»');
+      await openTintCard(unownedTintItem.title);
+      check('тюнинг: у некупленной вещи палитры нет', !buttons().some((b) => (b.textContent ?? '').includes('🎨 Цвет')), '');
+      closeSheet();
+      await sleep(30);
+      check('тюнинг: карточка купленной вещи открывает sheet', !!vitrinaCard(itemTitle), '');
+      await openTintCard(itemTitle);
+      check('тюнинг: в sheet купленной вещи есть «🎨 Цвет»', !!btnText('🎨 Цвет'), '');
+      click(btnText('🎨 Цвет'));
+      await sleep(60);
+      check('тюнинг: палитра из 4 оттенков', paids().length === 4, `кружков: ${paids().length}`);
+      check(
+        'тюнинг: у трёх новых оттенков видна цена 💎1',
+        paids().filter((s) => (s.textContent ?? '').includes('💎1')).length === 3,
+        '',
+      );
+      const gemsBeforeTint = useApp.getState().profiles[0].gems;
+      click(paids()[1]); // первый платный оттенок
+      await sleep(50);
+      check('тюнинг: новый оттенок спрашивает подтверждение', has('Открыть цвет'), body().slice(0, 160));
+      click(btnText('Открыть за'));
+      await sleep(80);
+      let tuned = useApp.getState().profiles[0];
+      const extraTint = TINT_PALETTES[itemId].extra[0];
+      check(
+        `тюнинг: за новый оттенок списан ровно 1 💎 (${gemsBeforeTint} → ${tuned.gems})`,
+        tuned.gems === gemsBeforeTint - TINT_PRICE,
+        '',
+      );
+      check(
+        'тюнинг: выбранный оттенок записан в профиль',
+        tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
+        JSON.stringify(tuned.shop?.tuning),
+      );
+      check(
+        'тюнинг: карточка вещи перекрашена в выбранный цвет',
+        cardSvg().includes(extraTint.colors[0]),
+        `${extraTint.colors[0]} не найден в SVG`,
+      );
+      // Повторный тап по тому же оттенку — без списания (двойной тап не стоит денег)
+      click(paids()[1]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      check('тюнинг: повторный выбор того же цвета ничего не списывает', tuned.gems === gemsBeforeTint - TINT_PRICE, '');
+      // База и уже открытые оттенки — бесплатны
+      click(paids()[0]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      check(
+        'тюнинг: возврат к базовому цвету бесплатен и не хранится',
+        tuned.gems === gemsBeforeTint - TINT_PRICE && !tuned.shop?.tuning?.current?.[itemId],
+        JSON.stringify(tuned.shop?.tuning),
+      );
+      click(paids()[1]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      check(
+        'тюнинг: переключение на открытый оттенок бесплатно',
+        tuned.gems === gemsBeforeTint - TINT_PRICE && tuned.shop?.tuning?.current?.[itemId] === extraTint.id,
+        '',
+      );
+      // Без кристаллов краска не открывается: подсказка вместо списания
+      useApp.setState((s) => ({
+        profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 0 } : p)),
+      }));
+      await sleep(30);
+      click(paids()[2]);
+      await sleep(50);
+      tuned = useApp.getState().profiles[0];
+      const unlockedNow = Object.values(tuned.shop?.tuning?.unlocked ?? {}).flat().length;
+      check(
+        'тюнинг: без кристаллов цвет не меняется и есть подсказка',
+        tuned.gems === 0 && unlockedNow === 1 && has('нужен ещё 1 💎'),
+        `кристаллов: ${tuned.gems}, открыто: ${unlockedNow}`,
+      );
+      // Возвращаем баланс как был: он нужен следующим блокам смоука
+      useApp.setState((s) => ({
+        profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsBeforeTint } : p)),
+      }));
+      await sleep(30);
+      click(btnText('🎨 Готово'));
+      await sleep(40);
+      closeSheet();
+      await sleep(30);
+    }
   }
 
   // ── Сдача купленной вещи обратно (sell-back, 0.24.0) ────────
@@ -1309,25 +1637,14 @@ async function main() {
     check('трейд-ин: вещь ушла из гардероба и с подиума', !afterSell.shop?.owned.includes('car-racer') && !afterSell.shop?.equipped?.toy, JSON.stringify(afterSell.shop));
     check('трейд-ин: краски вещи обнулены', !afterSell.shop?.tuning?.current?.['car-racer'] && !afterSell.shop?.tuning?.unlocked?.['car-racer'], JSON.stringify(afterSell.shop?.tuning));
     check('трейд-ин: сдать вторично нельзя', !useApp.getState().sellItem('car-racer'), '');
-    check('трейд-ин: витрина снова предлагает купить вещь', has('💎 35'), '');
+    check('трейд-ин: витрина снова предлагает купить вещь', hasGem(35), gemAmounts().join(' / '));
   }
-  // При стартовых 100 000 кристаллов ни одна вещь не дорогая: на время проверки
-  // обнуляем баланс, чтобы появилась плашка «Ещё N 💎», и возвращаем прежнее значение.
-  const gemsForPriceCheck = useApp.getState().profiles[0].gems;
-  useApp.setState((s) => ({
-    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 0 } : p)),
-  }));
-  await sleep(30);
   const expensive = buttons().find((b) => (b.textContent ?? '').includes('Ещё') && b.className.includes('btn'));
   check('на дорогие вещи кнопка показывает, сколько не хватает', !!expensive, '');
-  useApp.setState((s) => ({
-    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: gemsForPriceCheck } : p)),
-  }));
-  await sleep(30);
 
   // ── Рост БУКа (пункт 5) ───────────────────────────────────────────────────
   // Ступень роста живёт в примерочной гардероба
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  await openOwnItems();
   await sleep(30);
   check('магазин показывает ступень роста', /Птенец|Ученик|Знаток|Магистр/.test(body()), body().slice(0, 300));
   const before = useApp.getState().profiles[0];
@@ -1352,16 +1669,319 @@ async function main() {
   const homeTab = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
   click(homeTab!);
   await sleep(80);
+  // ── Шапка «Уроков»: три блока, два действия (0.33.0) ────────────────────
+  // docs/proposals/home-menu.md. Главный счётчик — 💎: кристаллы ребёнок
+  // понимает и тратит. 🔥 из шапки ушёл в меню ☰, где у него есть слова.
+  // ☰ заменил 🎁: в меню не только награды, но и покупки, ангар, друг и профиль.
   check(
-    'на главной есть серия дней',
-    has('🔥') && !!document.querySelector('.stat-pill.fire'),
+    'в шапке главной кристаллы — главный счётчик',
+    !!document.querySelector('.topbar .topbar-stat.gems [data-icon="crystal"]'),
+    document.querySelector('.topbar')?.innerHTML.slice(0, 200) ?? '',
+  );
+  check(
+    'огня и подарка в шапке больше нет',
+    !document.querySelector('.topbar [data-stat="streak"]') && !document.querySelector('.topbar .rewards-btn'),
+    document.querySelector('.topbar')?.innerHTML.slice(0, 160) ?? '',
+  );
+  check(
+    'на главной задания — полоской, а награды — за меню ☰, а не полотном',
+    !!document.querySelector('[data-menu-trigger]') &&
+      !!document.querySelector('[data-quest-strip]') &&
+      !document.querySelector('.quest'),
+    '',
+  );
+  const topbarButtons = Array.from(document.querySelectorAll('.topbar button'));
+  check(
+    'в шапке главной ровно два действия: профиль и меню',
+    topbarButtons.length === 2,
+    topbarButtons.map((b) => b.getAttribute('aria-label') ?? b.className).join(' | '),
+  );
+  const profileBtn = document.querySelector('.topbar .profile-btn') as HTMLButtonElement | null;
+  check(
+    'профиль в шапке — одна кнопка с аватаром и именем',
+    !!profileBtn && (profileBtn.getAttribute('aria-label') ?? '').startsWith('Профиль:') && !!profileBtn.querySelector('.topbar-name'),
+    profileBtn?.getAttribute('aria-label') ?? 'нет кнопки',
+  );
+  check(
+    'кристаллы — тихий статус без рамок-пилюль',
+    !!document.querySelector('.topbar [data-stat="gems"]') && !document.querySelector('.topbar .stat-pill'),
+    document.querySelector('.topbar')?.innerHTML.slice(0, 120) ?? '',
+  );
+
+  // Меню ☰: один уровень; статусы названы без повторного объяснения механики.
+  click(document.querySelector('[data-menu-trigger]'));
+  await sleep(60);
+  const menu = document.querySelector('.home-menu');
+  check('☰ открывает меню', !!menu, body().slice(0, 200));
+  check(
+    'статус серии назван без пояснения очевидной механики',
+    (menu?.textContent ?? '').includes('Серия') && !(menu?.textContent ?? '').includes('занимаешься'),
+    menu?.querySelector('.menu-status')?.textContent ?? '',
+  );
+  check(
+    'статус кристаллов назван без пояснения-дубля',
+    (menu?.textContent ?? '').includes('Кристаллы') && !(menu?.textContent ?? '').includes('Тратятся в БУКе'),
+    menu?.querySelector('.menu-status')?.textContent ?? '',
+  );
+  // 0.90.1: пункта «Мои покупки» больше нет — он вёл в тот же вопрос, что и
+  // «Мой мир» (две вкладки БУКа слились в одну).
+  check(
+    'в меню есть награды, «Мой мир», класс, смена ученика, поддержка и отправка ссылки',
+    ['support', 'rewards', 'world', 'class', 'profiles', 'share'].every(
+      (key) => !!menu?.querySelector(`[data-menu="${key}"]`),
+    ) && !menu?.querySelector('[data-menu="purchases"]'),
+    Array.from(menu?.querySelectorAll('[data-menu]') ?? []).map((n) => n.getAttribute('data-menu')).join(' | '),
+  );
+  check(
+    'поддержка разработчика заметно выделена и помечена как добровольная для родителей',
+    !!menu?.querySelector('.menu-support-row[data-menu="support"]') &&
+      (menu?.querySelector('[data-menu="support"]')?.getAttribute('aria-label') ?? '').includes('Для родителей') &&
+      (menu?.querySelector('[data-menu="support"]')?.textContent ?? '').includes('добровольно'),
+    menu?.querySelector('[data-menu="support"]')?.textContent ?? 'нет пункта поддержки',
+  );
+  check(
+    'поделиться приложением можно прямо из меню',
+    (menu?.querySelector('[data-menu="share"]')?.textContent ?? '').includes('QR-код или ссылка'),
+    menu?.querySelector('[data-menu="share"]')?.textContent ?? 'нет пункта отправки',
+  );
+
+  // Версия релиза (0.65.0) — внизу меню, чтобы ребёнок мог назвать её взрослому.
+  const versionLine = menu?.querySelector('[data-menu-version]') as HTMLElement | null;
+  check(
+    'в меню ☰ видна версия приложения (ребёнок может назвать релиз)',
+    !!versionLine &&
+      /СЛОВО 2\.0 · версия \S+/.test(versionLine.textContent ?? '') &&
+      (versionLine.textContent ?? '').includes(import.meta.env.VITE_APP_VERSION),
+    versionLine?.textContent ?? 'нет строки версии',
+  );
+
+  // Число на наградах — не украшение, а обещание. В начале дня заданий ещё
+  // нет, поэтому числа нет — и это тоже обещание: забирать нечего.
+  const rewardsBadge = menu?.querySelector('.menu-count');
+  check(
+    'у наград число вместо точки, пусто — без числа',
+    rewardsBadge ? /^([1-9]|9\+)$/.test(rewardsBadge.textContent ?? '') : true,
+    rewardsBadge?.textContent ?? 'числа нет',
+  );
+
+  // Число запоминаем до перехода: в листе меню уже закрыто.
+  const badgeCount = rewardsBadge ? Number(rewardsBadge.textContent) : 0;
+
+  // Награды из меню открывают тот же лист, что раньше открывал 🎁.
+  click(menu?.querySelector('[data-menu="rewards"]'));
+  await sleep(60);
+  const sheet = document.querySelector('.rewards-sheet')!;
+  check('награды из меню открывают лист наград', !!sheet, body().slice(0, 200));
+  const sheetButtons = Array.from(sheet?.querySelectorAll('button') ?? []);
+  const claimCount = sheetButtons.filter((b) => (b.textContent ?? '').includes('Забрать')).length;
+  const dailyChest = sheetButtons.some((b) => (b.textContent ?? '').includes('Открыть сундук БУКа')) ? 1 : 0;
+  // Бонусных сундуков может ждать несколько, а кнопка в листе одна: «ещё N»
+  // лист пишет словами — сверяем число в меню с суммой всех ожидающих наград.
+  const bonusMatch = (sheet.textContent ?? '').match(/бонусных готово: (\d+)/);
+  const sheetRewards = claimCount + dailyChest + (bonusMatch ? Number(bonusMatch[1]) : 0);
+  check(
+    'число у наград совпадает с числом наград, которые ждут в листе',
+    sheetRewards === badgeCount,
+    `в меню ${badgeCount}, в листе ${sheetRewards} (задания ${claimCount}, сундук ${dailyChest}, бонусные ${bonusMatch?.[1] ?? 0})`,
+  );
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
+
+  // «Мой мир» из меню ведёт в «Мой мир» БУКа (0.90.1: единственная строка про
+  // «что у меня есть» — «Мои покупки» слились с ним).
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="world"]'));
+  await sleep(80);
+  const worldTab = document.querySelector('.shop-seg:not(.shop-seg-sub) button[aria-selected="true"]');
+  check(
+    '«Мой мир» из меню открывает БУК на сегменте «Мой мир»',
+    !!worldTab && (worldTab.textContent ?? '').includes('Мой мир') && !document.querySelector('.home-menu'),
+    body().slice(0, 200),
+  );
+  click(buttons().find((b) => (b.textContent ?? '').includes('БУК') && b.className.includes('tab')));
+  await sleep(80);
+  const shopTabSelect = document.querySelector('.shop-seg button[aria-selected="true"]');
+  check(
+    'нижняя вкладка «БУК» возвращает на витрину',
+    !!shopTabSelect && (shopTabSelect.textContent ?? '').includes('Витрина'),
+    body().slice(0, 160),
+  );
+  click(homeTab!);
+  await sleep(80);
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="world"]'));
+  await sleep(80);
+  check(
+    '«Мой мир» из меню открывает полную карту коллекции внутри БУКа',
+    !!document.querySelector('.my-world') && !!document.querySelector('.collection-map'),
+    body().slice(0, 200),
+  );
+  click(buttons().find((b) => (b.textContent ?? '').includes('Назад в БУК')));
+  await sleep(50);
+  click(homeTab!);
+  await sleep(80);
+
+  // Класс (0.33.0): пилюли над героем больше нет — лист открывается из меню,
+  // а на экране класс называет заголовок «Мой путь · N класс».
+  check(
+    'на главной нет отдельной пилюли класса',
+    !document.querySelector('.class-pill') && !!document.querySelector('.home-path-class'),
+    document.querySelector('.home-path-title')?.textContent ?? '',
+  );
+  await openHomeMenu();
+  const classRow = document.querySelector('[data-menu="class"]');
+  check(
+    'в меню есть строка класса с названием',
+    !!classRow && /\d класс/.test(classRow.textContent ?? ''),
+    classRow?.textContent ?? '',
+  );
+  click(classRow);
+  await sleep(60);
+  check(
+    'класс из меню открывает лист «Какой класс учим?»',
+    !!document.querySelector('.class-sheet') &&
+      document.querySelectorAll('.class-card').length > 1,
+    body().slice(0, 160),
+  );
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
+
+  // Кнопки меню: приложение можно отправить ссылкой/QR, а донат остаётся за взрослым.
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="share"]'));
+  await sleep(60);
+  check(
+    '«Поделиться приложением» в меню открывает QR и ссылку',
+    !!document.querySelector('.invite-sheet') && !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link'),
+    body().slice(0, 180),
+  );
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
+
+  await openHomeMenu();
+  click(document.querySelector('[data-menu="support"]'));
+  await sleep(80);
+  check(
+    'донат из меню сразу открывает раздел для родителей с раскрытым QR',
+    !document.querySelector('.home-menu') && !!document.querySelector('.parent-screen') &&
+      !!document.querySelector('.support-developer[open] .support-developer-qr'),
+    document.querySelector('.support-developer')?.outerHTML.slice(0, 240) ?? body().slice(0, 180),
+  );
+  click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
+  await sleep(60);
+
+  // «Позови друга» (0.32.1): ссылка — в один тап прямо с главной, тихой
+  // строкой под героем. Раньше 🤝 прятался за кнопкой профиля, а на экране
+  // профилей — ещё и под формой нового ученика: «найти сложно».
+  const homeInvite = document.querySelector('.invite-cta') as HTMLButtonElement | null;
+  check(
+    'на главной есть «Позови друга» — один тап без меню',
+    !!homeInvite && (homeInvite.textContent ?? '').includes('Позови друга'),
+    document.querySelector('.home-hero')?.parentElement?.textContent?.slice(0, 120) ?? '',
+  );
+  if (homeInvite) {
+    click(homeInvite);
+    await sleep(60);
+    check(
+      'лист «Позови друга» открывается прямо с главной (QR и ссылка)',
+      !!document.querySelector('.invite-qr-art') && !!document.querySelector('.invite-link') && !!document.querySelector('.invite-sheet'),
+      body().slice(0, 200),
+    );
+    click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+    await sleep(40);
+    check('лист закрывается, главная на месте', !document.querySelector('.invite-sheet') && has('Мой путь'), '');
+  }
+
+  // Экран «Кто будет учиться?» (0.33.0): сначала выбор ученика и одна главная
+  // кнопка «Продолжить ▶», а форма нового ученика — за «+ Новый ученик».
+  // Раньше форма была раскрыта всегда и заканчивалась кнопкой «Начать
+  // учиться»: взрослый, пришедший сменить класс, начинал заводить второго.
+  click(document.querySelector('.topbar .profile-btn') as HTMLButtonElement);
+  await sleep(60);
+  const inviteBtn = btn((b) => (b.textContent ?? '').includes('Позови друга'));
+  check('экран профилей не дублирует «Позови друга» с главной', !inviteBtn, '');
+  check(
+    'экран профилей открывается без формы нового ученика',
+    !Array.from(document.querySelectorAll('h3')).some((h) => (h.textContent ?? '').includes('Новый ученик')),
     body().slice(0, 200),
   );
   check(
-    'на главной награды за иконкой 🎁, а не полотном',
-    !!btn((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды')) && !document.querySelector('.quest'),
+    'на экране есть одна главная кнопка «Продолжить ▶»',
+    !!btn((b) => (b.textContent ?? '').includes('Продолжить ▶')),
+    Array.from(document.querySelectorAll('.screen > .btn')).map((b) => (b.textContent ?? '').trim()).join(' | '),
+  );
+  const newStudentBtn = btn((b) => (b.textContent ?? '').includes('+ Новый ученик'));
+  check('новый ученик — за кнопкой «+ Новый ученик»', !!newStudentBtn, '');
+  click(newStudentBtn);
+  await sleep(60);
+  const newStudentForm = Array.from(document.querySelectorAll('h3')).find((h) => (h.textContent ?? '').includes('Новый ученик'));
+  check('«+ Новый ученик» раскрывает форму', !!newStudentForm, body().slice(0, 200));
+  check(
+    'форма нового ученика не добавляет повторную кнопку приглашения',
+    !btn((b) => (b.textContent ?? '').includes('Позови друга')),
     '',
   );
+  check(
+    'в форме нового ученика кнопка «Создать ученика», а не «Начать учиться»',
+    !!btn((b) => (b.textContent ?? '').trim() === 'Создать ученика') && !has('Начать учиться'),
+    body().slice(0, 240),
+  );
+  check(
+    'пока форма открыта, главной кнопки «Продолжить» нет',
+    !btn((b) => (b.textContent ?? '').includes('Продолжить ▶')),
+    '',
+  );
+  click(btn((b) => (b.textContent ?? '').trim() === 'Отмена'));
+  await sleep(60);
+  // Тап по карточке и «Продолжить ▶» ведут на уроки выбранного ученика.
+  const continueBtn = btn((b) => (b.textContent ?? '').includes('Продолжить ▶'));
+  check(
+    'после отмены форма снова закрыта',
+    !Array.from(document.querySelectorAll('h3')).some((h) => (h.textContent ?? '').includes('Новый ученик')) &&
+      !!continueBtn,
+    body().slice(0, 200),
+  );
+  // Карандаш у профиля — тот самый путь «поменять класс текущему ученику».
+  // Он открывает «Изменить профиль» и не предлагает создать ещё одного.
+  click(document.querySelector('.profile-card .profile-card-edit'));
+  await sleep(60);
+  const editHeading = Array.from(document.querySelectorAll('h3')).find((h) =>
+    (h.textContent ?? '').includes('Изменить профиль'),
+  );
+  check('карандаш открывает «Изменить профиль»', !!editHeading, body().slice(0, 200));
+  check(
+    'в форме редактирования выбран текущий класс',
+    !!document.querySelector('.class-form-btn[aria-pressed="true"]') &&
+      !!btn((b) => (b.textContent ?? '').trim() === 'Сохранить'),
+    body().slice(0, 240),
+  );
+  check(
+    'в форме редактирования нет кнопки «Создать ученика»',
+    !btn((b) => (b.textContent ?? '').trim() === 'Создать ученика'),
+    '',
+  );
+  const profilesInEdit = useApp.getState().profiles.length;
+  click(btn((b) => (b.textContent ?? '').trim() === 'Сохранить'));
+  await sleep(60);
+  check(
+    'сохранение профиля не создаёт второго ученика',
+    useApp.getState().profiles.length === profilesInEdit &&
+      !Array.from(document.querySelectorAll('h3')).some((h) => (h.textContent ?? '').includes('Изменить профиль')),
+    `было ${profilesInEdit}, стало ${useApp.getState().profiles.length}`,
+  );
+
+  // «Продолжить ▶» — главное действие экрана: запускает уроки выбранного
+  // ученика и закрывает экран, а не создаёт нового.
+  const profilesBefore = useApp.getState().profiles.length;
+  click(btn((b) => (b.textContent ?? '').includes('Продолжить ▶')));
+  await sleep(80);
+  check(
+    '«Продолжить ▶» возвращает на уроки выбранного ученика',
+    !has('Кто будет учиться?') && has('Мой путь') && useApp.getState().profiles.length === profilesBefore,
+    body().slice(0, 160),
+  );
+  click(buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab')));
+  await sleep(60);
 
   // ── Настройка размера урока в разделе «Родителям» ─────────────────────────
   const parentTab = buttons().find((b) => (b.textContent ?? '').includes('Родителям') && b.className.includes('tab'));
@@ -1380,7 +2000,7 @@ async function main() {
     await sleep(60);
   }
   // Разделы разложены по вкладкам: занятия и вид — в «Настройках».
-  check('родительский раздел открывается на обзоре', has('XP за сегодня') && has('Что подтянуть'), body().slice(0, 160));
+  check('родительский раздел открывается кратким прогрессом', has('Прогресс по словам') && has('освоено'), body().slice(0, 160));
   await openParentSection('Настройки');
   check('родителям видны режимы размера урока', has('Размер урока') && has('Короткий · 12') && has('Обычный · 16') && has('Полный · 20'), '');
   // Настройка «Сова БУК»: проверяем, что «не показывать» убирает плавающего БУКа
@@ -1433,6 +2053,7 @@ async function main() {
   await runChestCeremonyChecks();
   await runChestSkinsUiChecks();
   await runParentUiChecks();
+  await runListsChecks();
 
   // ── Задания дня: понятность и выполнимость (обратная связь 2026-09-29) ────
   await runQuestUiChecks();
@@ -1452,6 +2073,9 @@ async function main() {
   // Плавающий БУК: перетаскивание, сворачивание и тап (замечание 2026-10-04).
   await runFloatingMascotChecks();
 
+  // Чат «Спроси БУКа» (0.87.0): дверь, чипы, память, потолок и уход в урок.
+  await runBukChatChecks();
+
   // Помощник БУК в уроке: вопрос вместо ответа и тихое предложение помощи.
   await runBukLessonChecks();
 
@@ -1462,6 +2086,17 @@ async function main() {
   // Пауза после ответа: отвеченная карточка остаётся на экране, полоса вердикта
   // показывает результат, награду и написание слова (замечание 2026-10-15).
   await runVerdictChecks();
+  await runTypingChecks();
+
+  // Чистота интерфейса: читаемость, тап-зоны и детские слова (0.66.0).
+  runUiCleanupChecks();
+
+  // Главная в один экран: «Дальше» и раскрывающийся путь (0.67.0).
+  await runHomePathChecks();
+
+  // Структурированный словарик: цвета по степени освоения, круговая диаграмма,
+  // легенда цветов и итог по каждой колонке.
+  await runDictionaryUiChecks();
 
   // «Передать приложение»: QR и ссылка для нового ученика (замечание 2026-10-14).
   await runShareAppChecks();
@@ -1472,14 +2107,27 @@ async function main() {
   // Диагностика запускается прямой ссылкой и читает хранилище, не раскрывая профиль.
   await runDiagnosticsRouteChecks();
 
-  // ── Бесконечные алмазы: включено восполнение, запас не падает ниже ENDLESS_GEMS ──
-  setEndlessGemsForTests(true);
-  useApp.setState((s) => ({ profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 5 } : p)) }));
-  await sleep(30);
-  check('бесконечные алмазы: мало кристаллов — баланс восполняется до запаса', useApp.getState().profiles[0].gems === ENDLESS_GEMS, String(useApp.getState().profiles[0].gems));
-  useApp.getState().addGems(-Number.MAX_SAFE_INTEGER);
-  await sleep(30);
-  check('бесконечные алмазы: полная трата не опускает баланс ниже запаса', useApp.getState().profiles[0].gems === ENDLESS_GEMS, String(useApp.getState().profiles[0].gems));
+  // Ручная проверка обновлений: кнопка в «Родителям» → «Приложение» и все
+  // ответы сервис-воркера (есть новая / последняя / нет сети / нельзя проверить).
+  await runUpdateCheckUiChecks();
+
+  // Быстрый звук (0.29.0): тап — вкл/выкл музыки, долгое нажатие — тишина на
+  // 15 минут; кнопка есть на всех экранах, кроме урока.
+  await runQuickSoundChecks();
+
+  // Классы 1–4: смена класса не сбрасывает опыт, товары и награды; путь,
+  // герой и урок берутся из программы активного класса (0.27.0).
+  await runClassChecks();
+
+  // Карточка товара: крупная картинка без обрезки и этикетка под ней (0.76.0).
+  await runShopCardChecks();
+
+  // «Мой мир»: ставится только полученное, БУК в костюме стоит, а не летает.
+  await runWorldUiChecks();
+  await runBaseTourUiChecks();
+
+  // Рейтинг: место игрока среди воображаемых соперников.
+  await runRatingUiChecks();
 
   const failures = failureCount();
   console.log(failures ? `\n✗ ошибок: ${failures}` : '\n✓ все проверки пройдены');

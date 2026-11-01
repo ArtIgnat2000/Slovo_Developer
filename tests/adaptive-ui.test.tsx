@@ -17,7 +17,7 @@ import type { LessonSize, Profile, WordState } from '../src/types';
 import { LESSONS, WORDS } from '../src/content/words';
 import { DAY, initState } from '../src/engine/srs';
 import { useApp } from '../src/state/store';
-import { btn, btnText, buttons, check, click, currentWord, has, openParentSection, sleep } from './ui-helpers';
+import { btn, btnText, buttons, check, click, currentWord, expandPath, has, hintButton, openParentSection, sleep } from './ui-helpers';
 
 type Mode = 'clean' | 'hint';
 
@@ -157,7 +157,7 @@ const isDisabled = (b: HTMLButtonElement) => !!b.disabled;
  * она лишь повторяет подсматривание, и нажимать её повторно нельзя.
  */
 function cardHint(): HTMLButtonElement | undefined {
-  return taskButton((b) => (b.textContent ?? '').trim().startsWith('💡'));
+  return hintButton();
 }
 
 /** Правильный вариант в заданиях с вариантами: окошко (□) и «исправь робота». */
@@ -394,6 +394,9 @@ async function goToBuild(): Promise<boolean> {
  */
 async function openBuildLesson(maxLessons = 4): Promise<'ok' | 'answered' | 'none'> {
   await toHome();
+  // 0.67.0: главная показывает «Дальше» — три урока; чтобы перебрать больше,
+  // раскрываем весь путь (иначе выборка зависела бы от свёрнутого списка).
+  await expandPath();
   const count = Math.min(maxLessons, document.querySelectorAll('.node-btn').length);
   for (let i = 0; i < count; i++) {
     const node = document.querySelectorAll('.node-btn')[i] as HTMLButtonElement | undefined;

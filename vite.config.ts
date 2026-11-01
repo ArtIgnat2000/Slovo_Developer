@@ -6,14 +6,17 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { STARTER_TRACK_IDS } from './src/engine/music';
 
-// Имя репозитория на GitHub Pages. Если репозиторий назовёте иначе — поменяйте тут.
-const REPO_BASE = '/slovo2/';
+// Имя репозитория на GitHub Pages: https://artignat2000.github.io/Slovo_Developer/.
+// Если репозиторий назовёте иначе — поменяйте тут. Деплой (deploy.yml) всё равно
+// передаёт VITE_BASE из имени репозитория, так что сайт не опустеет и после
+// переименования; эта константа — для локальных `npm run build` и `npm run preview`.
+const REPO_BASE = '/Slovo_Developer/';
 
 /**
- * База сборки. Для GitHub Pages — '/slovo2/', а для локального показа в песочнице
+ * База сборки. Для GitHub Pages — '/Slovo_Developer/', а для локального показа в песочнице
  * (npm run preview:build) нужен корень: превью-прокси открывает приложение по адресу
- * без пути репозитория, иначе получается белый экран из-за путей к /slovo2/assets/*.
- * Переопределяется переменной окружения VITE_BASE (см. package.json).
+ * без пути репозитория, иначе получается белый экран из-за путей к /Slovo_Developer/assets/*.
+ * Переопределяется переменной окружения VITE_BASE (см. package.json и deploy.yml).
  */
 const buildBase = process.env.VITE_BASE ?? REPO_BASE;
 
@@ -63,7 +66,7 @@ export default defineConfig(({ command }) => ({
       manifest: {
         name: 'СЛОВО 2.0 — учи словарные слова',
         short_name: 'СЛОВО',
-        description: 'Увлекательная тренировка словарных слов для 2 класса. Работает без интернета.',
+        description: 'Увлекательная тренировка словарных слов 1–4 класса по программе «Школа России». Работает без интернета.',
         lang: 'ru',
         dir: 'ltr',
         start_url: './',
@@ -97,13 +100,41 @@ export default defineConfig(({ command }) => ({
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
         // Витрина вариантов карточки (docs/) — служебная страница для ревью,
         // ей нечего делать в офлайн-кэше у ребёнка.
-        globIgnores: ['docs/**'],
+        // 0.74.0: плитки «полки идей» школы НААШ (~100 КБ) тоже вне precache:
+        // нужны только тому, кто открыл раздел. Их кладёт кэш `slovo2-naash`
+        // при первом просмотре — как платные музыкальные треки.
+        // 0.76.0: интерьеры баз (25 фотореалистичных кадров в public/base-tours)
+        // тоже вне precache — их открывают только те, кто зашёл внутрь базы.
+        // Первый просмотр кладёт файл в кэш `slovo2-base-tours`, дальше он
+        // работает офлайн.
+        // 0.87.3: атласы 3D-БУКа (public/buk3d, до 500 кБ на ступень) — вне
+        // precache по §6.4 спеки: кладутся в runtime-кэш `slovo2-buk3d` при
+        // первом открытии экрана с плеером. Проверяет `npm run buk:check`.
+        globIgnores: ['docs/**', 'naash/**', 'base-tours/**', 'buk3d/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         // Остальная музыка (покупки, прослушивание): первый запрос кладёт файл
         // в кэш «slovo2-audio», дальше трек играет офлайн. Прогрев стартовых и
         // купленных треков — platform/music.ts:warmTracks.
         runtimeCaching: [
+          {
+            urlPattern: /\/naash\/.*\.webp$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovo2-naash',
+              expiration: { maxEntries: 24 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\/base-tours\/.*\.webp$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovo2-base-tours',
+              expiration: { maxEntries: 40 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /\/audio\/.*\.mp3$/,
             handler: 'CacheFirst',
@@ -129,6 +160,10 @@ export default defineConfig(({ command }) => ({
          * предпросмотре песочницы до приложения не доходят:
          *   /docs/word-cards/cards-demo.html
          *   /docs/shop-concept/shop-demo.html
+         * Каталог мерча (docs/merch) в сборку приложения не входит намеренно:
+         * 49 картинок ~1 МБ не нужны ребёнку офлайн, а precache PWA должен
+         * оставаться маленьким. Страница живёт отдельным статическим сайтом:
+         * `npm run merch:preview`.
          */
       rollupOptions: {
         input: {

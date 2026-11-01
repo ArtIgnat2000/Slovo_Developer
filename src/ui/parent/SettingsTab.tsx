@@ -8,6 +8,8 @@
 
 import { DEFAULT_LESSON_SIZE, LESSON_SIZE_OPTIONS } from '../../engine/scheduler';
 import { useApp } from '../../state/store';
+import { AVAILABLE_CLASSES, CLASS_META, WORDS_BY_GRADE, availableClass } from '../../content/words';
+import type { ClassId } from '../../types';
 import { MusicCreditsToggle } from '../Credits';
 import { ThemeHelp } from '../ThemeHelp';
 import { Choice, GroupTitle, SettingRow, Switch } from './ParentBits';
@@ -17,33 +19,37 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
   const settings = useApp((s) => s.settings);
   const setSettings = useApp((s) => s.setSettings);
   const setLessonSize = useApp((s) => s.setLessonSize);
+  const setActiveClass = useApp((s) => s.setActiveClass);
 
   const lessonSize = profile.lessonSize ?? DEFAULT_LESSON_SIZE;
+  const activeClass = availableClass(profile.activeClass ?? 2);
 
   return (
     <div className="parent-stack">
       <div className="card">
-        <GroupTitle title="Занятия" hint="Что и как часто делает ребёнок" />
+        <GroupTitle title="Занятия" />
 
-        <SettingRow
-          title="Цель дня"
-          hint="Сколько опыта (XP) считается выполненной нормой дня. Ребёнок видит прогресс в кольце на главной."
-        >
-          <Choice
-            label="Цель дня в XP"
-            value={settings.dailyGoal}
-            onChange={(dailyGoal) => setSettings({ dailyGoal })}
-            options={[
-              { value: 60, label: '60 · спокойно', hint: 'Один короткий урок' },
-              { value: 120, label: '120 · обычно', hint: 'Урок и немного повторения' },
-              { value: 200, label: '200 · серьёзно', hint: 'Два урока за день' },
-            ]}
-          />
-        </SettingRow>
+        {AVAILABLE_CLASSES.length > 1 && (
+          <SettingRow
+            title="Класс"
+            hint="Меняется набор слов. Прогресс и покупки сохраняются."
+          >
+            <Choice
+              label="Класс программы"
+              value={activeClass}
+              onChange={(id) => setActiveClass(id as ClassId)}
+              options={AVAILABLE_CLASSES.map((g) => ({
+                value: g,
+                label: CLASS_META[g].title,
+                hint: `${WORDS_BY_GRADE[g].length} слов из словарика ${g} класса`,
+              }))}
+            />
+          </SettingRow>
+        )}
 
         <SettingRow
           title="Размер урока"
-          hint="Сколько карточек в одном уроке. Отработка ошибок добавляется сверху и не пропадает. Меняется со следующего урока."
+          hint="Применится со следующего урока."
         >
           <Choice
             label="Размер урока"
@@ -59,7 +65,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
         <SettingRow
           title="Подсказки в уроке"
-          hint="Что делает сова БУК, если ребёнок просит помощи или долго думает."
+          hint="Как БУК помогает в задании."
         >
           <Choice
             label="Подсказки в уроке"
@@ -78,35 +84,34 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
         </SettingRow>
       </div>
 
+      <details className="card parent-advanced-settings">
+        <summary className="setting-title">Расширенные настройки</summary>
+        <SettingRow
+          title="Цель дня"
+          hint="Дневная норма XP на главной."
+        >
+          <Choice
+            label="Цель дня в XP"
+            value={settings.dailyGoal}
+            onChange={(dailyGoal) => setSettings({ dailyGoal })}
+            options={[
+              { value: 60, label: '60 · спокойно', hint: 'Один короткий урок' },
+              { value: 120, label: '120 · обычно', hint: 'Урок и немного повторения' },
+              { value: 200, label: '200 · серьёзно', hint: 'Два урока за день' },
+            ]}
+          />
+        </SettingRow>
+
       <div className="card">
         <GroupTitle title="Звук и отклик" />
-        <SettingRow title="Звук" hint="Звуковые эффекты: правильный ответ, ошибка, награда и сундук. Мелодии ответа ребёнок выбирает в магазине → «Звуки».">
+        <SettingRow title="Звук" hint="Эффекты ответов и наград.">
           <Switch
             label="Звук"
             checked={settings.sound}
             onChange={(sound) => setSettings({ sound })}
           />
         </SettingRow>
-        <SettingRow title="Музыка" hint="Фоновые мелодии Kevin MacLeod. Отключается отдельно от звуковых эффектов.">
-          <Switch
-            label="Музыка"
-            checked={settings.music}
-            onChange={(music) => setSettings({ music })}
-          />
-        </SettingRow>
-        <SettingRow title="Громкость музыки" hint="Умеренная громкость по умолчанию: музыка — фон, а не концерт.">
-          <Choice
-            label="Громкость музыки"
-            value={settings.musicVolume}
-            onChange={(musicVolume) => setSettings({ musicVolume })}
-            options={[
-              { value: 0.3, label: 'тихо', hint: 'Едва слышно на фоне' },
-              { value: 0.5, label: 'обычно', hint: 'Рекомендуется: слышно, но не мешает' },
-              { value: 0.75, label: 'погромче', hint: 'Для наушников и тихой комнаты' },
-            ]}
-          />
-        </SettingRow>
-        <SettingRow title="Вибрация" hint="Короткий отклик на верные и неверные ответы (если телефон это умеет).">
+        <SettingRow title="Вибрация" hint="Отклик телефона на ответы.">
           <Switch
             label="Вибрация"
             checked={settings.haptics}
@@ -121,7 +126,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
       <div className="card">
         <GroupTitle title="Вид" />
-        <SettingRow title="Цветовая схема" hint="Светлая, тёмная или как в телефоне. Стиль оформления выбирается в магазине → Фоны.">
+        <SettingRow title="Цветовая схема" hint="Светлая, тёмная или как в телефоне.">
           <Choice
             label="Цветовая схема"
             value={settings.theme}
@@ -137,7 +142,7 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
 
         <SettingRow
           title="Сова БУК"
-          hint="Плавающий помощник на экранах. Его можно оставить везде, только на главной или убрать совсем."
+          hint="Где показывать помощника."
         >
           <Choice
             label="Сова БУК"
@@ -152,9 +157,8 @@ export function SettingsTab({ profile, onOpenDiagnostics }: { profile: Profile; 
         </SettingRow>
       </div>
 
-      <p className="setting-hint center">
-        Все настройки применяются сразу и хранятся в этом телефоне вместе с прогрессом.
-      </p>
+      </details>
+
     </div>
   );
 }

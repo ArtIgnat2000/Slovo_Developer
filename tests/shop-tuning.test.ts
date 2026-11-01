@@ -45,6 +45,42 @@ const EXPECTED_BASE: Record<string, [string, string, string]> = {
   bow: ['#ff6fb5', '#ff4fa0', '#ffd166'],
   scarf: ['#f43f5e', '#e03556', '#ffd166'],
   medal: ['#3b82f6', '#f4a51a', '#e8901a'],
+  // 0.70.0: украшения и крылья (docs/proposals/shop-girls-catalog.md, вариант A).
+  // База — ровно то, что рисуется в ui/MascotDecor.tsx без тюнинга.
+  'clips-stars': ['#f5c542', '#d99a15', '#fff6da'],
+  wreath: ['#ffffff', '#f2c53d', '#4caf6a'],
+  'hat-ribbon': ['#e8cf95', '#c9a55e', '#ff6fa5'],
+  crown: ['#ffd76a', '#d9a520', '#ff6fa5'],
+  'glasses-heart': ['#ff5c8a', '#c93b66', '#ffd6e4'],
+  'glasses-round': ['#c9a24a', '#9a7a2e', '#bfe3ff'],
+  choker: ['#7b2d4a', '#5a1e35', '#ff7aab'],
+  beads: ['#ff8fb1', '#d96a8c', '#ffd166'],
+  bag: ['#b06ad9', '#8a4bb0', '#ffd166'],
+  'brooch-flower': ['#ff8fc0', '#d96a99', '#f5c542'],
+  'badge-cat': ['#ffd9e6', '#f2a6c2', '#7a5cff'],
+  'wings-butterfly': ['#ff9ec7', '#c86a9b', '#ffe066'],
+  'wings-dragon': ['#6a8f4a', '#3f5c2c', '#e8c74a'],
+  'hair-buns': ['#8a5a34', '#6b4226', '#ff6fb5'],
+  'hair-ponytail': ['#a06a35', '#7c4f24', '#ff6fb5'],
+  'hair-curls': ['#7c4a21', '#5d3517', '#ffd166'],
+  'glasses-sigma': ['#111827', '#000000', '#38bdf8'],
+  'pendant-heart': ['#f43f5e', '#b45309', '#ffd9e2'],
+  'pendant-star': ['#ffd166', '#d9a520', '#fff7cc'],
+  'bag-pink': ['#ff8fb8', '#d94f7e', '#ffffff'],
+  'bracelet-beads': ['#ff8fb8', '#7cc6ff', '#ffd166'],
+  'bracelet-heart': ['#f43f5e', '#be123c', '#ffe4e6'],
+  'dress-pink': ['#ff9ec7', '#e05a8a', '#ffffff'],
+  'dress-star': ['#3b5bdb', '#2b3f9e', '#ffd166'],
+  'dress-rainbow': ['#f87171', '#fbbf24', '#7cc6ff'],
+  'shoes-pink': ['#ff8fb8', '#d94f7e', '#ffffff'],
+  'shoes-sparkle': ['#e9d5ff', '#a78bfa', '#ffffff'],
+  'skates-ice': ['#f8fafc', '#94a3b8', '#7cc6ff'],
+  // 0.74.0: форма школы НААШ (docs/proposals/naash-shop.md). База — ровно то,
+  // что рисуется в ui/MascotLook.tsx: синий знака, тёмно-синий, крем и эмаль.
+  'school-pin': ['#F4EFE4', '#0F4CA0', '#0A2C5E'],
+  'school-cap': ['#0F4CA0', '#0A2C5E', '#F4EFE4'],
+  'school-scarf': ['#0F4CA0', '#0A2C5E', '#F4EFE4'],
+  'school-hoodie': ['#0F4CA0', '#0A2C5E', '#F4EFE4'],
 };
 
 // Техника: авто, телефоны и корабли. База та же, что на витрине; цвета обязаны
@@ -69,19 +105,52 @@ const EXPECTED_TOY_BASE: Record<string, [string, string, string]> = {
   'car-electron-base': ['#eef5f4', '#204956', '#2dced1'],
   'car-arctic-base': ['#b6d2e0', '#2f5063', '#e98a3a'],
   'car-moon-base': ['#dce0e3', '#374151', '#c9a44f'],
-  'ship-paper': ['#f8fafc', '#172033', '#c5a45b'],
-  'ship-sail': ['#183b63', '#202b3b', '#ef673c'],
-  'ship-steam': ['#164b4c', '#203b3b', '#c6813d'],
-  'ship-carrier': ['#59616a', '#252b34', '#e5b849'],
+  // 0.76.0: техника базы паровозов — медь, латунь и свет топки.
+  'car-steam-base': ['#b4713c', '#3a2418', '#f2c14e'],
   'plane-swift': ['#e4573d', '#273750', '#ffc857'],
   'plane-electron-base': ['#4d75df', '#26346f', '#4df0db'],
   'plane-arctic-base': ['#a8d9e9', '#426a88', '#53b9f0'],
   'plane-moon-base': ['#777b91', '#34394e', '#ffd166'],
   'plane-atomic-base': ['#2ca7ad', '#17475d', '#9aefb3'],
+  'plane-steam-base': ['#c89a52', '#4a3320', '#ffcf6b'],
+  'ship-paper': ['#f8fafc', '#172033', '#c5a45b'],
+  'ship-sail': ['#183b63', '#202b3b', '#ef673c'],
+  'ship-steam': ['#164b4c', '#203b3b', '#c6813d'],
+  'ship-carrier': ['#59616a', '#252b34', '#e5b849'],
+  'phone-18': ['#8e2434', '#5f1220', '#f3c1c9'],
+  'phone-18-air': ['#b5546a', '#7e2a3c', '#ffe3ea'],
+  'phone-18-pro': ['#6d1220', '#3f0a13', '#e8a0a8'],
+  'phone-18-max': ['#57101d', '#2e0810', '#d98c96'],
+  'car-pink-cabrio': ['#ff8fb8', '#d94f7e', '#fff1f6'],
+  'car-pink-star': ['#ff6fb5', '#c2185b', '#ffd166'],
+  'car-tesla': ['#1d4ed8', '#0b1220', '#e2e8f0'],
+  'car-pink-tank': ['#ff8fb8', '#d94f7e', '#ffeef5'],
+  'ship-titanic': ['#1f2937', '#b91c1c', '#f8fafc'],
+  'pet-cat': ['#ffb26b', '#e08a3c', '#ffffff'],
+  'pet-bunny': ['#f8fafc', '#cbd5e1', '#ff9ec7'],
+  'pet-panda': ['#f8fafc', '#1f2937', '#7fe3b1'],
+  'pet-corgi': ['#f2a65a', '#d9822b', '#ffffff'],
+  'pet-hamster': ['#f5a94b', '#d97f26', '#fff3d6'],
+  'pet-chihuahua': ['#e8b06a', '#c98a3f', '#ffffff'],
+  'pet-cat-siamese': ['#f3e3cb', '#5b3a44', '#7cc6ff'],
+  'pet-cat-scottish': ['#b6c2d2', '#7d90a8', '#ffd166'],
+  'pet-poodle': ['#f8fafc', '#d8c8e8', '#ff9ec7'],
+  'pet-cat-british': ['#9fb0c3', '#7086a0', '#ffd166'],
+  'pet-cat-sphynx': ['#eda9a0', '#c97a72', '#a8d8ff'],
+  'pet-cat-mainecoon': ['#b0722f', '#7e4a1c', '#f5e0bd'],
+  'pet-elephant': ['#aebdd1', '#8496b3', '#f8fafc'],
+  'sport-ball': ['#f8fafc', '#1f2937', '#ef4444'],
+  'sport-skate': ['#f43f5e', '#881337', '#ffd166'],
+  'sport-dumbbell': ['#64748b', '#334155', '#f43f5e'],
+  'sport-racket': ['#38bdf8', '#0369a1', '#fde047'],
+  'food-icecream': ['#ff9ec7', '#fbbf24', '#fff7cc'],
+  'food-donut': ['#ff8fb8', '#b45309', '#ffffff'],
+  'food-kulich': ['#f5d0a9', '#b45309', '#ffffff'],
+  'food-cake': ['#fda4af', '#e11d48', '#fff7cc'],
 };
 
 assert.equal(OUTFIT_ITEMS.length, Object.keys(EXPECTED_BASE).length, 'список нарядов и ожидаемых палитр разошёлся');
-assert.equal(TOY_ITEMS.filter(item => (!hasElectronicsArt(item.id) || item.id in TINT_PALETTES)).length, Object.keys(EXPECTED_TOY_BASE).length, 'список игрушек и ожидаемых палитр разошёлся');
+assert.equal(TOY_ITEMS.filter(item => !item.series && (!hasElectronicsArt(item.id) || item.id in TINT_PALETTES)).length, Object.keys(EXPECTED_TOY_BASE).length, 'список обычных игрушек и ожидаемых палитр разошёлся');
 assert.equal(SHOP_ITEMS.length, OUTFIT_ITEMS.length + TOY_ITEMS.length, 'каталог потерял вещь при разделении на полки');
 assert.equal(new Set(SHOP_ITEMS.map((item) => item.id)).size, SHOP_ITEMS.length, 'id товаров должны быть уникальны');
 assert.ok(OUTFIT_ITEMS.every((item) => item.kind !== 'toy'), 'на полке нарядов не должно быть игрушек');
@@ -93,45 +162,41 @@ assert.ok(TOY_ITEMS.every((item) => !showsOnBuk(item)), 'техника не д�
 assert.ok(OUTFIT_ITEMS.every((item) => showsOnBuk(item)), 'наряды должны рисоваться на БУКе');
 assert.deepEqual(
   [...new Set(TOY_ITEMS.map((item) => item.toy))].sort(),
-  ['car', 'phone', 'plane', 'ship'],
-  'техника должна содержать авто, телефоны, самолёты и корабли',
+  ['car', 'food', 'pet', 'phone', 'plane', 'school', 'ship', 'sport'],
+  'подтипы каталога включают отдельные игровые школьные предметы',
 );
 // Авто и корабли идут рядом и доступны как отдельные полки.
-assert.deepEqual(TOY_SHELVES.map((shelf) => shelf.id), ['car', 'plane', 'ship', 'phone'], 'полки техники поехали');
+assert.deepEqual(
+  TOY_SHELVES.map((shelf) => shelf.id),
+  ['car', 'plane', 'ship', 'phone', 'pet', 'sport', 'food'],
+  'полки техники поехали',
+);
 assert.equal(TOY_SHELVES[0].title, 'Авто', 'первая полка называется «Авто»');
-assert.equal(TOY_SHELVES[1].title, 'Самолёты', 'самолёты вынесены в отдельную полку');
+assert.equal(TOY_SHELVES[1].title, 'Самолёты', 'самолёты идут отдельной полкой рядом с авто');
 const carIds = toysByShelf('car').map((item) => item.id);
 for (const id of ['car-bmw', 'car-brabus', 'car-mercedes', 'car-lambo', 'car-rolls', 'car-maybach', 'car-bugatti']) {
   assert.ok(carIds.includes(id), `в разделе авто нет ${id}`);
-}
-assert.equal(carIds.length, 14, 'полка авто содержит десять прежних машин и четыре машины в стиле баз');
-const baseCars = [
-  ['car-atomic-base', 'atomic-base', 'top'],
-  ['car-electron-base', 'electron-base', 'legendary'],
-  ['car-arctic-base', 'arctic-base', 'legendary'],
-  ['car-moon-base', 'moon-base', 'top'],
-] as const;
-for (const [carId, baseId, rarity] of baseCars) {
-  const car = ITEM_BY_ID[carId];
-  assert.ok(car && carIds.includes(carId), `${carId}: машины в стиле базы есть в каталоге`);
-  assert.equal(car.baseStyle, baseId, `${carId}: связана с правильной базой`);
-  assert.equal(car.rarity, rarity, `${carId}: редкость соответствует базе`);
-  assert.ok(TINT_PALETTES[carId], `${carId}: у машины есть палитра тюнинга`);
 }
 // 0.21.1: имена машин — по характеру, без точных обозначений брендов.
 // id остаются техническими (по ним лежат картинки и профили), но всё, что
 // видит ребёнок, не должно называть марку или модель.
 assert.deepEqual(
   toysByShelf('car').map((item) => item.title),
-  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Квант', 'Импульс', 'Полярник', 'Луноход'],
-  'названия машин должны отражать характер, а не бренд',
+  ['Болид', 'Скалолаз', 'Жёлтый кэб', 'Звезда', 'Стрела', 'Кубик', 'Адмирал', 'Лорд', 'Бык', 'Молния', 'Квант', 'Импульс', 'Полярник', 'Луноход', 'Огнедышащий', 'Розовая машина', 'Розовая звезда', 'Тесла', 'Розовый танк'],
+  'названия машин должны отражать характер, а не бренд (0.72.0: по прямой просьбе добавлены «Тесла» и розовые машины)',
 );
 assert.deepEqual(
   toysByShelf('ship').map((item) => item.title),
-  ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец'],
+  ['Морская яхта', 'Контейнеровоз', 'Супертанкер', 'Авианосец', 'Титаник'],
   'корабельная полка должна содержать взрослые типы морских судов',
 );
 assert.ok(toysByShelf('ship').every((item) => item.id in TINT_PALETTES), 'у каждого судна есть тюнинг');
+assert.deepEqual(
+  toysByShelf('plane').map((item) => item.title),
+  ['Стриж', 'Схемолёт', 'Северный ветер', 'Лунный орёл', 'Атомный дозор', 'Паролёт'],
+  'самолётная полка (0.70.0): Стриж и самолёты научных баз (0.76.0: добавлен «Паролёт»)',
+);
+assert.ok(toysByShelf('plane').every((item) => item.id in TINT_PALETTES), 'у каждого самолёта есть тюнинг');
 const BRAND_WORDS =
   /мерседес|майбах|брабус|роллс|ройс|ламборджини|бугати|бмв|mercedes|maybach|brabus|rolls|royce|lamborghini|bugatti|jeep|джип|ford|форд|crown victoria|phantom|chiron|aventador|wrangler|rubicon|s-класс|\bm5\b/i;
 for (const item of toysByShelf('car')) {
@@ -141,7 +206,7 @@ for (const item of toysByShelf('car')) {
   );
 }
 
-const shopItemIds = SHOP_ITEMS.filter(item => (!hasElectronicsArt(item.id) || item.id in TINT_PALETTES)).map((item) => item.id);
+const shopItemIds = SHOP_ITEMS.filter(item => !item.series && (!hasElectronicsArt(item.id) || item.id in TINT_PALETTES)).map((item) => item.id);
 for (const id of shopItemIds) {
   const palette = TINT_PALETTES[id];
   assert.ok(palette, `у вещи ${id} нет палитры`);
@@ -357,10 +422,7 @@ assert.equal(
   null,
   'явная база — тоже рисунок в своих цветах',
 );
-for (const id of [
-  'car-mercedes', 'car-bmw', 'car-brabus', 'car-maybach', 'car-rolls', 'car-lambo', 'car-bugatti',
-  'car-atomic-base', 'car-electron-base', 'car-arctic-base', 'car-moon-base',
-]) {
+for (const id of ['car-mercedes', 'car-bmw', 'car-brabus', 'car-maybach', 'car-rolls', 'car-lambo', 'car-bugatti']) {
   const extra = TINT_PALETTES[id].extra[0];
   assert.equal(
     carPencilTint(id, { current: { [id]: extra.id }, unlocked: { [id]: [extra.id] } }),

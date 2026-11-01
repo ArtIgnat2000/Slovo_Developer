@@ -13,7 +13,7 @@ import type { Profile, QuestPlanItem } from '../src/types';
 import { LESSONS, WORDS } from '../src/content/words';
 import { dayKey, useApp } from '../src/state/store';
 import { CHEST_WAKE_TAPS, planOf, questsForDay, specFor } from '../src/engine/quests';
-import { btn, btnText, buttons, check, click, currentWord, has, openRewardsSheet, sleep } from './ui-helpers';
+import { btn, btnText, buttons, check, click, currentWord, has, openHomeMenu, openRewardsSheet, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
 const DAY = 86_400_000;
@@ -253,7 +253,56 @@ export async function runQuestUiChecks(): Promise<void> {
     !!document.querySelector('.home-hero') && has('Сегодня') && !!btnText('Начать'),
     bodyText(),
   );
-  check('главная: на доме нет карточки заданий — они за 🎁', !document.querySelector('.quest'), bodyText());
+  // 0.90.0: «Задания дня» больше не отдельная полоска над героем — это строка
+  // плана внутри блока «Сегодня», под главным действием. Разбор —
+  // docs/proposals/lessons-panel.md: полоска над героем конкурировала с
+  // «Начать», и до главного действия было четыре кнопки.
+  const strip = document.querySelector('.quest-strip') as HTMLButtonElement | null;
+  check('главная: «Задания дня» видны сразу — строкой плана «Сегодня»', !!strip, bodyText().slice(0, 160));
+  check(
+    'главная: задания стоят в блоке «Сегодня», а не над ним',
+    !!strip && !!strip.closest('.home-today') && !!strip.closest('.today-steps'),
+    strip?.parentElement?.className ?? 'нет полоски',
+  );
+  check(
+    'главная: герой «Сегодня» стоит выше заданий — главное действие первое',
+    !!strip &&
+      !!document.querySelector('.home-hero') &&
+      (strip.compareDocumentPosition(document.querySelector('.home-hero')!) & Node.DOCUMENT_POSITION_PRECEDING) !== 0,
+    '',
+  );
+  check(
+    'главная: до «Начать» нет ни одной кнопки-конкурента',
+    (() => {
+      const hero = document.querySelector('.home-hero');
+      if (!hero) return false;
+      const before = Array.from(document.querySelectorAll('.screen button')).filter(
+        (b) => (hero.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING) !== 0,
+      );
+      // Только шапка: профиль и меню ☰.
+      return before.every((b) => !!b.closest('.topbar'));
+    })(),
+    '',
+  );
+  check(
+    'главная: в строке заданий прогресс и обещание сундука',
+    !!strip && /0 из 3|1 из 3|2 из 3|3 из 3/.test(strip.textContent ?? '') && (strip.textContent ?? '').toLowerCase().includes('сундук'),
+    strip?.textContent ?? '',
+  );
+  check(
+    'главная: на доме нет строк заданий и дублей «Забрать»/«Начать» из квестов',
+    !document.querySelector('.quest') && !document.querySelector('.quest-main') && !document.querySelector('.home-quests'),
+    bodyText(),
+  );
+  {
+    // Одна кнопка: тап по строке открывает тот же лист наград.
+    click(strip);
+    await sleep(60);
+    check('главная: строка заданий открывает лист наград', !!document.querySelector('.rewards-sheet'), bodyText().slice(0, 160));
+    click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+    await sleep(40);
+    check('главная: после закрытия листа главная на месте', !!document.querySelector('.quest-strip') && !document.querySelector('.rewards-sheet'), '');
+  }
   click(document.querySelector('.home-hero'));
   await sleep(100);
   check('главная: «Начать» у героя открывает урок', !!document.querySelector('.task'), bodyText().slice(0, 120));
@@ -347,10 +396,35 @@ export async function runQuestUiChecks(): Promise<void> {
   // 7. Добираем оставшиеся слова и забираем награду
   for (const wordId of LESSONS[0].wordIds) store().answer(wordId, 5, true);
   await sleep(80);
+  // 0.35.0: полоска на главной — не украшение: закрытое задание сразу
+  // превращается в «награда ждёт», подсвечивается и ведёт в лист наград.
+  const readyStrip = document.querySelector('.quest-strip');
+  check(
+    'главная: закрытое задание видно на полоске — «ждёт награда»',
+    !!readyStrip && (readyStrip.textContent ?? '').includes('ждёт') && readyStrip.className.includes('ready'),
+    readyStrip?.textContent ?? '',
+  );
+  // 0.33.0: число у «Наград» в меню ☰ — обещание, а не украшение. Задание
+  // закрыто и ждёт «Забрать», значит в меню есть число, и оно не меньше числа
+  // кнопок «Забрать» в листе (сундуки и бонусы считаются отдельно).
+  // Число читаем до открытия листа: в открытом листе меню уже закрыто.
+  await openHomeMenu();
+  const badge = document.querySelector('.menu-count');
+  const badgeText = badge?.textContent ?? '';
+  click(btn((b) => (b.getAttribute('aria-label') ?? '') === 'Закрыть'));
+  await sleep(40);
   await showRewards();
   const gemsBefore = active().gems;
   const claim = questStart('Повтори');
   const claimBtn = questAction('Повтори', 'Забрать');
+  const claimables = Array.from(document.querySelectorAll('.rewards-sheet button')).filter((b) =>
+    (b.textContent ?? '').includes('Забрать'),
+  ).length;
+  check(
+    'награда ждёт: у «Наград» в меню есть число, и «Забрать» в листе не больше него',
+    !!badge && claimables > 0 && Number(badgeText) >= claimables,
+    `в меню ${badgeText || '—'}, кнопок «Забрать» ${claimables}`,
+  );
   check(
     'задания дня: у закрытого задания кнопка «Забрать» вместо строки запуска',
     !claim && !!claimBtn,

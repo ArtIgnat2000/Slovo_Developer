@@ -10,11 +10,6 @@ import {
 } from '../platform/share';
 import { QrImage } from './QrCode';
 
-interface Props {
-  /** Короткий вид — для экрана «Кто будет учиться?», без пошаговой инструкции */
-  compact?: boolean;
-}
-
 /**
  * «Передать приложение» (обратная связь 2026-10-14: непонятно, как поделиться
  * ссылкой с новым учеником).
@@ -23,7 +18,7 @@ interface Props {
  * камеру), кнопку системного «Поделиться» и копирование ссылки. QR рисуется
  * локально из `engine/qr.ts`: никаких сетевых картинок, работает офлайн.
  */
-export function ShareApp({ compact = false }: Props) {
+export function ShareApp() {
   const url = appUrl();
   const matrix = useMemo(() => qrEncode(url), [url]);
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
@@ -47,14 +42,12 @@ export function ShareApp({ compact = false }: Props) {
   const copy = async () => setOutcome(await copyAppLink());
 
   return (
-    <div className={`card share-app ${compact ? 'compact' : ''}`}>
+    <div className="card share-app">
       <div className="row">
         <span className="share-app-icon" aria-hidden="true">📤</span>
         <div className="grow">
           <h3 style={{ margin: 0 }}>Передать приложение</h3>
-          <div className="tiny">
-            Ссылка откроет СЛОВО 2.0 на другом телефоне. Прогресс у каждого ученика свой.
-          </div>
+          <div className="tiny">QR-код или ссылка для другого телефона.</div>
         </div>
       </div>
 
@@ -88,9 +81,7 @@ export function ShareApp({ compact = false }: Props) {
 
           {outcome === 'copied' && <div className="share-note">Ссылка скопирована ✓</div>}
           {outcome === 'shared' && <div className="share-note">Отправлено ✓</div>}
-          {outcome === 'cancelled' && (
-            <div className="share-note">Окно закрылось. Можно просто скопировать ссылку.</div>
-          )}
+          {outcome === 'cancelled' && <div className="share-note">Отправка отменена</div>}
           {outcome === 'manual' && (
             <>
               <div className="share-note">Скопируй ссылку вручную:</div>
@@ -106,13 +97,6 @@ export function ShareApp({ compact = false }: Props) {
         </div>
       </div>
 
-      {!compact && (
-        <ol className="share-steps tiny">
-          <li>Наведи камеру на QR-код или отправь ссылку в мессенджере.</li>
-          <li>На другом телефоне открой ссылку в браузере.</li>
-          <li>Меню браузера → «Добавить на экран» — и приложение работает без интернета.</li>
-        </ol>
-      )}
 
       {zoomed && matrix && (
         <div

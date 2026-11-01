@@ -166,8 +166,21 @@ export function cueOf(packId: string | null | undefined, cue: SoundCue): SoundNo
   return pack[cue];
 }
 
+/**
+ * Набор доступен в уроках. Бесплатные (стартовые) наборы не нужно «покупать»:
+ * с 0.26.1 новый профиль начинает с пустым `soundOwned`, и требование записи
+ * в нём оставляло «Ксилофон» недоступным — карточка предлагала покупку за 0 💎,
+ * а выбор молча ничего не делал.
+ */
+export function hasSoundPack(owned: string[] | undefined, packId: string): boolean {
+  const pack = SOUND_PACK_BY_ID[packId];
+  if (!pack) return false;
+  return pack.price === 0 || !!owned?.includes(packId);
+}
+
 export function canBuySoundPack(pack: SoundPack, gems: number, owned: string[]): boolean {
-  return !owned.includes(pack.id) && gems >= pack.price;
+  // Бесплатный набор не товар: его выбирают, а не покупают.
+  return pack.price > 0 && !owned.includes(pack.id) && gems >= pack.price;
 }
 
 export interface SoundShopSelection {
@@ -181,9 +194,10 @@ export interface SoundShopSelection {
  * Чужие id отбрасываются, выбранный набор обязан быть открыт.
  */
 export function normalizeSoundShop(raw: { soundOwned?: unknown; soundPack?: unknown } | null | undefined): SoundShopSelection {
-  const owned: string[] = [...STARTER_SOUND_IDS];
-  if (Array.isArray(raw?.soundOwned)) {
-    for (const id of raw.soundOwned) {
+  const listed = Array.isArray(raw?.soundOwned) ? raw.soundOwned : null;
+  const owned: string[] = listed && listed.length === 0 ? [] : [...STARTER_SOUND_IDS];
+  if (listed) {
+    for (const id of listed) {
       if (typeof id === 'string' && SOUND_PACK_BY_ID[id] && !owned.includes(id)) owned.push(id);
     }
   }

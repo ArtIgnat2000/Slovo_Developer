@@ -54,7 +54,7 @@ const tap = (label) => {
 };
 
 expect('Витрина', 'сегмент «Витрина»');
-expect('Гардероб', 'сегмент «Гардероб»');
+expect('Мои покупки', 'сегмент «Мои покупки»');
 expect('Наряды', 'чип «Наряды»');
 expect('Техника', 'чип «Техника»');
 expect('Костюмы', 'чип «Костюмы»');
@@ -93,14 +93,14 @@ expect('Звезда', 'карточка флагманского седана')
 expect('Молния', 'карточка гиперкара');
 expect('Ближайшая покупка', 'подсказка о ближайшей покупке');
 expect('Болид', 'карточка гоночной машины');
-if (document.querySelectorAll('.shop-item.toy-item').length !== 14) problems.push('раздел авто должен показывать четырнадцать машин');
-if (document.querySelectorAll('.shop-item.toy-item img[src*="/cars/"]').length !== 14) problems.push('не у всех машин отдельный рисунок');
+if (document.querySelectorAll('.shop-item.toy-item').length !== 10) problems.push('раздел авто должен показывать только десять машин');
+if (document.querySelectorAll('.shop-item.toy-item img[src*="/cars/"]').length !== 10) problems.push('не у всех машин отдельный рисунок');
 for (const brand of ['БМВ', 'Мерседес', 'Брабус', 'Майбах', 'Роллс-Ройс', 'Ламборджини', 'Бугати', 'BMW', 'Mercedes', 'Brabus', 'Maybach', 'Rolls', 'Lamborghini', 'Bugatti']) {
   if (text().includes(brand)) problems.push('бренд в витрине: ' + brand);
 }
 if (!document.querySelector('.shop-boutique .shop-case-lamp')) problems.push('нет лампы в нише витрины');
 if (!document.querySelector('.shop-boutique .shop-case-podium')) problems.push('нет подиума под вещью');
-if (document.querySelectorAll('.shop-boutique .shop-case').length !== 14) problems.push('не все автомобили стоят в своих нишах');
+if (document.querySelectorAll('.shop-boutique .shop-case').length !== 10) problems.push('не все автомобили стоят в своих нишах');
 
 tap('Корабли');
 await new Promise((r) => setTimeout(r, 100));
@@ -116,7 +116,8 @@ await new Promise((r) => setTimeout(r, 100));
 expect('iPhone Air', 'карточка смартфона');
 if (text().includes('Пароход')) problems.push('в новой витрине остался устаревший детский кораблик');
 if (document.querySelectorAll('.shop-item.toy-item').length !== 7) problems.push('раздел телефонов должен показывать четыре телефона и три устройства');
-if (document.querySelectorAll('.shop-item.toy-item .phone-rotate').length !== 4) problems.push('четыре телефона должны поддерживать поворот');
+// 0.83.0: телефоны сняты фотографиями, поворот убран — проверяем сами снимки.
+if (document.querySelectorAll('.shop-item.toy-item img.product-photo').length !== 4) problems.push('у телефонов витрины должны быть студийные снимки');
 
 // Подробная карточка техники: крупный арт и честная подпись
 tap('iPhone 17');
@@ -144,13 +145,13 @@ await new Promise((r) => setTimeout(r, 100));
 expect('Бантик — твой!', 'тост после покупки');
 expect('💎 12', 'баланс уменьшился ровно на цену');
 
-// Гардероб: коллекция, примерочная и мечты
-tap('Гардероб');
+// «Мои покупки»: коллекция, примерочная и мечты
+tap('Мои покупки');
 await new Promise((r) => setTimeout(r, 100));
-expect('мой наряд', 'примерочная гардероба');
+expect('мой наряд', 'примерочная покупок');
 expect('Бантик', 'купленное попало в гардероб');
-expect('Моя техника', 'полка купленной техники');
-expect('iPhone 17', 'купленная вещь в гардеробе');
+expect('Техника', 'полка купленной техники');
+expect('iPhone 17', 'купленная вещь в «Моих покупках»');
 expect('Пилот истребителя', 'собранный костюм в гардеробе');
 expect('Мечты', 'блок мечт');
 expect('ещё', 'прогресс копления в мечтах');

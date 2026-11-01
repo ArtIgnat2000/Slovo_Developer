@@ -5,25 +5,36 @@ import { StorageBanner, StorageScreen } from './ui/StorageScreen';
 import { ThemeBanner } from './ui/ThemeBanner';
 import { onExternalChange } from './platform/vault';
 import { FloatingMascot } from './ui/FloatingMascot';
+import type { HubDoor } from './ui/BukHub';
+import { BukChat } from './ui/BukChat';
+import { nextStartAction } from './engine/next-start';
+import { useHomeIntent } from './state/home-intent';
 import { HomeScreen } from './ui/screens/HomeScreen';
 import { WordsScreen } from './ui/screens/WordsScreen';
 import { ParentScreen } from './ui/screens/ParentScreen';
 import { ProfilesScreen } from './ui/screens/ProfilesScreen';
 import { LessonScreen } from './ui/screens/LessonScreen';
 import { ShopScreen } from './ui/screens/ShopScreen';
-import { WorldScreen } from './ui/screens/WorldScreen';
+import type { Cat as ShopCat } from './ui/screens/ShopScreen';
+import { RatingScreen } from './ui/screens/RatingScreen';
 import { VlabsScreen } from './ui/screens/VlabsScreen';
-import { HangarScene } from './ui/HangarScene';
 import { DiagnosticsScreen } from './ui/DiagnosticsScreen';
 import type { ParentTabId } from './ui/parent/ParentBits';
 import { setSoundEnabled, setSoundPack } from './platform/sound';
 import { MUSIC_BY_ID, MUSIC_TRACKS, STARTER_TRACK_IDS } from './engine/music';
 import { playMusic, setMusicEnabled, setMusicVolume, warmTracks } from './platform/music';
 import { setHapticsEnabled } from './platform/haptics';
-import { applyUpdate, shouldSuggestInstall, markInstallHintShown } from './platform/pwa';
+import {
+  applyUpdate,
+  markInstallHintShown,
+  shouldSuggestInstall,
+  startUpdateWatch,
+  takeAppliedVersion,
+} from './platform/pwa';
+import { QUIET_MS, QuickSound } from './ui/QuickSound';
 import { applyTheme, applyThemeStyle, writeThemeMirror, writeThemeStyleMirror } from './platform/theme';
 
-type Tab = 'home' | 'words' | 'shop' | 'world' | 'parent';
+type Tab = 'home' | 'words' | 'shop' | 'rating' | 'parent';
 
 function diagnosticsRequested(): boolean {
   return typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('diag') === '1';
@@ -59,19 +70,25 @@ function Toast() {
 export default function App() {
   const profile = useActiveProfile();
   const settings = useApp((s) => s.settings);
+  const setSettings = useApp((s) => s.setSettings);
   // Подписка ровно на один признак: иначе App перерисовывался бы на каждой
   // записи прогресса (а запись идёт на каждый ответ ребёнка).
   const storageBroken = useStorageHealth((s) => s.kind === 'read-error');
 
   const [tab, setTab] = useState<Tab>('home');
   const [lessonId, setLessonId] = useState<string | null>(null);
+  /**
+   * Номер запуска урока (0.62.0). Нужен для «Пройти заново»: если открыть тот же
+   * id, React не пересоздаёт экран (key тот же), и ребёнок остаётся на
+   * результатах. Номер входит в key — экран начинается заново.
+   */
+  const [lessonRun, setLessonRun] = useState(0);
   // Цель дня на момент старта урока. Экран результатов сравнивает урок с ней,
   // а не с текущей настройкой: «Родители» могут поменять цель прямо во время урока.
   const [lessonGoal, setLessonGoal] = useState(settings.dailyGoal);
   const [vlabsOpen, setVlabsOpen] = useState(false);
-  // «Ангар БУКа» (0.22.0): сцена коллекции техники. Вход — значок 🚗 в шапке
-  // главной; ещё два входа живут во вкладке БУК (гардероб и полка «Техника»).
-  const [hangarOpen, setHangarOpen] = useState(false);
+  /** Чат «Спроси БУКа» (0.87.0): полноэкранный оверлей, открывается дверью из хаба. */
+  const [chatOpen, setChatOpen] = useState(false);
   /**
    * Подсказка «добавь на экран». Читаем флаг один раз при старте и держим в состоянии:
    * раньше `markInstallHintShown()` писал в localStorage, но React об этом не знал —
@@ -84,11 +101,32 @@ export default function App() {
   };
   const [profilesOpen, setProfilesOpen] = useState(false);
   const [parentUnlocked, setParentUnlocked] = useState(false);
+  /** Одноразовый запрос: после взрослой проверки раскрыть блок QR доната. */
+  const [supportAutoOpen, setSupportAutoOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(diagnosticsRequested);
   // Из установленного ярлыка нет адресной строки. После проверки темы
   // возвращаем взрослого в тот же раздел, откуда он открыл диагностику.
   const [parentReturnTab, setParentReturnTab] = useState<ParentTabId>('overview');
   const [updateReady, setUpdateReady] = useState(false);
+  /**
+   * «Тишина на время»: до какого момента музыка молчит. Это НЕ настройка
+   * профиля — после перезапуска приложение снова звучит как обычно, поэтому
+   * ребёнок не останется в тишине навсегда из-за случайного долгого нажатия.
+   */
+  const [quietUntil, setQuietUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  /** Версия, до которой обновились автоматически: показываем плашку один раз. */
+  const [justUpdated] = useState(() => takeAppliedVersion());
+
+  // Куда откроется БУК из меню главной; состояние выше ранних return'ов,
+  // чтобы число хуков не менялось между рендерами. `cat` — сразу на нужную
+  // полку витрины (дверь «🎵 Музыка» навигатора, 0.85.0).
+  const [shopEntry, setShopEntry] = useState<{
+    view: 'vitrina' | 'world';
+    cat?: ShopCat;
+    /** «Мой мир» открывается сразу списком вещей (дверь «🎩 Наряды», 0.90.1). */
+    worldMode?: 'collection' | 'items';
+  }>({ view: 'vitrina' });
 
   useEffect(() => {
     const apply = () => {
@@ -118,20 +156,35 @@ export default function App() {
     writeThemeStyleMirror(settings.themeStyle);
   }, [settings.themeStyle]);
 
+  // Отсчёт «тишины на 15 минут»: один таймер на секунду, только пока она идёт.
+  useEffect(() => {
+    if (quietUntil === null) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [quietUntil]);
+
+  useEffect(() => {
+    if (quietUntil !== null && quietUntil <= now) setQuietUntil(null);
+  }, [quietUntil, now]);
+
+  const quiet = quietUntil !== null && quietUntil > now;
+  /** Итоговое состояние музыки: настройка профиля, приглушённая временной тишиной. */
+  const musicOn = settings.music && !quiet;
+
   useEffect(() => {
     // SFX и музыка — независимые контуры: эффекты остаются даже без фона,
     // а музыку можно выключить, не потеряв отклик правильных ответов.
     setSoundEnabled(settings.sound);
-    setMusicEnabled(settings.music);
+    setMusicEnabled(musicOn);
     setMusicVolume(settings.musicVolume);
     setHapticsEnabled(settings.haptics);
-  }, [settings.sound, settings.music, settings.musicVolume, settings.haptics]);
+  }, [settings.sound, musicOn, settings.musicVolume, settings.haptics]);
 
   // Музыка принадлежит профилю ребёнка: при смене профиля фон переключается вместе с ним.
   useEffect(() => {
     const trackId = profile?.shop?.musicTrack ?? null;
-    playMusic(settings.music && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
-  }, [profile?.shop?.musicTrack, settings.music]);
+    playMusic(musicOn && trackId ? MUSIC_BY_ID[trackId] ?? null : null);
+  }, [profile?.shop?.musicTrack, musicOn]);
 
   // «Звуки» тоже принадлежат профилю: мелодии ответа переключаются вместе с ребёнком.
   useEffect(() => {
@@ -189,6 +242,33 @@ export default function App() {
     };
   }, []);
 
+  /**
+   * Автообновление (0.29.0). Ярлык на телефоне может не закрываться неделями,
+   * поэтому браузер переспрашиваем сами, а обновление применяем в безопасный
+   * момент: не в уроке, не с открытым листом и не на экране «Родителям»
+   * (там могли вводить данные). Иначе ждём следующего окна.
+   */
+  const canApplyUpdate = useRef<() => boolean>(() => false);
+  canApplyUpdate.current = () =>
+    !inLesson.current &&
+    !profilesOpen &&
+    !vlabsOpen &&
+    // В «Родителям» могли вводить имя, PIN или выгружать прогресс — не дёргаем.
+    tab !== 'parent' &&
+    document.visibilityState === 'visible';
+
+  useEffect(() => {
+    // onPending: обновление уже скачано и ждёт — покажем плашку-резерв.
+    return startUpdateWatch(() => canApplyUpdate.current(), () => setUpdateReady(true));
+  }, []);
+
+  // После автообновления — одна короткая плашка, чтобы не было «магии».
+  const showToast = useApp((s) => s.showToast);
+  useEffect(() => {
+    if (!justUpdated) return;
+    showToast({ emoji: '✨', title: `Обновлено до v${justUpdated}` });
+  }, [justUpdated, showToast]);
+
   // Урок закончился — выполняем отложенную во время урока синхронизацию.
   // Чтение стоит в одной очереди с записями сторожа (platform/vault.ts),
   // поэтому собственные итоги урока оно не теряет.
@@ -223,8 +303,8 @@ export default function App() {
 
   const startLesson = (id: string) => {
     setParentUnlocked(false);
-    setHangarOpen(false);
     setLessonGoal(settings.dailyGoal);
+    setLessonRun((n) => n + 1);
     setLessonId(id);
   };
 
@@ -233,19 +313,85 @@ export default function App() {
     if (next !== 'parent') {
       setParentUnlocked(false);
       setParentReturnTab('overview');
+      setSupportAutoOpen(false);
     }
     setTab(next);
   };
+
+  /** Быстрый вход в нужную часть БУКа из меню главной и из навигатора БУКа. */
+  const openShop = (view: 'vitrina' | 'world', cat?: ShopCat, worldMode?: 'collection' | 'items') => {
+    setShopEntry({ view, ...(cat ? { cat } : {}), ...(worldMode ? { worldMode } : {}) });
+    setProfilesOpen(false);
+    setTab('shop');
+  };
+
+  /**
+   * Навигатор БУКа (0.85.0; 0.87.0 — шестая дверь «Спроси БУКа»): двери
+   * в один тап от совы, те же разделы, что в меню ☰ главной, плюс чат.
+   * Порядок как в меню: сначала учёба, потом мир, задания и наряды,
+   * музыка, чат последним.
+   */
+  const hubDoors: HubDoor[] = [
+    {
+      id: 'lesson',
+      emoji: '📖',
+      label: 'Урок',
+      run: () => {
+        // «Пора повторить» важнее нового урока — то же правило, что у героя
+        // главной (engine/next-start, его же использует HomeScreen).
+        const next = nextStartAction(profile);
+        if (next.reviewDue) startLesson('review');
+        else if (next.lessonId) startLesson(next.lessonId);
+      },
+    },
+    { id: 'world', emoji: '🌍', label: 'Мой мир', run: () => openShop('world') },
+    {
+      id: 'quests',
+      emoji: '🎁',
+      label: 'Задания',
+      run: () => {
+        // Лист заданий живёт на главной: переключаемся и даём HomeScreen
+        // разовую команду открыться (state/home-intent).
+        setProfilesOpen(false);
+        setTab('home');
+        useHomeIntent.getState().fire('rewards');
+      },
+    },
+    // «Наряды» ведут в «Мой мир → Вещи»: отдельной вкладки покупок больше нет.
+    { id: 'wardrobe', emoji: '🎩', label: 'Наряды', run: () => openShop('world', undefined, 'items') },
+    { id: 'music', emoji: '🎵', label: 'Музыка', run: () => openShop('vitrina', 'music') },
+    {
+      id: 'chat',
+      emoji: '💬',
+      label: 'Спроси БУКа',
+      run: () => {
+        // Чат — оверлей над главной: сначала домой (как у «Заданий»), чтобы
+        // после урока из чата вернуться на чистую страницу.
+        setProfilesOpen(false);
+        setTab('home');
+        setChatOpen(true);
+      },
+    },
+  ];
 
   if (lessonId) {
     return (
       <div className="app">
         {/* key — чтобы состояние урока не переезжало в другой урок */}
         <LessonScreen
-          key={lessonId}
+          key={`${lessonId}#${lessonRun}`}
           lessonId={lessonId}
           goal={lessonGoal}
           onExit={() => setLessonId(null)}
+          onStartList={(listId, mode) =>
+            startLesson(
+              mode === 'check'
+                ? `check:${listId}`
+                : mode === 'errors'
+                  ? `err:${listId}`
+                  : `list:${listId}`,
+            )
+          }
         />
         <Toast />
       </div>
@@ -271,19 +417,44 @@ export default function App() {
         <HomeScreen
           onStartLesson={startLesson}
           onOpenProfiles={() => setProfilesOpen(true)}
+          onOpenSupport={() => {
+            setSupportAutoOpen(true);
+            // Поддержка — добровольное внешнее действие: открываем QR сразу,
+            // не оставляя человека на отдельном шаге взрослого раздела.
+            setParentUnlocked(true);
+            setParentReturnTab('overview');
+            switchTab('parent');
+          }}
           onStartReview={() => startLesson('review')}
-          onOpenHangar={() => setHangarOpen(true)}
+          onOpenShop={openShop}
+          onStartList={(listId, mode = 'train') =>
+            startLesson(mode === 'check' ? `check:${listId}` : mode === 'errors' ? `err:${listId}` : `list:${listId}`)
+          }
         />
       ) : tab === 'words' ? (
         <WordsScreen />
+      ) : tab === 'rating' ? (
+        <RatingScreen />
       ) : tab === 'shop' ? (
-        <ShopScreen />
-      ) : tab === 'world' ? (
-        <WorldScreen />
+        <ShopScreen
+          // Ключ пересоздаёт экран, когда меняется точка входа: иначе тап по
+          // нижней вкладке «БУК» из «Моих покупок» не вернул бы витрину —
+          // useState(initialView) читается только при монтировании.
+          key={`${shopEntry.view}${shopEntry.cat ?? ''}${shopEntry.worldMode ?? ''}`}
+          initialView={shopEntry.view}
+          initialCat={shopEntry.cat}
+          initialWorldMode={shopEntry.worldMode}
+        />
       ) : (
         <ParentScreen
+          onStartList={(listId, mode = 'train') => {
+            setParentUnlocked(false);
+            startLesson(mode === 'check' ? `check:${listId}` : mode === 'errors' ? `err:${listId}` : `list:${listId}`);
+          }}
           unlocked={parentUnlocked}
           onUnlock={() => setParentUnlocked(true)}
+          supportAutoOpen={supportAutoOpen}
+          onSupportAutoOpened={() => setSupportAutoOpen(false)}
           initialTab={parentReturnTab}
           onOpenDiagnostics={(section) => {
             setParentReturnTab(section);
@@ -294,19 +465,28 @@ export default function App() {
             setParentUnlocked(false);
             setVlabsOpen(true);
           }}
-          onOpenWords={() => switchTab('words')}
         />
       )}
 
       {!profilesOpen &&
+        !chatOpen &&
         tab !== 'shop' &&
         settings.mascot !== 'off' &&
         (settings.mascot !== 'home' || tab === 'home') && (
-          <FloatingMascot raised={updateReady || installHint} />
+          <FloatingMascot raised={updateReady || installHint} hub={hubDoors} />
         )}
-      {/* «Ангар БУКа» живёт поверх любой вкладки (кроме урока): открыт с
-          главной — остаётся открытым, пока ребёнок его не закроет. */}
-      {hangarOpen && <HangarScene onClose={() => setHangarOpen(false)} />}
+      {/* Чат «Спроси БУКа» (0.87.0): действие «Потренироваться»/«Полетели»
+          закрывает оверлей и ведёт в урок — тот же старт, что из навигатора. */}
+      {chatOpen && (
+        <BukChat
+          onClose={() => setChatOpen(false)}
+          onAction={(a) => {
+            setChatOpen(false);
+            if (a.mode === 'review') startLesson('review');
+            else if (a.lessonId) startLesson(a.lessonId);
+          }}
+        />
+      )}
       <Toast />
 
       {updateReady && (
@@ -337,6 +517,33 @@ export default function App() {
         </div>
       )}
 
+      {/* Быстрый звук: тап — вкл/выкл музыки, долгое нажатие — тишина на 15 минут.
+          В уроке кнопки нет: там своя тихая громкость и лишние цели мешают. */}
+      <QuickSound
+        music={settings.music}
+        quietUntil={quietUntil}
+        now={now}
+        onToggle={() => {
+          const next = !settings.music;
+          setSettings({ music: next });
+          setQuietUntil(null);
+          showToast(
+            next
+              ? { emoji: '🔊', title: 'Музыка включена' }
+              : { emoji: '🔇', title: 'Музыка выключена' },
+          );
+        }}
+        onQuiet={() => {
+          setQuietUntil(Date.now() + QUIET_MS);
+          showToast({ emoji: '🌙', title: 'Тишина на 15 минут' });
+        }}
+        onCancelQuiet={() => {
+          setQuietUntil(null);
+          setNow(Date.now());
+          showToast({ emoji: '🔊', title: 'Музыка включена' });
+        }}
+      />
+
       <nav className="tabs">
         <button className={`tab ${!profilesOpen && tab === 'home' ? 'on' : ''}`} onClick={() => switchTab('home')}>
           <span className="ico">🗺️</span>
@@ -346,13 +553,20 @@ export default function App() {
           <span className="ico">📖</span>
           Слова
         </button>
-        <button className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`} onClick={() => switchTab('shop')}>
+        <button
+          className={`tab ${!profilesOpen && tab === 'shop' ? 'on' : ''}`}
+          onClick={() => {
+            // Вкладка всегда открывает витрину, а не то, куда завёл меню.
+            setShopEntry({ view: 'vitrina' });
+            switchTab('shop');
+          }}
+        >
           <span className="ico">🎩</span>
           БУК
         </button>
-        <button className={`tab ${!profilesOpen && tab === 'world' ? 'on' : ''}`} onClick={() => switchTab('world')}>
-          <span className="ico">🌍</span>
-          Мой мир
+        <button className={`tab ${!profilesOpen && tab === 'rating' ? 'on' : ''}`} onClick={() => switchTab('rating')}>
+          <span className="ico">🏆</span>
+          Рейтинг
         </button>
         <button className={`tab ${!profilesOpen && tab === 'parent' ? 'on' : ''}`} onClick={() => switchTab('parent')}>
           <span className="ico">👨‍👩‍👧</span>

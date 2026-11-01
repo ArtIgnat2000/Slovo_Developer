@@ -4,18 +4,23 @@ import { OverviewTab } from '../parent/OverviewTab';
 import { ProgressTab } from '../parent/ProgressTab';
 import { SettingsTab } from '../parent/SettingsTab';
 import { AppTab } from '../parent/AppTab';
+import { SupportDeveloper } from '../SupportDeveloper';
+import { ListsTab } from '../parent/ListsTab';
 import { PARENT_TABS, ParentPanel, ParentTabs, type ParentTabId } from '../parent/ParentBits';
 
 interface Props {
   unlocked: boolean;
   onUnlock: () => void;
+  /** Раскрыть QR добровольного доната после входа через пункт меню. */
+  supportAutoOpen?: boolean;
+  onSupportAutoOpened?: () => void;
   onOpenProfiles: () => void;
   onOpenVlabs: () => void;
   onOpenDiagnostics: (section: ParentTabId) => void;
   /** Вернуться в тот же раздел после диагностики, открытой из ярлыка. */
   initialTab?: ParentTabId;
-  /** Открыть вкладку «Слова» (из обзора — «посмотреть все слова») */
-  onOpenWords: () => void;
+  /** Списки к контрольной (0.58.0): тренировка, контроль, ошибки. */
+  onStartList: (listId: string, mode?: 'train' | 'check' | 'errors') => void;
 }
 
 /**
@@ -27,20 +32,27 @@ interface Props {
  * («занимается ли?», «где ссылка для бабушки?», «как убрать сову?») и тонул в
  * чужом контенте.
  *
- * Теперь это четыре раздела по вопросам, которые задают на самом деле
- * (принцип «один экран — одна работа», см. docs/parent-section-redesign.md):
- *  📊 Обзор     — как дела у ребёнка;
- *  💾 Прогресс  — файл выгрузки, копии, корзина, сброс (всё про сохранность);
- *  ⚙️ Настройки — как ребёнок занимается: цель, размер урока, подсказки, звук, вид;
- *  📲 Приложение — передать ссылку, поставить на экран, версия, V-labs.
+ * Четыре коротких входа, чтобы на телефоне не перегружать навигацию:
+ *  📊 Обучение — состояние слов и подробный отчёт;
+ *  🏫 Списки — подготовка к школьной контрольной;
+ *  ⚙️ Настройки — класс, размер урока и подсказки;
+ *  ⋯ Ещё — резервные копии, ссылка, установка и версия приложения.
  *
  * Замок «только для взрослых» остался (это бытовой барьер, а не защита), но
  * стал честнее: ошибка показывается на месте, ответ не стирается, Enter
  * отправляет форму.
  */
-export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onOpenWords }: Props) {
+export function ParentScreen({ unlocked, onUnlock, supportAutoOpen = false, onSupportAutoOpened, onOpenProfiles, onOpenVlabs, onOpenDiagnostics, initialTab = 'overview', onStartList }: Props) {
   const profile = useActiveProfile();
-  const [tab, setTab] = useState<ParentTabId>(initialTab);
+  const [tab, setTab] = useState<ParentTabId>(initialTab === 'app' || initialTab === 'progress' ? 'more' : initialTab);
+  const [moreSection, setMoreSection] = useState<'progress' | 'app'>(initialTab === 'app' ? 'app' : 'progress');
+  const moveMoreSection = (delta: number) => {
+    const next = moreSection === 'progress'
+      ? delta > 0 ? 'app' : 'progress'
+      : delta < 0 ? 'progress' : 'app';
+    setMoreSection(next);
+    document.getElementById(`parent-more-tab-${next}`)?.focus();
+  };
 
   if (!profile) return null;
 
@@ -51,10 +63,7 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
   return (
     <div className="screen parent-screen">
       <div className="parent-head">
-        <div>
-          <h1>Родителям</h1>
-          <div className="setting-hint">Здесь всё про занятия, сохранность и настройки</div>
-        </div>
+        <h1>Родителям</h1>
         <button className="btn ghost sm" onClick={onOpenProfiles}>
           👨‍👩‍👧 Дети
         </button>
@@ -64,24 +73,21 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
         <div className="avatar" style={{ cursor: 'default' }}>
           {profile.avatar}
         </div>
-        <div className="grow">
-          <div className="parent-child-name">{profile.name}</div>
-          <div className="setting-hint">
-            Прогресс этого профиля · с {new Date(profile.createdAt).toLocaleDateString('ru-RU')}
-          </div>
-        </div>
+        <div className="parent-child-name grow">{profile.name}</div>
       </div>
+
+      <SupportDeveloper autoOpen={supportAutoOpen} onAutoOpenConsumed={onSupportAutoOpened} />
 
       <ParentTabs items={PARENT_TABS} value={tab} onChange={setTab} />
 
       {tab === 'overview' && (
         <ParentPanel id="overview">
-          <OverviewTab profile={profile} onOpenWords={onOpenWords} onOpenSection={setTab} />
+          <OverviewTab profile={profile} />
         </ParentPanel>
       )}
-      {tab === 'progress' && (
-        <ParentPanel id="progress">
-          <ProgressTab profile={profile} />
+      {tab === 'lists' && (
+        <ParentPanel id="lists">
+          <ListsTab profile={profile} onTrain={onStartList} />
         </ParentPanel>
       )}
       {tab === 'settings' && (
@@ -89,9 +95,23 @@ export function ParentScreen({ unlocked, onUnlock, onOpenProfiles, onOpenVlabs, 
           <SettingsTab profile={profile} onOpenDiagnostics={() => onOpenDiagnostics('settings')} />
         </ParentPanel>
       )}
-      {tab === 'app' && (
-        <ParentPanel id="app">
-          <AppTab onOpenVlabs={onOpenVlabs} onOpenDiagnostics={() => onOpenDiagnostics('app')} />
+      {tab === 'more' && (
+        <ParentPanel id="more">
+          <div className="parent-stack">
+            <div className="parent-more-tabs" role="tablist" aria-label="Дополнительные разделы">
+              <button type="button" role="tab" id="parent-more-tab-progress" tabIndex={moreSection === 'progress' ? 0 : -1} aria-selected={moreSection === 'progress'} aria-controls="parent-more-panel-progress" className={`choice-item ${moreSection === 'progress' ? 'on' : ''}`} onClick={() => setMoreSection('progress')} onKeyDown={(event) => { if (event.key === 'ArrowRight') { event.preventDefault(); moveMoreSection(1); } }}>💾 Данные</button>
+              <button type="button" role="tab" id="parent-more-tab-app" tabIndex={moreSection === 'app' ? 0 : -1} aria-selected={moreSection === 'app'} aria-controls="parent-more-panel-app" className={`choice-item ${moreSection === 'app' ? 'on' : ''}`} onClick={() => setMoreSection('app')} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); moveMoreSection(-1); } }}>📲 Приложение</button>
+            </div>
+            {moreSection === 'progress' ? (
+              <section role="tabpanel" id="parent-more-panel-progress" aria-labelledby="parent-more-tab-progress">
+                <ProgressTab profile={profile} />
+              </section>
+            ) : (
+              <section role="tabpanel" id="parent-more-panel-app" aria-labelledby="parent-more-tab-app">
+                <AppTab onOpenVlabs={onOpenVlabs} onOpenDiagnostics={() => onOpenDiagnostics('app')} />
+              </section>
+            )}
+          </div>
         </ParentPanel>
       )}
     </div>
@@ -126,7 +146,7 @@ function UnlockGate({ onUnlock }: { onUnlock: () => void }) {
     <div className="screen center">
       <div className="big-emoji">🔐</div>
       <h1>Раздел для взрослых</h1>
-      <p className="muted">Решите пример, чтобы войти: здесь настройки и данные о прогрессе.</p>
+      <p className="muted">Решите пример, чтобы войти.</p>
       <div className="unlock-task">
         {a} × {b} = ?
       </div>
@@ -148,7 +168,7 @@ function UnlockGate({ onUnlock }: { onUnlock: () => void }) {
       />
       {error && (
         <div className="unlock-error" role="alert">
-          Не подходит — попробуйте ещё раз{misses >= 2 ? ' (подсказка: умножьте столбиком)' : ''}
+          Неверно. Попробуйте ещё раз{misses >= 2 ? ' или посчитайте столбиком' : ''}
         </div>
       )}
       <button className="btn primary wide lg mt" disabled={!answer} onClick={submit}>

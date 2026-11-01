@@ -126,7 +126,7 @@ export async function runShareAppChecks(): Promise<void> {
     click(buttons().find((b) => (b.textContent ?? '').trim() === 'Войти'));
     await sleep(60);
   }
-  check('раздел «Родителям» открыт на обзоре', has('XP за сегодня'), document.body.textContent?.slice(0, 160) ?? '');
+  check('раздел «Родителям» открыт на кратком прогрессе', has('Прогресс по словам'), document.body.textContent?.slice(0, 160) ?? '');
   // Ссылка для нового ученика — про приложение, поэтому живёт в разделе «Приложение».
   await openParentSection('Приложение');
   check('в «Родителям» есть карточка «Передать приложение»', !!shareCard(), document.body.textContent?.slice(0, 200) ?? '');
@@ -143,8 +143,8 @@ export async function runShareAppChecks(): Promise<void> {
     (qrArt?.getAttribute('src') ?? '').slice(0, 40),
   );
   check(
-    'в карточке есть пошаговая инструкция для второго телефона',
-    has('Добавить на экран') && has('Наведи камеру'),
+    'передача не дублирует инструкцию по установке',
+    has('Установка') && document.querySelector('.share-steps') === null,
     document.body.textContent?.slice(0, 200) ?? '',
   );
 
@@ -173,18 +173,13 @@ export async function runShareAppChecks(): Promise<void> {
     check('ссылка в ручном поле совпадает с адресом приложения', manualInput.value === linkText(), manualInput.value);
   }
 
-  // Экран «Кто будет учиться?» — вторая точка, где ищут ссылку для нового ученика.
-  // Идём туда через «Дети» в родительском разделе (это тот же экран профилей).
+  // Экран профилей не дублирует передачу ссылки: она уже есть на главной и у родителей.
   click(buttons().find((b) => (b.textContent ?? '').includes('Дети') && !b.className.includes('tab')));
   await sleep(80);
+  const inviteBtn = buttons().find((b) => (b.textContent ?? '').includes('Позови друга'));
   check(
-    'на экране «Кто будет учиться?» тоже есть ссылка для нового ученика',
-    has('Кто будет учиться') && !!shareCard() && has(linkLabel()),
-    document.body.textContent?.slice(0, 200) ?? '',
-  );
-  check(
-    'короткая карточка обходится без пошаговой инструкции',
-    !!document.querySelector('.share-app.compact') && !has('Наведи камеру'),
+    'на экране профилей нет третьего входа «Позови друга»',
+    has('Кто будет учиться') && !inviteBtn && !shareCard(),
     document.body.textContent?.slice(0, 200) ?? '',
   );
   const closeProfiles = buttons().find((b) => (b.textContent ?? '').trim() === 'Закрыть');

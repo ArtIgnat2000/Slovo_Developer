@@ -35,9 +35,11 @@ export interface Costume {
   prop: 'saber-red' | 'saber-blue' | 'saber-green' | 'cane' | null;
   /** Цвет плаща, если есть */
   cape?: string;
-  /** Crystal-store costumes themed to a scientific base. */
+  /** Кристальный костюм в стиле научной базы (engine/buildings.ts); у пазловых костюмов поля нет. */
   baseStyle?: string;
+  /** Цена в кристаллах — только у кристальных костюмов баз. */
   price?: number;
+  /** Редкость — только у кристальных костюмов баз. */
   rarity?: 'common' | 'cool' | 'legendary' | 'top';
 }
 
@@ -164,20 +166,88 @@ export const COSTUMES: Costume[] = [
     helmet: 'ears',
     prop: 'saber-green',
   },
+  // ── 0.70.0: «волшебные» костюмы (docs/proposals/shop-girls-catalog.md, вариант A) ──
+  // Пул пазлов был целиком «боевой сагой»: шлемы, доспехи, светопосохи. Костюм —
+  // это девять уроков, то есть самая длинная цель в приложении, и девочке в этом
+  // пуле выбирать было нечего. Новые четыре образа собраны из УЖЕ существующих
+  // примитивов (buns, hood, dome, ears) и реквизита cane, поэтому новых картинок
+  // и новых пропов не требуют — только палитры.
+  {
+    id: 'fairy',
+    title: 'Фея',
+    desc: 'Два пучка, мятное платье и светящаяся палочка',
+    body: '#bfe9d6',
+    belly: '#eaf9f0',
+    wing: '#8ed6b8',
+    trim: '#7cc9a6',
+    glow: '#ffe066',
+    helmet: 'buns',
+    prop: 'cane',
+  },
+  {
+    id: 'sorceress',
+    title: 'Волшебница',
+    desc: 'Звёздный колпак, мантия с луной и посох',
+    body: '#5a4a8f',
+    belly: '#b9a9e8',
+    wing: '#463a73',
+    trim: '#cdbcf5',
+    glow: '#8fd8ff',
+    helmet: 'hood',
+    prop: 'cane',
+    cape: '#5b21b6',
+  },
+  {
+    id: 'mermaid',
+    title: 'Русалка',
+    desc: 'Стеклянный купол, бирюзовый хвост и жемчужное свечение',
+    body: '#3f9fb5',
+    belly: '#cdf2f7',
+    wing: '#2f7f95',
+    trim: '#8fe3f0',
+    glow: '#7cf0d0',
+    helmet: 'dome',
+    prop: null,
+  },
+  {
+    id: 'cat',
+    title: 'Кошка',
+    desc: 'Ушки, мягкие лапки и розовое свечение — мурр',
+    body: '#8a8199',
+    belly: '#efe6f2',
+    wing: '#6a6178',
+    trim: '#f2a6c2',
+    glow: '#ffb3d9',
+    helmet: 'ears',
+    prop: null,
+  },
 ];
 
+/** Пазловые костюмы: собираются по фрагментам за уроки (исходный COSTUMES). */
 export const PUZZLE_COSTUMES = COSTUMES;
 
-/** Crystal costumes matching each base (sold separately and in themed sets). */
+/**
+ * Кристальные костюмы научных баз (0.70.0, перенос из Slovo_Developer):
+ * каждый привязан к своей базе (`baseStyle`) и покупается за кристаллы
+ * отдельно или в составе набора базы (engine/base-sets.ts). В пазловый
+ * прогресс уроков они НЕ попадают — иначе платный костюм можно было бы
+ * «собрать» бесплатно фрагментами.
+ */
 export const BASE_COSTUMES: Costume[] = [
   { id: 'atomic-suit', title: 'Хранитель атома', desc: 'Защитный скафандр с голубым энергосердцем — в цвет ядерной базы', body: '#4778a8', belly: '#b5e4ff', wing: '#28527e', trim: '#d9f3ff', glow: '#4ddcff', helmet: 'dome', prop: null, baseStyle: 'atomic-base', price: 90, rarity: 'top' },
   { id: 'electron-suit', title: 'Повелитель импульса', desc: 'Солнечный костюм с сияющими линиями электронных схем', body: '#4d9d82', belly: '#c4f4d8', wing: '#34745f', trim: '#d9fff0', glow: '#72ffbd', helmet: 'plate', prop: null, baseStyle: 'electron-base', price: 85, rarity: 'legendary' },
   { id: 'arctic-suit', title: 'Полярный исследователь', desc: 'Тёплый костюм для экспедиций среди льдов и северного сияния', body: '#86b7d4', belly: '#e6f8ff', wing: '#5c8eae', trim: '#f1fbff', glow: '#70eaff', helmet: 'bubble', prop: null, baseStyle: 'arctic-base', price: 95, rarity: 'legendary' },
   { id: 'moon-suit', title: 'Лунный первооткрыватель', desc: 'Серебристый скафандр с золотым светом далёких звёзд', body: '#aaa4c8', belly: '#f1edff', wing: '#817b9f', trim: '#fff5d6', glow: '#ffd166', helmet: 'dome', prop: null, baseStyle: 'moon-base', price: 100, rarity: 'top' },
+  // 0.76.0: костюм базы паровозов — медные очки, кожаный шлем и тёплый свет топки.
+  { id: 'steam-suit', title: 'Машинист пара', desc: 'Кожаный шлем с медными очками и фонарём: такой костюм согреет у самого горячего котла', body: '#a9663a', belly: '#f0d3a1', wing: '#6b3d20', trim: '#ffe2a8', glow: '#ff9e3d', helmet: 'plate', prop: null, baseStyle: 'steam-base', price: 95, rarity: 'legendary' },
+  // ── Особые костюмы (0.72.0): по просьбам детей — героиня в горошек и титан ─
+  { id: 'lady-bug', title: 'Леди Баг', desc: 'Красный костюм в чёрный горошек и маска героини', body: '#e11d48', belly: '#fb7185', wing: '#be123c', trim: '#111827', glow: '#111827', helmet: 'buns', prop: null, price: 75, rarity: 'cool' },
+  { id: 'titan', title: 'Титан', desc: 'Стальной гигант, которого не сдвинуть с места', body: '#94a3b8', belly: '#cbd5e1', wing: '#64748b', trim: '#334155', glow: '#f97316', helmet: 'plate', prop: null, price: 110, rarity: 'top' },
 ];
 
-/** Все образы; пазловая коллекция остаётся отдельно, чтобы платные костюмы не попадали в прогресс уроков. */
+/** Все костюмы БУКа: пазловые + кристальные баз. */
 export const ALL_COSTUMES: Costume[] = [...COSTUMES, ...BASE_COSTUMES];
+/** Синоним для витрины: костюмы, которые продаются за кристаллы. */
 export const CRYSTAL_COSTUMES = BASE_COSTUMES;
 
 export const COSTUME_BY_ID: Record<string, Costume> = Object.fromEntries(
@@ -200,7 +270,7 @@ const EMPTY: PuzzleState = { pieces: {}, collecting: null, assembled: [], worn: 
 /**
  * Санитизация состояния (старые профили, импорт резервных копий):
  * неизвестные id выкидываются, числа клампятся в 0..PUZZLE_SIZE,
- * прогресс и сборка учитывают только пазловые костюмы; кристальные хранятся в магазине.
+ * «надеть» можно только собранный костюм.
  */
 export function normalizePuzzle(raw: unknown): PuzzleState {
   if (!raw || typeof raw !== 'object') return { ...EMPTY, pieces: {} };
@@ -208,18 +278,23 @@ export function normalizePuzzle(raw: unknown): PuzzleState {
   const pieces: Record<string, number> = {};
   if (r.pieces && typeof r.pieces === 'object') {
     for (const [id, n] of Object.entries(r.pieces)) {
-      if (PUZZLE_COSTUMES.some((costume) => costume.id === id) && typeof n === 'number' && Number.isFinite(n) && n > 0) {
+      if (PUZZLE_COSTUMES.some((c) => c.id === id) && typeof n === 'number' && Number.isFinite(n) && n > 0) {
         pieces[id] = Math.min(PUZZLE_SIZE, Math.floor(n));
       }
     }
   }
   const assembled = Array.isArray(r.assembled)
-    ? [...new Set(r.assembled.filter((id): id is string => typeof id === 'string' && PUZZLE_COSTUMES.some((costume) => costume.id === id)))]
+    ? [...new Set(r.assembled.filter((id): id is string => typeof id === 'string' && PUZZLE_COSTUMES.some((c) => c.id === id)))]
     : [];
   for (const id of assembled) pieces[id] = PUZZLE_SIZE;
-  const worn = typeof r.worn === 'string' && COSTUME_BY_ID[r.worn] && (assembled.includes(r.worn) || BASE_COSTUMES.some((costume) => costume.id === r.worn)) ? r.worn : null;
+  // Надетым может быть и кристальный костюм базы: принадлежность проверяет
+  // стор при надевании (shop.crystalCostumesOwned), здесь — только известный id.
+  const worn =
+    typeof r.worn === 'string' && !!COSTUME_BY_ID[r.worn] && (assembled.includes(r.worn) || BASE_COSTUMES.some((c) => c.id === r.worn))
+      ? r.worn
+      : null;
   const collecting =
-    typeof r.collecting === 'string' && PUZZLE_COSTUMES.some((costume) => costume.id === r.collecting) && !assembled.includes(r.collecting)
+    typeof r.collecting === 'string' && PUZZLE_COSTUMES.some((c) => c.id === r.collecting) && !assembled.includes(r.collecting)
       ? r.collecting
       : null;
   return { pieces, collecting, assembled, worn };
@@ -282,11 +357,12 @@ export function awardLessonPiece(prev: PuzzleState | undefined): { puzzle: Puzzl
 /** Сменить цель сборки (только на ещё не собранный костюм). */
 export function chooseCollecting(prev: PuzzleState | undefined, id: string): PuzzleState {
   const p = normalizePuzzle(prev);
-  if (!PUZZLE_COSTUMES.some((costume) => costume.id === id) || p.assembled.includes(id)) return p;
+  if (!PUZZLE_COSTUMES.some((c) => c.id === id) || p.assembled.includes(id)) return p;
   return { ...p, collecting: id };
 }
 
 /** Надеть/снять собранный костюм; чужой или несобранный — без изменений. */
+/** Надеть/снять костюм; кристальный — только если он куплен (`crystalOwned`). */
 export function toggleWorn(prev: PuzzleState | undefined, id: string, crystalOwned: string[] = []): PuzzleState {
   const p = normalizePuzzle(prev);
   if (!p.assembled.includes(id) && !crystalOwned.includes(id)) return p;

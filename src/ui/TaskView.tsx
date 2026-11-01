@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { Task, Word } from '../types';
 import { Sentence, WordCard, WordClue, WordLetters } from './WordView';
-import { dangerSummary } from '../engine/word-facts';
+import { dangerSummary, sameTypedWord } from '../engine/word-facts';
 import { Keyboard } from './Keyboard';
 import { sfx } from '../platform/sound';
 import { haptic } from '../platform/haptics';
+import { Icon } from './Icon';
 
 export type SolveFn = (quality: number | null, given?: string) => void;
 
@@ -13,9 +14,26 @@ interface Props {
   word: Word;
   onSolve: SolveFn;
   onAttempt?: (quality: number) => void;
+  /**
+   * Режим «без подсказок» (0.62.0): полный контроль списка к контрольной.
+   * Тогда кнопки «Подсказка» и карточки с мнемоникой не рендерятся вовсе —
+   * не просто прячутся стилями.
+   */
+  noHints?: boolean;
 }
 
-export function TaskView({ task, word, onSolve, onAttempt }: Props) {
+/** Флаг «подсказки отключены» — читают HintBtn и HintCard. */
+const NoHintsContext = createContext(false);
+
+export function TaskView({ task, word, onSolve, onAttempt, noHints }: Props) {
+  return (
+    <NoHintsContext.Provider value={!!noHints}>
+      <TaskBody task={task} word={word} onSolve={onSolve} onAttempt={onAttempt} />
+    </NoHintsContext.Provider>
+  );
+}
+
+function TaskBody({ task, word, onSolve, onAttempt }: Omit<Props, 'noHints'>) {
   switch (task.kind) {
     case 'intro':
       return <Intro word={word} reason={task.reason} onSolve={onSolve} />;
@@ -55,23 +73,33 @@ function HintBtn({
   label?: string;
   disabled?: boolean;
 }) {
+  // В полном контроле подсказок нет: проверяем, а не учим.
+  if (useContext(NoHintsContext)) return null;
   return (
     <button
       className="btn ghost sm"
+      data-hint=""
       onClick={() => {
         sfx.hint();
         onClick();
       }}
       disabled={disabled}
     >
-      💡 {label}
+      {/* 0.54.0: лампочка — иконка вместо 💡. Текст «Подсказка» остаётся:
+          иконка не единственный носитель смысла (WCAG 1.4.1). */}
+      <Icon name="bulb" size={18} /> {label}
     </button>
   );
 }
 
 /** Мнемоника или объяснение опасных букв — второй слой каждой подсказки. */
 function HintCard({ word }: { word: Word }) {
-  return <div className="banner">💡 {word.mnemonic ?? dangerSummary(word)}</div>;
+  if (useContext(NoHintsContext)) return null;
+  return (
+    <div className="banner">
+      <Icon name="bulb" size={18} /> {word.mnemonic ?? dangerSummary(word)}
+    </div>
+  );
 }
 
 // ── 1. Знакомство: LOOK → SAY → увидеть опасное место ────────────────────────
@@ -224,7 +252,9 @@ function Gap({ word, task, onSolve, onAttempt }: Props) {
       </div>
       {hintUsed ? (
         word.mnemonic ? (
-          <div className="banner">💡 {word.mnemonic}</div>
+          <div className="banner">
+            <Icon name="bulb" size={18} /> {word.mnemonic}
+          </div>
         ) : (
           <p className="tiny">Осталось два варианта — вспомни, как пишется! 👆</p>
         )
@@ -362,7 +392,7 @@ function Write({ word, task, onSolve, onAttempt }: Props) {
   };
 
   const check = () => {
-    const ok = val.trim().toLowerCase() === word.text.toLowerCase();
+    const ok = sameTypedWord(val, word.text);
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');
@@ -447,7 +477,7 @@ function Visual({ word, task, onSolve, onAttempt }: Props) {
   };
 
   const check = () => {
-    const ok = val.trim().toLowerCase() === word.text.toLowerCase();
+    const ok = sameTypedWord(val, word.text);
     const quality = ok ? (hintUsed ? 3 : 5) : 0;
     onAttempt?.(quality);
     setState(ok ? 'ok' : 'bad');

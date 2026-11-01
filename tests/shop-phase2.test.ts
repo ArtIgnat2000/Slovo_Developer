@@ -20,27 +20,29 @@ import { MUSIC_TRACKS } from '../src/engine/music';
 
 // ── 1. closestItem ─────────────────────────────────────────────────────────
 
-// Пустой гардероб — ближайшая цель одна из дешёвых (cap или bow за 20 💎)
+// Пустой гардероб — ближайшая цель одна из самых дешёвых. 0.70.0 добавил
+// заколки за 15 💎: первая покупка стала ближе (это и было целью — «в каждой
+// полке есть вещь за 15–25, чтобы новая полка начиналась с покупки сегодня же»).
 const emptyClosest = closestItem([]);
 assert.ok(emptyClosest, 'у пустого гардероба обязан быть closestItem');
-assert.equal(emptyClosest?.price, 20, 'стартовая ближайшая цель за 20 💎');
-assert.ok(emptyClosest?.id === 'cap' || emptyClosest?.id === 'bow');
+assert.equal(emptyClosest?.price, 15, 'стартовая ближайшая цель — самая дешёвая вещь, 15 💎');
+assert.equal(emptyClosest?.id, 'clips-stars');
 
-// Когда cap и bow куплены — следующий шарфик за 30 💎
-const afterTwo = closestItem(['cap', 'bow']);
-assert.equal(afterTwo?.id, 'scarf');
-assert.equal(afterTwo?.price, 30);
+// Когда дешёвые вещи куплены — следующая цель в общей лестнице цен
+const afterTwo = closestItem(['clips-stars', 'cap', 'bow', 'choker']);
+assert.equal(afterTwo?.id, 'badge-cat');
+assert.equal(afterTwo?.price, 20);
 
-// Когда все 6 нарядов куплены — null (техника с другой полки героя не подменяет)
+// Когда все наряды куплены — null (техника с другой полки героя не подменяет)
 const allOutfitIds = OUTFIT_ITEMS.map((i) => i.id);
 assert.equal(closestItem(allOutfitIds), null);
-assert.equal(OUTFIT_ITEMS.length, 6, 'на полке нарядов осталось шесть вещей');
+assert.equal(OUTFIT_ITEMS.length, 38, 'на полке нарядов 38 вещей: 34 после 0.72.0 + 4 вещи формы школы НААШ (0.74.0)');
 
 // Техника выбирается только явно: на полке «Техника» своя ближайшая покупка.
 const firstToy = closestItem([], 'toy');
 assert.ok(firstToy && firstToy.kind === 'toy', 'у пустой коллекции игрушек есть ближайшая');
-assert.equal(firstToy?.price, 25, 'самая дешёвая вещь техники — за 25 💎');
-assert.ok(firstToy?.toy === 'phone' || firstToy?.toy === 'ship');
+assert.equal(firstToy?.price, 15, 'самая дешёвая вещь техники — мороженое за 15 💎 (полка вкусняшек, 0.72.0)');
+assert.ok(firstToy?.toy === 'phone' || firstToy?.toy === 'ship' || firstToy?.toy === 'food');
 assert.equal(closestItem(TOY_ITEMS.map((item) => item.id), 'toy'), null, 'вся техника куплена — цели нет');
 // Купленные наряды не мешают игрушечной цели и наоборот
 assert.ok(closestItem(allOutfitIds, 'toy'), 'техника остаётся доступной после полного гардероба');
@@ -50,7 +52,10 @@ assert.ok(closestItem(allOutfitIds, 'toy'), 'техника остаётся д�
 // Базовый случай: есть некупленные наряды → герой возвращает вещь
 const heroItem = resolveHero([]);
 assert.ok(heroItem && heroItem.kind === 'item');
-assert.equal(heroItem?.item.price, 20);
+// 0.70.0: самая дешёвая вещь витрины — заколки за 15 💎, поэтому герой у пустого
+// гардероба теперь именно она (раньше дешевле кепки за 20 не было).
+assert.equal(heroItem?.item.price, 15);
+assert.equal(heroItem?.item.id, 'clips-stars');
 
 // Все наряды куплены, но костюмы ещё собираются → герой переключается на костюм
 const heroCostumeActive = resolveHero(allOutfitIds, {

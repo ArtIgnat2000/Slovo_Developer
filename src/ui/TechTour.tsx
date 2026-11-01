@@ -1,0 +1,147 @@
+import { useEffect, useState } from 'react';
+import { ITEM_BY_ID } from '../engine/shop';
+import { productPhotoUrl, ProductPhoto } from './ProductPhoto';
+
+/**
+ * Photo-only product gallery. Every eligible product must have an explicit,
+ * distinct second photograph or photorealistic product render in the same
+ * neutral studio language. No generated crops, SVG scenes or hand-drawn assets
+ * are used as substitute frames.
+ */
+type AlternatePhoto = { path: string; label: string; cutout?: boolean };
+
+const ALTERNATES: Record<string, AlternatePhoto> = {
+  // Front views: generated against the same neutral studio reference as the
+  // original product photographs. All eight phone backs now have a front.
+  'phone-smart': { path: 'products/gallery/phone-smart-front.webp', label: 'Вид спереди' },
+  'phone-flip': { path: 'products/gallery/phone-flip-front.webp', label: 'Вид спереди' },
+  'phone-retro': { path: 'products/gallery/phone-retro-front.webp', label: 'Вид спереди' },
+  'phone-pro': { path: 'products/gallery/phone-pro-front.webp', label: 'Вид спереди' },
+  'phone-18': { path: 'products/gallery/phone-18-front.webp', label: 'Вид спереди' },
+  'phone-18-air': { path: 'products/gallery/phone-18-air-front.webp', label: 'Вид спереди' },
+  'phone-18-pro': { path: 'products/gallery/phone-18-pro-front.webp', label: 'Вид спереди' },
+  'phone-18-max': { path: 'products/gallery/phone-18-max-front.webp', label: 'Вид спереди' },
+  // The four isolated vessel renders are photorealistic product renders, not
+  // illustrations. Their neutral stage is matched to the catalog photographs.
+  'ship-paper': { path: 'products/gallery/ship-paper-alt.webp', label: 'Другой ракурс' },
+  'ship-sail': { path: 'ships/ship-container.webp', label: 'Другой ракурс', cutout: true },
+  'ship-steam': { path: 'ships/ship-tanker.webp', label: 'Другой ракурс', cutout: true },
+  'ship-carrier': { path: 'ships/ship-carrier.webp', label: 'Другой ракурс', cutout: true },
+  'ship-titanic': { path: 'products/gallery/ship-titanic-alt.webp', label: 'Другой ракурс' },
+  'plane-swift': { path: 'products/gallery/plane-swift-alt.webp', label: 'Другой ракурс' },
+  'plane-electron-base': { path: 'products/gallery/plane-electron-base-alt.webp', label: 'Другой ракурс' },
+  'plane-arctic-base': { path: 'products/gallery/plane-arctic-base-alt.webp', label: 'Другой ракурс' },
+  'plane-moon-base': { path: 'products/gallery/plane-moon-base-alt.webp', label: 'Другой ракурс' },
+  'plane-atomic-base': { path: 'products/gallery/plane-atomic-base-alt.webp', label: 'Другой ракурс' },
+  'plane-steam-base': { path: 'products/gallery/plane-steam-base-alt.webp', label: 'Другой ракурс' },
+  // Second angles for the everyday toys (0.89.7). Same studio, same scale,
+  // same light: the label names what the second frame actually shows, so the
+  // counter «1 / 2» and the «Далее» button read like a caption, not a stub.
+  'sport-ball': { path: 'products/gallery/sport-ball-alt.webp', label: 'Сверху — ниппель и швы' },
+  'sport-skate': { path: 'products/gallery/sport-skate-alt.webp', label: 'Снизу — подвески и колёса' },
+  'sport-dumbbell': { path: 'products/gallery/sport-dumbbell-alt.webp', label: 'Лёжа — гриф и диски' },
+  'sport-racket': { path: 'products/gallery/sport-racket-alt.webp', label: 'Плашмя — струны и мяч' },
+  'food-donut': { path: 'products/gallery/food-donut-alt.webp', label: 'Сверху — глазурь и дырка' },
+  'food-icecream': { path: 'products/gallery/food-icecream-alt.webp', label: 'Сверху — три шарика' },
+  'food-cake': { path: 'products/gallery/food-cake-alt.webp', label: 'Срез — слои и крем' },
+  'laptop-air': { path: 'products/gallery/laptop-air-alt.webp', label: 'Сзади — крышка и порты' },
+  // Питомцы (0.89.10). Сняты не «с нуля», а правкой главного кадра: иначе
+  // получается другое животное, а не второй ракурс того же.
+  'pet-cat': { path: 'products/gallery/pet-cat-alt.webp', label: 'Сбоку — уши и хвост' },
+  'pet-bunny': { path: 'products/gallery/pet-bunny-alt.webp', label: 'В профиль — уши и задние лапы' },
+  'pet-panda': { path: 'products/gallery/pet-panda-alt.webp', label: 'В профиль — пятна и лапы' },
+  'pet-corgi': { path: 'products/gallery/pet-corgi-alt.webp', label: 'В профиль — уши, хвост и окрас' },
+  'pet-hamster': { path: 'products/gallery/pet-hamster-alt.webp', label: 'В профиль — щёки и лапки' },
+  'pet-chihuahua': { path: 'products/gallery/pet-chihuahua-alt.webp', label: 'В профиль — уши и морда' },
+  'pet-cat-siamese': { path: 'products/gallery/pet-cat-siamese-alt.webp', label: 'В профиль — окрас морды и хвост' },
+  'pet-cat-scottish': { path: 'products/gallery/pet-cat-scottish-alt.webp', label: 'В профиль — щёки и уши' },
+  'pet-poodle': { path: 'products/gallery/pet-poodle-alt.webp', label: 'В профиль — кудри и хвост' },
+  'pet-cat-british': { path: 'products/gallery/pet-cat-british-alt.webp', label: 'В профиль — окрас и лапы' },
+  'pet-cat-sphynx': { path: 'products/gallery/pet-cat-sphynx-alt.webp', label: 'В профиль — складки кожи и хвост' },
+  // Предметы: кулич снят сверху в три четверти, чтобы были видны и глазурь,
+  // и рёбра формы, и посыпка.
+  'food-kulich': { path: 'products/gallery/food-kulich-alt.webp', label: 'Сверху — глазурь и посыпка' },
+  'school-mug': { path: 'products/gallery/school-mug-alt.webp', label: 'Оборот — гладкая керамика и ручка' },
+  'school-backpack': { path: 'products/gallery/school-backpack-inside.webp', label: 'Внутри — основное отделение' },
+  'pet-cat-mainecoon': { path: 'products/gallery/pet-cat-mainecoon-alt.webp', label: 'В профиль — грива и хвост' },
+  'pet-elephant': { path: 'products/gallery/pet-elephant-alt.webp', label: 'В профиль — ухо, хобот и хвост' },
+  'tv-cinema': { path: 'products/gallery/tv-cinema-alt.webp', label: 'Сбоку — тонкая панель и подставка' },
+  'headphones-max': { path: 'products/gallery/headphones-max-alt.webp', label: 'Сложенные — обе чашки и оголовье' },
+};
+
+/** Дополнительные кадры к первым товарам с расширенной фотосерией. */
+const MORE_SHOTS: Record<string, AlternatePhoto[]> = {
+  'school-backpack': [
+    { path: 'products/gallery/school-backpack-front.webp', label: 'Общий вид спереди' },
+    { path: 'products/gallery/school-backpack-pockets.webp', label: 'Карман и органайзер' },
+  ],
+};
+
+export function isTechTourItem(id: string): boolean {
+  // A toy gets the photo tour exactly when a second real frame exists for it.
+  // The earlier type whitelist (phones, ships, planes) only described the set
+  // that had been shot at the time; the list itself is the source of truth.
+  const item = ITEM_BY_ID[id];
+  return item?.kind === 'toy' && Object.prototype.hasOwnProperty.call(ALTERNATES, id);
+}
+
+/** Start loading the second real photo as soon as the product is opened. */
+export function warmTechTour(id: string): void {
+  if (!isTechTourItem(id) || typeof document === 'undefined') return;
+  const urls = [productPhotoUrl(id)];
+  const alternate = ALTERNATES[id];
+  if (alternate) urls.push(`${import.meta.env.BASE_URL}${alternate.path}`);
+  for (const frame of MORE_SHOTS[id] ?? []) urls.push(`${import.meta.env.BASE_URL}${frame.path}`);
+  for (const src of urls) {
+    const image = document.createElement('img');
+    image.decoding = 'async';
+    image.src = src;
+  }
+}
+
+export function TechTour({ id, alt }: { id: string; alt: string }) {
+  const item = ITEM_BY_ID[id];
+  const alternate = ALTERNATES[id];
+  const [shotIndex, setShotIndex] = useState(0);
+  useEffect(() => setShotIndex(0), [id]);
+  if (!item || !alternate || !isTechTourItem(id)) return null;
+
+  const shots = [alternate, ...(MORE_SHOTS[id] ?? [])];
+  const total = shots.length + 1;
+  const frame = shotIndex === 0 ? null : shots[shotIndex - 1];
+  const viewName = frame?.label ?? (item.toy === 'phone' ? 'Задняя панель' : 'Общий вид');
+  const nextIndex = (shotIndex + 1) % total;
+  const nextView = nextIndex === 0 ? 'общий вид' : shots[nextIndex - 1].label.toLowerCase();
+
+  return (
+    <div className="tech-tour" data-tech-tour={id}>
+      <button
+        type="button"
+        className="tech-tour-stage"
+        onClick={() => setShotIndex((index) => (index + 1) % total)}
+        aria-label={`${viewName}. Нажми, чтобы увидеть ${nextView}`}
+      >
+        {!frame ? (
+          <ProductPhoto key={`${id}-main`} id={id} alt={alt} className="tech-tour-photo" />
+        ) : (
+          <img
+            key={`${id}-shot-${shotIndex}`}
+            className={`tech-tour-photo tech-tour-alt-photo${frame.cutout ? ' is-cutout' : ''}`}
+            src={`${import.meta.env.BASE_URL}${frame.path}`}
+            alt={`${alt}: ${frame.label.toLowerCase()}`}
+            width="1200"
+            height="900"
+            decoding="async"
+            loading="eager"
+            draggable={false}
+          />
+        )}
+      </button>
+      <div className="tech-tour-caption" aria-live="polite">
+        <span>{viewName}</span>
+        <span className="tech-tour-count">{shotIndex + 1} / {total}</span>
+      </div>
+      <div className="tech-tour-progress" aria-hidden="true"><i style={{ width: `${((shotIndex + 1) / total) * 100}%` }} /></div>
+    </div>
+  );
+}
