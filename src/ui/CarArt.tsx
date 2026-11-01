@@ -1,6 +1,4 @@
-import type { CSSProperties } from 'react';
-import { ITEM_BY_ID } from '../engine/shop';
-import { TOY_PLAY_COPY, ToyPlayFx, useToyPlay } from './toyPlay';
+import { useState, type CSSProperties } from 'react';
 
 /**
  * Автомобили мечты (0.21.0, цвет — 0.21.1): цветные карандашные рисунки
@@ -86,6 +84,10 @@ export const CAR_ART: Record<string, { kind: string; note: string }> = {
     kind: 'Лунный ровер',
     note: 'Шесть сетчатых колёс, солнечное крыло и камера на мачте',
   },
+  'car-steam-base': {
+    kind: 'Паровоз-экспресс',
+    note: 'Медный котёл, латунный фонарь, огромные ведущие колёса и пар из трубы',
+  },
   'car-racer': {
     kind: 'Гоночный болид',
     note: 'Открытые колёса, антикрыло, halo над кокпитом',
@@ -97,6 +99,23 @@ export const CAR_ART: Record<string, { kind: string; note: string }> = {
   'car-taxi': {
     kind: 'Городское такси',
     note: 'Жёлтый кузов, шашечки по борту и фонарик на крыше',
+  },
+  // 0.72.0: розовые машины и электромобиль — перекрашенные рисунки существующих кузовов.
+  'car-pink-cabrio': {
+    kind: 'Розовая машина',
+    note: 'Самая розовая машина города: её видно издалека',
+  },
+  'car-pink-star': {
+    kind: 'Розовый спорткар',
+    note: 'Розовый клин с антикрылом и звездой на капоте',
+  },
+  'car-pink-tank': {
+    kind: 'Бронированный гусеничный вездеход',
+    note: 'Матовая розовая броня, стальные гусеницы и бронированная кабина',
+  },
+  'car-tesla': {
+    kind: 'Электромобиль',
+    note: 'Тихий электромобиль: огромный экран и двери-крылья',
   },
 };
 
@@ -156,46 +175,28 @@ export function CarArt({
   /** Пустая строка — рисунок декоративный (карточка уже озвучена). */
   alt?: string;
   className?: string;
-  /** По нажатию машинка заводится и уносится; только вне других кнопок. */
   interactive?: boolean;
 }) {
-  const { run, playing, play, onAnimationEnd } = useToyPlay();
+  const [moving, setMoving] = useState(false);
   const src = carArtUrl(id);
   if (!src) return null;
-  const style = tint
+  // Studio photographs have opaque backdrops: tinting their alpha mask would recolor the entire scene.
+  const style = tint && !['car-pink-cabrio', 'car-pink-star', 'car-pink-tank'].includes(id)
     ? ({
         '--car-tint': tint,
         '--car-mask': `url("${src}")`,
       } as unknown as CSSProperties)
     : undefined;
-  const cls = `car-art${className ? ` ${className}` : ''}`;
-  const picture = (
-    <>
+  const artwork = (
+    <span className={`car-art${['car-pink-cabrio', 'car-pink-star', 'car-pink-tank'].includes(id) ? ' car-art-studio' : ''}${className ? ` ${className}` : ''}${moving ? ' car-art-moving' : ''}`} style={style}>
       <img src={src} width={720} height={480} alt={alt ?? ''} draggable={false} decoding="async" loading="lazy" />
-      {tint && <span className="car-art-wash" aria-hidden="true" />}
-    </>
+      {style && <span className="car-art-wash" aria-hidden="true" />}
+    </span>
   );
-  if (!interactive) {
-    return (
-      <span className={cls} style={style}>
-        {picture}
-      </span>
-    );
-  }
+  if (!interactive) return artwork;
   return (
-    <button
-      type="button"
-      className={`${cls} toy-play toy-play--car${playing ? ' is-playing' : ''}`}
-      style={style}
-      aria-label={`${ITEM_BY_ID[id]?.title ?? CAR_ART[id].kind}: ${TOY_PLAY_COPY.car.verb}`}
-      title={TOY_PLAY_COPY.car.title}
-      onClick={(event) => { event.stopPropagation(); play(); }}
-      onKeyDown={(event) => event.stopPropagation()}
-    >
-      <span className="toy-play-anim" key={run} onAnimationEnd={onAnimationEnd}>
-        {picture}
-      </span>
-      <ToyPlayFx kind="car" />
+    <button type="button" className="car-art-control" aria-label="Приблизить автомобиль" onClick={() => { setMoving(false); requestAnimationFrame(() => setMoving(true)); }} onAnimationEnd={() => setMoving(false)}>
+      {artwork}
     </button>
   );
 }

@@ -7,10 +7,17 @@ import './qr.test';
 import './weekly-rewards.test';
 // Костюмные пазлы — тоже рядом: движок проверяется без DOM.
 import './puzzles.test';
+// Интересы ребёнка (0.70.0): порядок полок витрины без вопроса о поле.
 // Облики сундуков: условия открытия, выбор и «что дальше» — без DOM.
 import './chest-skins.test';
 // Тюнинг цвета купленных вещей: цена оттенка, бесплатное переключение, санитизация.
 import './shop-tuning.test';
+// Школа НААШ (0.74.0): форма БУКа, полка идей и запрет на цены в текстах.
+import './naash.test';
+// Экскурсии внутри баз (0.76.0): пять комнат у каждой базы и файлы картинок.
+import './base-tours.test';
+import './world.test';
+import './rating.test';
 // Магазин фаза 2: герой витрины (closestItem / resolveHero) и Мечты (Wishlist 🤍).
 import './shop-phase2.test';
 // Музыкальная коллекция: оригинальные лупы, выбор и санитизация сохранения.
@@ -24,9 +31,11 @@ import './vault.test';
 import './mascot.test';
 // Правила помощи БУКа в уроке: вопросы без утечки ответа, цена помощи, пауза.
 import './buk-help.test';
+import './buk-chat.test';
+import './buk-3d.test';
 import { effectiveCards, nextAdaptiveState, recordAttempt } from '../src/engine/adaptive';
 import { buildLesson } from '../src/engine/scheduler';
-import { LESSONS, WORDS } from '../src/content/words';
+import { LESSONS, WORDS, WORDS_BY_GRADE } from '../src/content/words';
 const finish = (independent: number, total = 4) => ({ kind: 'finish' as const, attempts: { total, independent } });
 assert.equal(effectiveCards(undefined, 16), 16);
 assert.equal(effectiveCards(NaN, 16), 16);
@@ -121,19 +130,28 @@ import type { WordState } from '../src/types';
 
 console.log('✓ риски scheduler §13: фразы, отложенные слова, порядок второго круга');
 
-// ── Предтестовый аудит: орфограммы 94 слов и подсветка ошибки робота ─────────
+// ── Предтестовый аудит: орфограммы всех слов банка и подсветка ошибки робота ──
 import { makeTask, pickDanger } from '../src/engine/scheduler';
 import { findFixDiffIdx } from '../src/ui/TaskView';
 
 {
-  assert.equal(WORDS.length, 94, 'в словаре 94 слова 2 класса');
+  // Объём по классам проверяет test:content; здесь важно, что разметка
+  // (ударение, опасные буквы, задания) верна у КАЖДОГО слова любого класса.
+  assert.equal(WORDS_BY_GRADE[2].length, 94, 'в программе 2 класса 94 слова');
+  assert.equal(WORDS_BY_GRADE[3].length, 72, 'в программе 3 класса 72 слова');
+  assert.equal(WORDS_BY_GRADE[4].length, 94, 'в программе 4 класса 94 слова');
+  assert.equal(WORDS.length, 257, 'в банке 257 карточек 1–4 классов');
   for (const w of WORDS) {
     assert.ok(w.danger.length >= 1, `${w.text}: должна быть хотя бы одна опасная буква`);
-    assert.ok(!w.danger.includes(w.stress), `${w.text}: ударная буква не может быть в danger`);
+    // Исключение — «ё»: она сама и есть орфограмма («чёрный», а не «чорный»).
+    // Когда других опасных мест в слове нет, окошко на ё — осмысленное
+    // задание «ё или о», а не подсказка. Больше ударных в danger быть не может.
+    const solelyE = w.danger.length === 1 && w.danger[0] === w.stress && w.text[w.stress] === 'ё';
+    assert.ok(!w.danger.includes(w.stress) || solelyE, `${w.text}: ударная буква не может быть в danger`);
     const d = pickDanger(w);
-    assert.notEqual(d, w.stress, `${w.text}: pickDanger не должен возвращать ударную гласную`);
+    assert.ok(d !== w.stress || solelyE, `${w.text}: pickDanger не должен возвращать ударную гласную`);
     const gap = makeTask('gap', w.id, 'practice', d);
-    assert.notEqual(gap.dangerIdx, w.stress, `${w.text}: окошко не закрывает ударную гласную`);
+    assert.ok(gap.dangerIdx !== w.stress || solelyE, `${w.text}: окошко не закрывает ударную гласную`);
     assert.ok(gap.options?.includes(w.text[d]), `${w.text}: в вариантах окошка есть верная буква`);
     const fix = makeTask('fix', w.id, 'practice', d);
     assert.ok(fix.wrong && fix.wrong !== w.text, `${w.text}: робот должен сделать ошибку`);
@@ -152,4 +170,4 @@ import { findFixDiffIdx } from '../src/ui/TaskView';
   assert.equal('клас'[findFixDiffIdx('класс', 'клас')], 'с');
 }
 
-console.log('✓ предтестовый аудит: орфограммы 94 слов и подсветка в «Исправь робота»');
+console.log(`✓ предтестовый аудит: орфограммы ${WORDS.length} слов и подсветка в «Исправь робота»`);

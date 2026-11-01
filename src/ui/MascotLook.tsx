@@ -1,5 +1,6 @@
 import type { ShopSlot } from '../types';
 import { TINT_PALETTES } from '../engine/tints';
+import { MascotDecorAccessory } from './MascotDecor';
 
 /**
  * Аксессуары БУКа — чистая SVG-графика поверх той же системы координат (100×120),
@@ -14,6 +15,72 @@ import { TINT_PALETTES } from '../engine/tints';
  */
 function tintColors(itemId: string, colors?: [string, string, string] | null): [string, string, string] {
   return colors ?? TINT_PALETTES[itemId].base.colors;
+}
+
+/**
+ * Цвета букв знака школы — красный, янтарный, зелёный, синий. Это не палитра
+ * вещи: знак не перекрашивается ни в каком оттенке ткани (0.74.0).
+ */
+const SIGN_RED = '#D4212B';
+const SIGN_AMBER = '#F0A31C';
+const SIGN_GREEN = '#2E8B45';
+const SIGN_BLUE = '#0F4CA0';
+
+/**
+ * Знак школы — по канону, а не «по мотивам».
+ *
+ * Канон лежит в репозитории: `docs/merch/img/mark-lockups.webp` (чистый знак),
+ * оттуда же `docs/naash/mark-color.png` и `mark-mono.png`. Прочитать его можно
+ * так: крыша двойным скатом с оконцем-полукругом, четыре буквы НААШ (обе «А» —
+ * домики), под ними линейка. Раньше здесь стояло «упрощение до крыши, стеблей
+ * и полки» — на карточке 96 px это читалось, но переставало быть знаком школы
+ * (0.89.6: пользователь справедливо сказал «это не лого, а нечто похожее»).
+ *
+ * Геометрия снята с канона в единицах, где высота букв = 100:
+ *   ширина знака 194.2, высота 193.3, обводка букв 5.4, крыши 7,
+ *   буква 28.5 шириной с шагом 34.9, перекладина на 76 от верха,
+ *   линейка — на 16.1 ниже строки.
+ *
+ * `colored` — знак в цветах школы (кремовая эмаль значка, печать по светлому),
+ * иначе всё одним цветом: вышивка и печать по синему — кремовым.
+ */
+const MARK_W = 194.2;
+
+function SchoolMark({
+  cx,
+  top,
+  w,
+  ink,
+  colored = false,
+}: {
+  cx: number;
+  top: number;
+  w: number;
+  ink: string;
+  colored?: boolean;
+}) {
+  const k = w / MARK_W;
+  const base = colored ? SIGN_BLUE : ink;
+  return (
+    <g transform={`translate(${(cx - w / 2).toFixed(3)} ${top}) scale(${k.toFixed(5)})`}>
+      <g fill="none" strokeLinecap="round" strokeLinejoin="miter">
+        {/* крыша: внешний и внутренний скаты и оконце */}
+        <path d="M-30.2 -12.4 L66.9 -74.5 L164 -12.4" stroke={base} strokeWidth="7" />
+        <path d="M-9.4 -12.4 L66.9 -61.2 L143.2 -12.4" stroke={base} strokeWidth="7" />
+        <path d="M52 -14 A14.95 14.95 0 0 1 81.9 -14" stroke={base} strokeWidth="5.7" />
+        {/* Н */}
+        <path d="M2.7 0 V100 M25.8 0 V100 M2.7 76 H25.8" stroke={colored ? SIGN_RED : ink} strokeWidth="5.4" />
+        {/* А — домик */}
+        <path d="M35.1 100 L49.35 0 L63.6 100 M35.1 76 H63.6" stroke={colored ? SIGN_AMBER : ink} strokeWidth="5.4" />
+        {/* А — второй домик */}
+        <path d="M70.8 100 L85.05 0 L99.3 100 M70.8 76 H99.3" stroke={colored ? SIGN_GREEN : ink} strokeWidth="5.4" />
+        {/* Ш */}
+        <path d="M108.1 0 V100 M119.65 0 V100 M131.2 0 V100 M108.1 97.3 H131.2" stroke={colored ? SIGN_BLUE : ink} strokeWidth="5.4" />
+        {/* линейка под буквами */}
+        <path d="M0 116.1 H133.9" stroke={base} strokeWidth="5.4" />
+      </g>
+    </g>
+  );
 }
 
 export function MascotAccessory({ id, colors }: { id: string; colors?: [string, string, string] | null }) {
@@ -81,13 +148,88 @@ export function MascotAccessory({ id, colors }: { id: string; colors?: [string, 
         </g>
       );
     }
+    // ── Школа НААШ (0.74.0, docs/proposals/naash-shop.md) ──────────────────
+    // Четыре вещи со знаком школы. Красится ткань и эмаль, знак — никогда:
+    // он всегда в цветах школы (кремовый на синем или триколор на кремовом),
+    // иначе школьный значок перестаёт быть школьным.
+    case 'school-cap': {
+      const [dome, band, ink] = tintColors(id, colors);
+      return (
+        <g>
+          <path d="M19 26 A31 31 0 0 1 81 26 Q50 8 19 26 Z" fill={dome} />
+          <path d="M17 25 Q50 32.5 83 25 L83 29.5 Q50 37 17 29.5 Z" fill={band} />
+          <circle cx="50" cy="10.6" r="2.4" fill={band} />
+          <SchoolMark cx={50} top={12} w={14} ink={ink} />
+        </g>
+      );
+    }
+    case 'school-scarf': {
+      const [main, shade] = tintColors(id, colors);
+      // Триколор — цвета букв знака: он не перекрашивается, это язык серии.
+      const band = (f1: number, f2: number) =>
+        `M${22 - 2 * f1} ${64 + 13 * f1} Q50 ${80 + 13 * f1} ${78 + 2 * f1} ${64 + 13 * f1} ` +
+        `L${78 + 2 * f2} ${64 + 13 * f2} Q50 ${80 + 13 * f2} ${22 - 2 * f2} ${64 + 13 * f2} Z`;
+      return (
+        <g>
+          <path d="M22 64 Q50 80 78 64 L80 77 Q50 93 20 77 Z" fill={main} />
+          <path d={band(0.5, 0.66)} fill={SIGN_RED} />
+          <path d={band(0.66, 0.82)} fill={SIGN_AMBER} />
+          <path d={band(0.82, 1)} fill={SIGN_GREEN} />
+          {/* свисающий конец с бахромой */}
+          <path d="M30 76 Q26 90 30 102 L40 100 Q36 88 40 78 Z" fill={shade} />
+          <path
+            d="M31 102 L31 106 M34.5 101.4 L34.5 105.4 M38 100.8 L38 104.8"
+            stroke={shade}
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </g>
+      );
+    }
+    case 'school-pin': {
+      const [disc, rim, ink] = tintColors(id, colors);
+      // Эмалевый значок на груди: крыша и полка тёмные, буквы — в цветах школы.
+      return (
+        <g>
+          <circle cx="50" cy="92" r="12" fill={disc} stroke={rim} strokeWidth="1.8" />
+          <circle cx="50" cy="92" r="9.8" fill="none" stroke={ink} strokeWidth="0.5" opacity=".22" />
+          <SchoolMark cx={50} top={84.6} w={17.5} ink={ink} colored />
+        </g>
+      );
+    }
+    case 'school-hoodie': {
+      const [main, shade, ink] = tintColors(id, colors);
+      return (
+        <g>
+          {/* рукава поверх крыльев — по ним видно, что это свитер, а не фартук */}
+          <path d="M36 63 L23 82 Q21 88 26 89.5 L34 87.5 Z" fill={shade} />
+          <path d="M64 63 L77 82 Q79 88 74 89.5 L66 87.5 Z" fill={shade} />
+          <path
+            d="M36 61 Q50 55 64 61 L79 107 Q50 118 21 107 Z"
+            fill={main}
+            stroke={shade}
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+          {/* капюшон лежит на плечах воротником, шнурки свисают на грудь */}
+          <path d="M35 61 Q50 51 65 61 Q50 70 35 61 Z" fill={shade} />
+          <path d="M45 65 L44 73 M55 65 L56 73" stroke={ink} strokeWidth="1.1" strokeLinecap="round" opacity=".75" />
+          <path d="M34 92 Q50 98 66 92 L69 105 Q50 111 31 105 Z" fill={shade} opacity=".4" />
+          <path d="M23 105 Q50 114 77 105" stroke={shade} strokeWidth="2" fill="none" opacity=".7" />
+          <SchoolMark cx={50} top={72.4} w={17} ink={ink} />
+        </g>
+      );
+    }
     default:
-      return null;
+      // 0.70.0: украшения и крылья живут отдельным модулем (ui/MascotDecor.tsx),
+      // чтобы этот switch остался списком старых аксессуаров, а не свалкой.
+      // Крылья сюда не доходят: у них отдельный слой под телом (MascotWings).
+      return <MascotDecorAccessory id={id} colors={colors} />;
   }
 }
 
 /** Порядок слоёв отрисовки: значки и шея ниже, головные уборы и очки — поверх. */
-export const SLOT_ORDER: ShopSlot[] = ['badge', 'neck', 'head', 'face'];
+export const SLOT_ORDER: ShopSlot[] = ['body', 'badge', 'neck', 'feet', 'head', 'face'];
 
 // ── Костюмы (пазлы, engine/puzzles.ts) ───────────────────────────────────────
 // Та же сетка 100×120. Цвета туловища/живота/крыльев для костюма задаёт палитра

@@ -1,8 +1,9 @@
-import { Children, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { masteredCount, useActiveProfile, useApp, useLook } from '../../state/store';
 import { plural } from '../../engine/quests';
 import {
   ITEM_BY_ID,
+  CATALOG_OUTFITS,
   OUTFIT_ITEMS,
   SHOP_ITEMS,
   SLOT_TITLE,
@@ -19,18 +20,29 @@ import {
   SELL_RATE,
   sellPrice,
   toysByShelf,
-  wardrobeValue,
+  rarityOf,
   type ToyKind,
 } from '../../engine/shop';
+import { BUILDINGS, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
+import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
+import { BuildingArt } from '../BuildingArt';
+import { BaseTour, warmBaseTour } from '../BaseTour';
+import { RarityChip, RarityLabel } from '../RarityChip';
 import { Mascot } from '../Mascot';
-import { ToyArt, toyPlayHint } from '../ToyArt';
+import { ToyArt } from '../ToyArt';
+import { CarTour, CAR_TOUR_IDS, warmCarTour } from '../CarTour';
+import { TechTour, isTechTourItem, warmTechTour } from '../TechTour';
+import { DigitalCover } from '../DigitalCover';
+import { SetComposition } from '../SetComposition';
+import { hasProductPhoto, warmProductPhoto } from '../ProductPhoto';
+import { hasOutfitPair, OutfitPhoto, OutfitPhotoTour, warmOutfitPair } from '../PhotoPair';
 import { carAlt, carKind, carNote, hasCarArt } from '../CarArt';
 import { hasShipArt, shipAlt, shipKind, shipNote } from '../ShipArt';
-import { HangarScene } from '../HangarScene';
+import { WorldScreen } from './WorldScreen';
 import {
-  PUZZLE_COSTUMES,
-  CRYSTAL_COSTUMES,
   ALL_COSTUMES,
+  CRYSTAL_COSTUMES,
+  COSTUMES,
   OVERFLOW_GEMS,
   PUZZLE_SIZE,
   activeCostume,
@@ -38,43 +50,40 @@ import {
   normalizePuzzle,
   type Costume,
 } from '../../engine/puzzles';
-import { TINT_PRICE, type TintOption } from '../../engine/tints';
+import { TINT_PALETTES, TINT_PRICE, type TintOption } from '../../engine/tints';
 import { TintPicker } from '../TintPicker';
 import { ConfirmDialog } from '../Bits';
 import { previewSoundCue, sfx } from '../../platform/sound';
-import { SOUND_PACKS, type SoundCue, type SoundPack } from '../../engine/sounds';
+import { hasSoundPack, SOUND_PACKS, type SoundCue, type SoundPack } from '../../engine/sounds';
 import { haptic } from '../../platform/haptics';
-import { rarityOf, compareByRarity, RARITY_ORDER, type ItemRarity, type ShopItem } from '../../engine/shop';
-import { RarityChip, RarityLabel } from '../RarityChip';
+import type { ShopItem } from '../../engine/shop';
 import { MUSIC_TRACKS, MUSIC_BY_ID, tracksByShelf, type MusicShelf, type MusicTrack } from '../../engine/music';
 import { playMusic } from '../../platform/music';
 import { MusicCreditsToggle } from '../Credits';
 import { THEME_STYLES, type ThemeStyle } from '../../engine/theme-styles';
 import { BackgroundThemeCard } from '../BackgroundThemeCard';
-import { BUILDINGS, BUILDING_BY_ID, isBuildingOwned, type BuildingItem } from '../../engine/buildings';
-import { BASE_SETS, baseSetPrice, type BaseSet } from '../../engine/base-sets';
-import { BuildingArt } from '../BuildingArt';
+import { Icon, Gem } from '../Icon';
+import { ShowcaseGrid } from '../ShowcaseGrid';
+import { NaashPanel } from '../NaashPanel';
+import { SCHOOL } from '../../engine/naash';
 
 /**
  * Магазин БУКа (концепция 2026-10-17, docs/shop-concept.md).
  *
  * Что изменилось по сравнению с «одной лентой»:
- *  • два верхних уровня — **Витрина** (чего хочу) и **Гардероб** (что моё);
+ *  • два верхних уровня — **Витрина** (чего хочу) и **Мои покупки** (что моё);
  *    раньше купленное терялось в общей ленте среди продаваемого;
  *  • витрина режется **чипами-полками**: наряды / техника / костюмы / музыка /
  *    фоны / звуки; новый раздел не требует переделки экрана;
  *  • **витрина-бутик (0.19.0):** у каждого товара своя арочная ниша с лампой и
  *    подиумом (`ShowcaseGrid`) — магазин выглядит витриной, а не списком карточек;
- *  • **техника (0.19.0 → 0.22.0):** авто, телефоны и корабли — отдельная
- *    полка с тремя подполками. Вещь живёт в слоте `toy`, но на БУКе больше
- *    не рисуется (правило `showsOnBuk`): коллекция экспонируется в сцене
- *    «Ангар» (ui/HangarScene), а слот означает «любимая вещь на главном
- *    подиуме ангара»;
+ *  • **Техника:** авто, телефоны, корабли и другие предметы лежат в общей
+ *    области «Техника» карты «Моего мира»; она показывает весь инвентарь,
+ *    а не только выбранные для подиума вещи.
  *  • «Звуки» (0.17.0) — наборы мелодий правильного ответа и ошибки
  *    (engine/sounds.ts): послушать оба отклика можно прямо на карточке;
  *  • **единый макет карточки** для всех типов товара: арт, название, статус
- *    плашкой (Твоя ✓ / В ангаре ✓ / Надето ✓ / На подиуме ✓ / Собираю 4/9 / Ещё N 💎)
- *    и ОДНО действие;
+ *    (есть в коллекции / надето / собираю / ещё N 💎) и одно действие;
  *  • подробная карточка — **sheet снизу**: крупная примерка, цена, палитра
  *    цветов. Палитра больше не раскрывается инлайн (верстка не прыгает);
  *  • музыка — отдельная полка (была половиной экрана), примерка и строка
@@ -93,19 +102,35 @@ const MUSIC_SHELVES: { shelf: MusicShelf; title: string }[] = [
 ];
 
 /** Верхние уровни магазина: «чего хочу» и «что моё». */
-type View = 'vitrina' | 'wardrobe';
+type View = 'vitrina' | 'world';
+/**
+ * Режим внутри «Моего мира» (0.90.1): коллекция — карта всех покупок по
+ * областям, вещи — примерочная и наряды по слотам с «Надеть/Снять».
+ * Раньше это были две равные вкладки БУКа («Мои покупки» и «Мой мир»),
+ * хотя обе отвечали на вопрос «что у меня есть» (docs/proposals/lessons-panel.md).
+ */
+type WorldMode = 'collection' | 'items';
 
 /** Полки витрины — по типу товара, не по слоту совы. */
-type Cat = 'outfits' | 'toys' | 'buildings' | 'costumes' | 'sets' | 'music' | 'sounds' | 'backgrounds';
+/** Полка магазина. Экспортируется (0.85.0): навигатор БУКа входит витрину сразу на «Музыке». */
+export type Cat = 'naash' | 'outfits' | 'toys' | 'buildings' | 'pets' | 'sport' | 'food' | 'sets' | 'music' | 'sounds' | 'backgrounds';
 
-const CATS: { id: Cat; title: string; emoji: string }[] = [
-  { id: 'outfits', title: 'Наряды', emoji: '🎩' },
+// 0.54.0: у полок магазина — те же иконки набора, что в остальном интерфейсе.
+// У «Техники», «Музыки» и «Фонов» своей иконки в наборе 20 пока нет — остаются
+// эмодзи до следующей партии (см. docs/proposals/ui-icons.md §6, шаг 3b).
+const CATS: { id: Cat; title: string; emoji: string; icon?: 'hat' | 'puzzle' | 'speaker' }[] = [
+  // 0.74.0: школьный уголок НААШ первым — своя школа, а не ещё одна полка
+  // товаров (docs/proposals/naash-shop.md). Флаг SCHOOL.on убирает его целиком.
+  { id: 'naash', title: 'НААШ', emoji: '🏫' },
+  { id: 'outfits', title: 'Наряды', emoji: '🎩', icon: 'hat' },
   { id: 'toys', title: 'Техника', emoji: '🚗' },
-  { id: 'buildings', title: 'Здания', emoji: '🏙️' },
-  { id: 'costumes', title: 'Костюмы', emoji: '🧩' },
+  { id: 'buildings', title: 'Базы', emoji: '🏙️' },
+  { id: 'pets', title: 'Питомцы', emoji: '🐾' },
+  { id: 'sport', title: 'Спорт', emoji: '⚽' },
+  { id: 'food', title: 'Вкусняшки', emoji: '🧁' },
   { id: 'sets', title: 'Наборы', emoji: '🎁' },
   { id: 'music', title: 'Музыка', emoji: '🎵' },
-  { id: 'sounds', title: 'Звуки', emoji: '🔊' },
+  { id: 'sounds', title: 'Звуки', emoji: '🔊', icon: 'speaker' },
   { id: 'backgrounds', title: 'Фоны', emoji: '🖼️' },
 ];
 
@@ -119,6 +144,25 @@ type Detail =
   | { kind: 'sound'; pack: SoundPack };
 
 /** «3:25» — длительность записи на карточке. */
+/**
+ * Можно ли перекрасить вещь. Фото товара — уже готовая сцена со своим фоном:
+ * накладывать на него «цветной карандаш» нельзя (закрасится весь снимок),
+ * поэтому у фотографий палитра не показывается. Векторные вещи красятся,
+ * как раньше. Правило одно на весь магазин.
+ *
+ * 0.89.0: наряд с фотопарой — тоже фото (снимок в нише и в листе), поэтому
+ * палитра у него скрыта. Иначе ребёнок платил бы 1 💎 за оттенок, которого
+ * на снимке не видно.
+ */
+function supportsTint(id: string): boolean {
+  return !!TINT_PALETTES[id] && !hasProductPhoto(id) && !hasOutfitPair(id);
+}
+
+/** Все витрины показывают более доступные покупки раньше дорогих. */
+function byPriceAscending<T extends { price?: number }>(a: T, b: T): number {
+  return (a.price ?? 0) - (b.price ?? 0);
+}
+
 function fmtTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
@@ -133,23 +177,45 @@ interface TintTarget {
 
 /**
  * Единый макет карточки товара — один на все типы.
- * Состояние читается плашкой-ценником и подписью кнопки, не только цветом
+ * Состояние читается плашкой состояния и подписью кнопки, не только цветом
  * (WCAG 1.4.1); тап по карточке открывает подробный sheet.
+ *
+ * 0.79.0 — жалобы «ценник занимает много места», «надпись „В Моём мире“
+ * закрывает карточку» и «тёмный верх излишне мрачен»; две базовые темы
+ * (токены --lux-* в tokens.css, app.css без цветов):
+ *  • светлая — Rolls-Royce: жемчужный подиум, хром Pantheon, сапфировый
+ *    лак, светлые промежутки витрины;
+ *  • тёмная — Maybach: обсидиановая ниша, шампань-золото, лампа салона;
+ *  • ценник — компактная плашка в подвале этикетки, РЯДОМ с кнопкой: цена
+ *    больше не дублируется в подписи кнопки и не лежит на рисунке;
+ *  • статус («В Моём мире ✓», «Твоя ✓») — отдельная строка состояния под
+ *    описанием: надпись не перекрывает товар на картинке;
+ *  • стык ниши и этикетки — полоса-решётка, «Купить» — лак темы, ценник
+ *    гравируется, когда кристаллов хватает (`.afford`), иначе — тихий
+ *    контур;
+ *  • сердечко «в мечты» и плашка «Собираю» остаются на картинке — это
+ *    короткие метки, а не текстовые строки;
+ *  • фото/рисунок по-прежнему занимает нишу целиком, описание — максимум
+ *    две строки, число колонок решает сетка (2 на телефоне, 3 на планшете).
  */
 function ShopCard(props: {
   badge?: string;
-  /** Тип вещи (обычный … ТОПОВЫЙ): бейдж в углу карточки */
-  rarity?: ItemRarity;
   art: ReactNode;
   title: string;
   desc?: string;
   /** Дополнительный класс карточки: on (надето), owned (куплено), current (собираем) */
   cardCls?: string;
-  /** Между подписью и ценой — например, точки прогресса пазла */
+  rarity?: import('../../engine/shop').ItemRarity;
+  /** Между подписью и подвалом — например, точки прогресса пазла */
   extra?: ReactNode;
-  priceLabel?: string;
+  /** Компактная плашка цены — в подвале слева от кнопки, не на картинке */
+  priceLabel?: ReactNode;
+  /** Строка состояния («В Моём мире ✓») — под описанием, картинку не закрывает */
+  statusLabel?: ReactNode;
   afford?: boolean;
-  actionLabel: string;
+  /** У товара студийное фото: снимок занимает нишу целиком */
+  photo?: boolean;
+  actionLabel: ReactNode;
   actionTone: 'primary' | 'green' | 'ghost';
   actionDisabled?: boolean;
   wished?: boolean;
@@ -168,68 +234,51 @@ function ShopCard(props: {
         if (e.target === e.currentTarget && e.key === 'Enter') props.onOpen();
       }}
     >
-      {props.badge && <span className="shop-badge">{props.badge}</span>}
-      {props.rarity && <RarityLabel rarity={props.rarity} className="shop-rarity" />}
-      {/* Ниша витрины: лампа, вещь на подиуме (0.19.0) */}
-      <div className="shop-case">
-        <span className="shop-case-lamp" aria-hidden="true" />
+      {/* Ниша витрины: только товар и короткие метки — без текстовых строк. */}
+      <div className={`shop-case${props.photo ? ' shop-case-photo' : ''}`}>
         <div className="shop-icon">{props.art}</div>
-        <span className="shop-case-podium" aria-hidden="true" />
+        {props.badge && <span className="shop-badge">{props.badge}</span>}
+        {props.onWish && (
+          <button
+            type="button"
+            className={`shop-heart${props.wished ? ' on' : ''}`}
+            aria-label={props.wished ? `Убрать «${props.title}» из мечт` : `Добавить «${props.title}» в мечты`}
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onWish!();
+            }}
+          >
+            {props.wished ? '💜' : '🤍'}
+          </button>
+        )}
       </div>
-      <div className="shop-title">{props.title}</div>
-      {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
-      {props.extra}
-      {props.priceLabel && (
-        <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
-      )}
-      <button
-        className={`btn sm wide ${props.actionTone}`}
-        disabled={props.actionDisabled}
-        onClick={(e) => {
-          e.stopPropagation();
-          props.onAction();
-        }}
-      >
-        {props.actionLabel}
-      </button>
-      {props.onWish && (
-        <button
-          type="button"
-          className={`shop-heart${props.wished ? ' on' : ''}`}
-          aria-label={props.wished ? `Убрать «${props.title}» из мечт` : `Добавить «${props.title}» в мечты`}
-          onClick={(e) => {
-            e.stopPropagation();
-            props.onWish!();
-          }}
-        >
-          {props.wished ? '💜' : '🤍'}
-        </button>
-      )}
-    </article>
-  );
-}
-
-/**
- * Витрина (0.19.0).
- *
- * Делим товары на ряды по два: каждый товар — своя арочная ниша с лампой и
- * подиумом, ряд — одна «линия» витрины. Разметка остаётся сеткой
- * `.shop-grid`, поэтому карточки и их размеры не меняются.
- *
- * Последний нечётный товар ставится по центру — пустого угла не остаётся.
- */
-function ShowcaseGrid({ children, tone }: { children: ReactNode; tone?: 'mint' | 'sky' }) {
-  const cells = Children.toArray(children);
-  const rows: ReactNode[][] = [];
-  for (let i = 0; i < cells.length; i += 2) rows.push(cells.slice(i, i + 2));
-  return (
-    <div className={`shop-boutique${tone ? ` shop-boutique-${tone}` : ''}`}>
-      {rows.map((row, index) => (
-        <div className={`shop-boutique-row shop-grid${row.length === 1 ? ' single' : ''}`} key={index}>
-          {row}
+      <div className="shop-body">
+        <div className="shop-title-row">
+          <div className="shop-title">{props.title}</div>
+          {props.rarity && <RarityLabel rarity={props.rarity} className="rarity-chip-mini" />}
         </div>
-      ))}
-    </div>
+        {props.desc && <div className="tiny shop-desc">{props.desc}</div>}
+        {props.statusLabel && <div className="shop-status">{props.statusLabel}</div>}
+        {props.extra}
+        {/* Подвал этикетки: цена — компактной плашкой слева от кнопки.
+            Одна цена на карточку, картинка остаётся чистой. */}
+        <div className="shop-foot">
+          {props.priceLabel && (
+            <span className={`shop-price${props.afford ? ' afford' : ''}`}>{props.priceLabel}</span>
+          )}
+          <button
+            className={`btn sm ${props.actionTone}`}
+            disabled={props.actionDisabled}
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onAction();
+            }}
+          >
+            {props.actionLabel}
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -250,14 +299,25 @@ function Sheet(props: { onClose: () => void; children: React.ReactNode }) {
   );
 }
 
-export function ShopScreen() {
+/**
+ * @param initialView — какой сегмент открыть: меню главной ведёт сразу
+ *   в «Мои покупки», вкладка внизу — на витрину (0.33.0).
+ */
+export function ShopScreen({
+  initialView = 'vitrina',
+  initialCat = 'outfits',
+  initialWorldMode = 'collection',
+}: {
+  /** `wardrobe` — старое имя раздела «Мои покупки»: ведёт в «Мой мир → Вещи». */
+  initialView?: 'vitrina' | 'wardrobe' | 'world';
+  /** С какой полки открывать витрину — вход двери «🎵 Музыка» (0.85.0). */
+  initialCat?: Cat;
+  /** «Мой мир» открывается коллекцией или списком вещей (0.90.1). */
+  initialWorldMode?: WorldMode;
+} = {}) {
   const profile = useActiveProfile();
   const look = useLook();
   const buyItem = useApp((s) => s.buyItem);
-  const buyBuilding = useApp((s) => s.buyBuilding);
-  const buyCrystalCostume = useApp((s) => s.buyCrystalCostume);
-  const buyBaseSet = useApp((s) => s.buyBaseSet);
-  const chooseBuilding = useApp((s) => s.chooseBuilding);
   const sellItem = useApp((s) => s.sellItem);
   const toggleEquip = useApp((s) => s.toggleEquip);
   const choosePuzzleCostume = useApp((s) => s.choosePuzzleCostume);
@@ -269,27 +329,47 @@ export function ShopScreen() {
   const setSoundPack = useApp((s) => s.setSoundPack);
   const setMusicTrack = useApp((s) => s.setMusicTrack);
   const toggleWishlist = useApp((s) => s.toggleWishlist);
+  const buyBuilding = useApp((s) => s.buyBuilding);
+  const buyCrystalCostume = useApp((s) => s.buyCrystalCostume);
+  const buyBaseSet = useApp((s) => s.buyBaseSet);
   const themeStyle = useApp((s) => s.settings.themeStyle);
   const setSettings = useApp((s) => s.setSettings);
-  const [view, setView] = useState<View>('vitrina');
-  const [cat, setCat] = useState<Cat>('outfits');
+  const [view, setView] = useState<View>(initialView === 'wardrobe' ? 'world' : initialView);
+  const [worldMode, setWorldMode] = useState<WorldMode>(initialView === 'wardrobe' ? 'items' : initialWorldMode);
+  const [cat, setCat] = useState<Cat>(initialCat);
   const [toyShelf, setToyShelf] = useState<ToyKind>('car');
   // Подробная карточка и её палитра (палитра — только в sheet)
   const [sheet, setSheet] = useState<Detail | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [ask, setAsk] = useState<ShopItem | null>(null);
+  const [askSell, setAskSell] = useState<ShopItem | null>(null);
+  const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
   const [askBuilding, setAskBuilding] = useState<BuildingItem | null>(null);
   const [askCrystalCostume, setAskCrystalCostume] = useState<Costume | null>(null);
   const [askBaseSet, setAskBaseSet] = useState<BaseSet | null>(null);
-  const [askSell, setAskSell] = useState<ShopItem | null>(null);
-  const [askMusic, setAskMusic] = useState<MusicTrack | null>(null);
   const [askSound, setAskSound] = useState<SoundPack | null>(null);
   const [askTint, setAskTint] = useState<{ target: TintTarget; tint: TintOption } | null>(null);
   const [previewTrack, setPreviewTrack] = useState<string | null>(null);
   const [mood, setMood] = useState<'idle' | 'happy' | 'dance'>('idle');
-  // «Ангар БУКа» (0.22.0): сцена коллекции техники, открывается из гардероба
-  // и с полки «Техника» (ещё один вход — значок 🚗 в шапке главной, App.tsx).
-  const [hangarOpen, setHangarOpen] = useState(false);
+  // «Мой мир» — общий обзор всей коллекции; запоминаем место магазина,
+  // чтобы по кнопке возврата восстановить его, а не сбрасывать в витрину.
+  const worldReturnView = useRef<View>('vitrina');
+  const worldReturnScroll = useRef(0);
+  const openMyWorld = () => {
+    if (view !== 'world') worldReturnView.current = view;
+    worldReturnScroll.current = typeof window !== 'undefined' ? window.scrollY : 0;
+    setView('world');
+    setWorldMode('collection');
+    if (worldReturnScroll.current > 0) {
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+    }
+  };
+  const closeMyWorld = () => {
+    setView(worldReturnView.current);
+    if (worldReturnScroll.current > 0) {
+      requestAnimationFrame(() => window.scrollTo({ top: worldReturnScroll.current, behavior: 'auto' }));
+    }
+  };
 
   /** Sheet закрывается по фону, по Escape и — если играла примерка —
    *  возвратом к выбранной мелодии (примерка не остаётся «висеть»). */
@@ -326,23 +406,34 @@ export function ShopScreen() {
   // поэтому смена цели сборки безопасна — ребёнок ничего не теряет.
   const pz = normalizePuzzle(profile.puzzle);
   const collecting = activeCostume(pz);
-  const allCostumesDone = PUZZLE_COSTUMES.every((c) => pz.assembled.includes(c.id));
+  const allCostumesDone = COSTUMES.every((c) => pz.assembled.includes(c.id));
   const musicOwned = profile.shop?.musicOwned ?? [];
   const selectedMusic = profile.shop?.musicTrack ?? null;
   const soundOwned = profile.shop?.soundOwned ?? [];
   const selectedSound = profile.shop?.soundPack ?? 'classic';
   const wishlist = profile.shop?.wishlist ?? [];
+  const buildingsOwned = profile.shop?.buildingsOwned ?? [];
+  const crystalOwned = profile.shop?.crystalCostumesOwned ?? [];
+  const allOwnedCostumes = [...pz.assembled, ...crystalOwned];
+  const priceForSet = (setInfo: BaseSet) => baseSetPrice(setInfo, owned, buildingsOwned, allOwnedCostumes);
   const hero = resolveHero(owned, profile.puzzle, musicOwned);
   // Ближайшая техника — отдельная подсказка на полке «Техника»: герой нарядов
   // намеренно не уводит ребёнка на другую полку (см. engine/shop.ts).
   const toyGoal = toysByShelf(toyShelf)
     .filter((item) => !isOwned(owned, item.id))
     .reduce<ShopItem | null>((best, item) => (!best || item.price < best.price ? item : best), null);
-  const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id));
-  const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id));
-  const buildingsOwned = profile.shop?.buildingsOwned ?? [];
-  const activeBuilding = profile.shop?.activeBuilding ?? null;
-  const selectedBuilding = activeBuilding ? BUILDING_BY_ID[activeBuilding] ?? null : null;
+  // Вся линейка НААШ собрана отдельно в покупках: и наряды, и кружка-игрушка.
+  const ownedSchool = SHOP_ITEMS.filter((item) => item.series === 'naash' && isOwned(owned, item.id));
+  const ownedOutfits = OUTFIT_ITEMS.filter((item) => isOwned(owned, item.id) && item.series !== 'naash');
+  const ownedToys = TOY_ITEMS.filter((item) => isOwned(owned, item.id) && item.series !== 'naash');
+  /**
+   * Покупок ещё нет ни одной (0.32.1). Раньше «Мои покупки» у новичка
+   * показывали четыре пустые карточки подряд — стена «Пока пусто»,
+   * в которой тонет единственное полезное (звуки) и «Мечты».
+   * Теперь пустые секции не рисуются, а вместо них — одна строка-приглашение.
+   */
+  const noPurchases =
+    ownedSchool.length === 0 && ownedOutfits.length === 0 && ownedToys.length === 0 && pz.assembled.length === 0 && musicOwned.length === 0 && buildingsOwned.length === 0 && crystalOwned.length === 0;
 
   const tapWish = (id: string, title: string) => {
     sfx.tap();
@@ -352,7 +443,7 @@ export function ShopScreen() {
       showToast({
         emoji: '🤍',
         title: `«${title}» — в мечтах!`,
-        text: 'Прогресс копления виден в Гардеробе',
+        text: 'Прогресс копления — в «Моих покупках»',
       });
     } else {
       showToast({
@@ -367,15 +458,18 @@ export function ShopScreen() {
     sfx.tap();
     haptic.tap();
     setPaletteOpen(false);
+    // Тёплый старт картинок листа: качаем в момент тапа, чтобы к развороту снимок,
+    // ракурсы и комнаты базы уже были в кэше — по тапу они не «долго грузятся»
+    // (жалоба 2026-10-29).
+    if (detail.kind === 'item') {
+      warmProductPhoto(detail.item.id);
+      warmCarTour(detail.item.id);
+      warmTechTour(detail.item.id);
+      warmOutfitPair(detail.item.id);
+    } else if (detail.kind === 'building') {
+      warmBaseTour(detail.building.id);
+    }
     setSheet(detail);
-  };
-
-  const selectBuilding = (building: BuildingItem) => {
-    if (building.id === activeBuilding) return;
-    if (!chooseBuilding(building.id)) return;
-    sfx.tap();
-    haptic.tap();
-    showToast({ emoji: building.emoji, title: `«${building.title}» теперь на участке!`, text: 'Поставить другое здание можно в любой момент' });
   };
 
   const selectThemeStyle = (style: ThemeStyle) => {
@@ -472,6 +566,7 @@ export function ShopScreen() {
 
   const confirmBuy = () => {
     if (!ask) return;
+    const toy = isToy(ask);
     const ok = buyItem(ask.id);
     setAsk(null);
     if (ok) {
@@ -479,30 +574,25 @@ export function ShopScreen() {
       haptic.correct();
       setMood('dance');
       setTimeout(() => setMood('idle'), 1800);
-      const toy = isToy(ask);
       showToast({
         emoji: ask.emoji ?? '🎩',
         title: `${ask.title} — твой!`,
-        text: toy ? 'Поставим в ангаре — зайди посмотреть!' : 'БУК уже примерил обновку',
+        text: toy ? 'Уже в коллекции «Моего мира» — показываю!' : 'БУК уже примерил обновку',
       });
+      if (toy) {
+        // Новая техника сразу открывается в общей карте коллекции, чтобы
+        // ребёнок увидел покупку и не искал её по другим полкам.
+        setSheet(null);
+        openMyWorld();
+      }
     } else {
-      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${missingGems(ask, gems)}` });
-    }
-  };
-
-  const confirmBuildingBuy = () => {
-    if (!askBuilding) return;
-    const building = askBuilding;
-    const ok = buyBuilding(building.id);
-    setAskBuilding(null);
-    if (ok) {
-      sfx.reward();
-      haptic.correct();
-      setMood('dance');
-      setTimeout(() => setMood('idle'), 1800);
-      showToast({ emoji: building.emoji, title: `«${building.title}» построено!`, text: 'Теперь оно стоит на твоём участке' });
-    } else {
-      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, building.price - gems)} 💎` });
+      // Честная причина: «не хватает кристаллов» — только когда их правда мало.
+      const short = missingGems(ask, gems);
+      showToast(
+        short > 0
+          ? { emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${short}` }
+          : { emoji: '🎒', title: 'Вещь уже у тебя', text: `«${ask.title}» — в твоей коллекции` },
+      );
     }
   };
 
@@ -528,13 +618,6 @@ export function ShopScreen() {
     toggleEquip(item.id);
     setMood('happy');
     setTimeout(() => setMood('idle'), 1200);
-  };
-
-  /** Открыть сцену «Ангар БУКа» — коллекцию техники крупным планом (0.22.0). */
-  const openHangar = () => {
-    sfx.tap();
-    haptic.tap();
-    setHangarOpen(true);
   };
 
   const tapTint = (target: TintTarget, tint: TintOption, unlocked: boolean) => {
@@ -582,37 +665,85 @@ export function ShopScreen() {
     }
   };
 
+  const confirmBuildingBuy = () => {
+    if (!askBuilding) return;
+    const building = askBuilding;
+    const ok = buyBuilding(building.id);
+    setAskBuilding(null);
+    if (ok) {
+      sfx.reward();
+      haptic.correct();
+      showToast({ emoji: building.emoji, title: `«${building.title}» теперь твоя!`, text: 'База появилась в коллекции «Моего мира»' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, building.price - gems)} 💎` });
+    }
+  };
+
+  const confirmCrystalCostumeBuy = () => {
+    if (!askCrystalCostume) return;
+    const costume = askCrystalCostume;
+    const ok = buyCrystalCostume(costume.id);
+    setAskCrystalCostume(null);
+    if (ok) {
+      sfx.reward();
+      haptic.correct();
+      setMood('dance');
+      setTimeout(() => setMood('idle'), 1800);
+      showToast({ emoji: '✨', title: `«${costume.title}» — твой!`, text: 'БУК уже надел костюм своей базы' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, (costume.price ?? 0) - gems)} 💎` });
+    }
+  };
+
+  const confirmBaseSetBuy = () => {
+    if (!askBaseSet) return;
+    const setInfo = askBaseSet;
+    const price = priceForSet(setInfo);
+    const ok = buyBaseSet(setInfo.id);
+    setAskBaseSet(null);
+    if (ok) {
+      sfx.reward();
+      haptic.correct();
+      showToast({ emoji: setInfo.emoji, title: `${setInfo.title} — собран!`, text: 'База, техника и костюм появились в коллекции «Моего мира»' });
+    } else {
+      showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: `Нужно ещё ${Math.max(0, price - gems)} 💎` });
+    }
+  };
+
   // ── Карточки витрины ────────────────────────────────────────────────
 
   const itemCard = (item: ShopItem) => {
     const owned_ = isOwned(owned, item.id);
-    const wearing = isWearing(look, item);
+    const toy = isToy(item);
+    const wearing = !toy && isWearing(look, item);
     const affordable = canBuy(item, gems);
     const wished = isWished(wishlist, item.id);
-    const toy = isToy(item);
-    const baseStyle = item.baseStyle ? BUILDING_BY_ID[item.baseStyle] : undefined;
-    // 0.22.0: техника не «надета» на БУКа — она стоит в ангаре; слот `toy`
-    // означает «любимая вещь на главном подиуме ангара» (HangarScene).
-    const stateOn = toy ? 'На подиуме ✓' : 'Надето ✓';
-    const actionOn = toy ? 'На подиум' : 'Надеть';
+    const stateOn = toy ? 'В Моём мире ✓' : 'Надето ✓';
+    const actionOn = toy ? 'Посмотреть' : 'Надеть';
     return (
       <ShopCard
         key={item.id}
-        badge={baseStyle?.emoji}
+        // 0.89.0: у наряда с фотопарой в нише — студийный снимок. Сова в вещи
+        // остаётся для вещей без пары (и на примерке в листе): на 96 px очки
+        // или брошь на сове почти не читались, и вещь выглядела отсутствующей.
+        photo={hasProductPhoto(item.id) || hasOutfitPair(item.id)}
         art={
           toy ? (
-            <ToyArt id={item.id} interactive size={82} tuning={profile.shop?.tuning} />
+            <ToyArt id={item.id} interactive size={148} tuning={profile.shop?.tuning} alt="" />
+          ) : hasOutfitPair(item.id) ? (
+            <OutfitPhoto key={item.id} id={item.id} alt="" />
           ) : (
-            <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={64} />
+            <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={96} />
           )
         }
         title={item.title}
-        desc={item.desc}
         rarity={rarityOf(item)}
+        desc={item.desc}
         // Арт техники рисуется целиком, без совы: на полке это товар,
         // а не ещё один наряд на БУКе.
         cardCls={[wearing ? 'on' : owned_ ? 'owned' : '', toy ? 'toy-item' : ''].filter(Boolean).join(' ') || undefined}
-        priceLabel={owned_ ? (toy ? 'В ангаре ✓' : 'Твоя ✓') : `💎 ${item.price}`}
+        statusLabel={owned_ ? (toy ? 'В Моём мире ✓' : 'Твоя ✓') : undefined}
+        priceLabel={owned_ ? undefined : <Gem value={item.price} size={16} />}
         afford={affordable}
         wished={wished}
         onWish={!owned_ ? () => tapWish(item.id, item.title) : undefined}
@@ -622,15 +753,17 @@ export function ShopScreen() {
               ? stateOn
               : actionOn
             : affordable
-              ? `Купить · 💎${item.price}`
+              ? 'Купить'
               : `Ещё ${missingGems(item, gems)} 💎`
         }
         actionTone={owned_ ? (wearing ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
         actionDisabled={!owned_ && !affordable}
         onOpen={() => openSheet({ kind: 'item', item })}
         onAction={() => {
-          if (owned_) tapWear(item);
-          else if (affordable) {
+          if (owned_) {
+            if (toy) openMyWorld();
+            else tapWear(item);
+          } else if (affordable) {
             sfx.tap();
             setAsk(item);
           } else {
@@ -638,125 +771,6 @@ export function ShopScreen() {
             showToast({
               emoji: '💎',
               title: `До «${item.title}» ещё ${missingGems(item, gems)} 💎`,
-              text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
-            });
-          }
-        }}
-      />
-    );
-  };
-
-  const crystalCostumeCard = (c: Costume) => {
-    const owned_ = (profile.shop?.crystalCostumesOwned ?? []).includes(c.id);
-    const wearing = pz.worn === c.id;
-    const price = c.price ?? 0;
-    return (
-      <ShopCard
-        key={c.id}
-        badge={c.baseStyle ? BUILDING_BY_ID[c.baseStyle]?.emoji : undefined}
-        rarity={c.rarity}
-        cardCls={`crystal-costume-card${wearing ? ' on' : owned_ ? ' owned' : ''}`}
-        art={<Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />}
-        title={c.title}
-        desc={c.desc}
-        priceLabel={owned_ ? (wearing ? 'Надет ✓' : 'Твой ✓') : `💎 ${price}`}
-        afford={gems >= price}
-        actionLabel={owned_ ? (wearing ? 'Снять' : 'Надеть') : gems >= price ? `Купить · 💎${price}` : `Ещё ${price - gems} 💎`}
-        actionTone={owned_ ? (wearing ? 'green' : 'ghost') : gems >= price ? 'primary' : 'ghost'}
-        actionDisabled={!owned_ && gems < price}
-        onOpen={() => owned_ ? tapCostume(c.id) : setAskCrystalCostume(c)}
-        onAction={() => {
-          if (owned_) tapCostume(c.id);
-          else if (gems >= price) setAskCrystalCostume(c);
-          else showToast({ emoji: '💎', title: `До «${c.title}» ещё ${price - gems} 💎`, text: 'Кристаллы дают за задания дня и сундук' });
-        }}
-      />
-    );
-  };
-
-  const confirmCrystalCostumeBuy = () => {
-    if (!askCrystalCostume) return;
-    const costume = askCrystalCostume;
-    const ok = buyCrystalCostume(costume.id);
-    setAskCrystalCostume(null);
-    if (ok) showToast({ emoji: '✨', title: `«${costume.title}» теперь твой!`, text: 'БУК сразу надел новый костюм' });
-    else showToast({ emoji: '💎', title: 'Не хватает кристаллов', text: 'Продолжай выполнять задания и открывать сундуки' });
-  };
-
-  const allOwnedCostumes = [...pz.assembled, ...(profile.shop?.crystalCostumesOwned ?? [])];
-  const priceForSet = (setInfo: BaseSet) => baseSetPrice(setInfo, owned, buildingsOwned, allOwnedCostumes);
-  const confirmBaseSetBuy = () => {
-    if (!askBaseSet) return;
-    const setInfo = askBaseSet;
-    const ok = buyBaseSet(setInfo.id);
-    setAskBaseSet(null);
-    if (ok) showToast({ emoji: setInfo.emoji, title: `${setInfo.title} куплен!`, text: 'База, машина, самолёт и костюм уже в твоей коллекции' });
-    else showToast({ emoji: '💎', title: 'Не хватает кристаллов или набор уже собран', text: 'Купи недостающие части отдельно или накопи кристаллы' });
-  };
-
-  const baseSetCard = (setInfo: BaseSet) => {
-    const price = priceForSet(setInfo);
-    const complete = isBuildingOwned(buildingsOwned, setInfo.baseId) && isOwned(owned, setInfo.carId) && isOwned(owned, setInfo.planeId) && allOwnedCostumes.includes(setInfo.costumeId);
-    const base = BUILDING_BY_ID[setInfo.baseId];
-    const costume = ALL_COSTUMES.find((entry) => entry.id === setInfo.costumeId)!;
-    return (
-      <ShopCard
-        key={setInfo.id}
-        badge="БАЗА · 2 ТС · КОСТЮМ"
-        rarity={setInfo.rarity}
-        art={<div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" /><ToyArt id={setInfo.carId} size={40} /><ToyArt id={setInfo.planeId} size={40} /><Mascot mood="idle" costumeId={costume.id} size={42} stage={growth.index} /></div>}
-        title={setInfo.title}
-        desc={setInfo.desc}
-        extra={<div className="tiny muted">{base.emoji} база · 🚗 машина · ✈️ самолёт · ✨ костюм</div>}
-        priceLabel={complete ? 'Набор собран ✓' : `💎 ${price} · премиум`}
-        afford={gems >= price}
-        actionLabel={complete ? 'Уже всё твоё ✓' : gems >= price ? `Купить набор · 💎${price}` : `Ещё ${price - gems} 💎`}
-        actionTone={complete ? 'green' : gems >= price ? 'primary' : 'ghost'}
-        actionDisabled={complete || gems < price}
-        onOpen={() => openSheet({ kind: 'baseSet', set: setInfo })}
-        onAction={() => !complete && setAskBaseSet(setInfo)}
-      />
-    );
-  };
-
-  const buildingCard = (building: BuildingItem) => {
-    const owned_ = isBuildingOwned(buildingsOwned, building.id);
-    const selected = activeBuilding === building.id;
-    const affordable = gems >= building.price;
-    const missing = Math.max(0, building.price - gems);
-    return (
-      <ShopCard
-        key={building.id}
-        art={<BuildingArt id={building.id} className="building-card-art" />}
-        rarity={building.rarity}
-        title={building.title}
-        desc={building.desc}
-        cardCls={`building-item${selected ? ' on' : owned_ ? ' owned' : ''}`}
-        priceLabel={selected ? 'На участке ✓' : owned_ ? 'В коллекции ✓' : `💎 ${building.price}`}
-        afford={affordable}
-        actionLabel={
-          owned_
-            ? selected
-              ? 'Выбрано ✓'
-              : 'Поставить'
-            : affordable
-              ? `Купить · 💎${building.price}`
-              : `Ещё ${missing} 💎`
-        }
-        actionTone={selected ? 'green' : owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
-        actionDisabled={selected || (!owned_ && !affordable)}
-        onOpen={() => openSheet({ kind: 'building', building })}
-        onAction={() => {
-          if (owned_) {
-            selectBuilding(building);
-          } else if (affordable) {
-            sfx.tap();
-            setAskBuilding(building);
-          } else {
-            sfx.hint();
-            showToast({
-              emoji: '💎',
-              title: `До «${building.title}» ещё ${missing} 💎`,
               text: 'Кристаллы дают за задания дня и сундук — загляни на главную',
             });
           }
@@ -782,7 +796,7 @@ export function ShopScreen() {
           // Несобранный костюм помечен классом pz-locked, но рисуется В ЦВЕТЕ:
           // раньше он был серым силуэтом, и ребёнку было не выбрать «тот самый».
           <div className={done ? '' : 'pz-locked'}>
-            <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={64} stage={growth.index} />
+            <Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={104} stage={growth.index} />
           </div>
         }
         title={c.title}
@@ -798,8 +812,7 @@ export function ShopScreen() {
             </div>
           )
         }
-        priceLabel={done ? 'Собран ✓' : `${prog}/${PUZZLE_SIZE} 🧩`}
-        afford={done}
+        statusLabel={done ? 'Собран ✓' : undefined}
         actionLabel={
           done
             ? wearing
@@ -821,6 +834,92 @@ export function ShopScreen() {
     );
   };
 
+  const crystalCostumeCard = (c: Costume) => {
+    const owned_ = crystalOwned.includes(c.id);
+    const wearing = pz.worn === c.id;
+    const price = c.price ?? 0;
+    const affordable = gems >= price;
+    const wished = isWished(wishlist, c.id);
+    return (
+      <ShopCard
+        key={c.id}
+        rarity={c.rarity}
+        cardCls={`crystal-costume-card${wearing ? ' on' : owned_ ? ' owned' : ''}`}
+        wished={wished}
+        onWish={!owned_ ? () => tapWish(c.id, c.title) : undefined}
+        art={<Mascot mood={wearing ? 'happy' : 'idle'} costumeId={c.id} size={104} stage={growth.index} />}
+        title={c.title}
+        desc={c.desc}
+        statusLabel={owned_ ? 'Твой ✓' : undefined}
+        priceLabel={owned_ ? undefined : <Gem value={price} size={16} />}
+        afford={affordable}
+        actionLabel={owned_ ? (wearing ? 'Надето ✓' : 'Надеть') : affordable ? 'Купить' : `Ещё ${Math.max(0, price - gems)} 💎`}
+        actionTone={owned_ ? (wearing ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
+        actionDisabled={!owned_ && !affordable}
+        onOpen={() => openSheet({ kind: 'costume', costume: c })}
+        onAction={() => {
+          if (owned_) tapCostume(c.id);
+          else if (affordable) { sfx.tap(); setAskCrystalCostume(c); }
+          else showToast({ emoji: '💎', title: `До «${c.title}» ещё ${Math.max(0, price - gems)} 💎`, text: 'Кристаллы дают за задания дня и сундук' });
+        }}
+      />
+    );
+  };
+
+  const buildingCard = (building: BuildingItem) => {
+    const owned_ = isBuildingOwned(buildingsOwned, building.id);
+    const affordable = gems >= building.price;
+    const missing = Math.max(0, building.price - gems);
+    return (
+      <ShopCard
+        key={building.id}
+        rarity={building.rarity}
+        cardCls={`building-item${owned_ ? ' owned' : ''}`}
+        photo={hasProductPhoto(building.id)}
+        art={<BuildingArt id={building.id} className="building-card-art" />}
+        title={building.title}
+        desc={building.desc}
+        statusLabel={owned_ ? 'В Моём мире ✓' : undefined}
+        priceLabel={owned_ ? undefined : <Gem value={building.price} size={16} />}
+        afford={affordable}
+        actionLabel={owned_ ? 'Посмотреть' : affordable ? 'Купить' : `Ещё ${missing} 💎`}
+        actionTone={owned_ ? 'ghost' : affordable ? 'primary' : 'ghost'}
+        actionDisabled={!owned_ && !affordable}
+        onOpen={() => openSheet({ kind: 'building', building })}
+        onAction={() => {
+          if (owned_) openMyWorld();
+          else if (affordable) { sfx.tap(); setAskBuilding(building); }
+          else showToast({ emoji: '💎', title: `До «${building.title}» ещё ${missing} 💎`, text: 'Кристаллы дают за задания дня и сундук' });
+        }}
+      />
+    );
+  };
+
+  const baseSetCard = (setInfo: BaseSet) => {
+    const price = priceForSet(setInfo);
+    const complete = isBuildingOwned(buildingsOwned, setInfo.baseId) && isOwned(owned, setInfo.carId) && isOwned(owned, setInfo.planeId) && allOwnedCostumes.includes(setInfo.costumeId);
+    const costume = CRYSTAL_COSTUMES.find((c) => c.id === setInfo.costumeId);
+    const affordable = !complete && gems >= price;
+    return (
+      <ShopCard
+        key={setInfo.id}
+        rarity={setInfo.rarity}
+        cardCls={`base-set-card${complete ? ' owned' : ''}`}
+        art={<div className="base-set-icons"><BuildingArt id={setInfo.baseId} className="building-card-art" />{costume && <Mascot mood="idle" costumeId={costume.id} size={42} stage={growth.index} />}</div>}
+        title={setInfo.title}
+        desc={setInfo.desc}
+        statusLabel={complete ? 'Набор собран ✓' : undefined}
+        priceLabel={complete ? undefined : <Gem value={price} size={16} />}
+        afford={affordable}
+        actionLabel={complete ? 'Собран ✓' : affordable ? 'Купить' : `Ещё ${Math.max(0, price - gems)} 💎`}
+        actionTone={complete ? 'green' : affordable ? 'primary' : 'ghost'}
+        actionDisabled={complete || !affordable}
+        onOpen={() => openSheet({ kind: 'baseSet', set: setInfo })}
+        onAction={() => { if (!complete && affordable) { sfx.tap(); setAskBaseSet(setInfo); } }}
+      />
+    );
+  };
+
   const trackCard = (track: MusicTrack) => {
     const ownedTrack = musicOwned.includes(track.id);
     const selected = selectedMusic === track.id;
@@ -831,19 +930,12 @@ export function ShopScreen() {
         key={track.id}
         wished={wished}
         onWish={!ownedTrack ? () => tapWish(track.id, track.title) : undefined}
-        art={
-          <div className="music-cover" aria-hidden="true">
-            <span>{track.emoji}</span>
-            <i>♫</i>
-            {previewTrack === track.id && (
-              <span className="shop-eq"><i /><i /><i /></span>
-            )}
-          </div>
-        }
+        art={<DigitalCover track={track} variant="card" playing={previewTrack === track.id} />}
         title={track.title}
         desc={`${fmtTime(track.seconds)} · ${track.shelf === 'calm' ? 'спокойный фон' : 'награда'}`}
         cardCls={`music-item${selected ? ' on' : ownedTrack ? ' owned' : ''}`}
-        priceLabel={ownedTrack ? 'Твоя ✓' : `💎 ${track.price}`}
+        statusLabel={ownedTrack ? 'Твоя ✓' : undefined}
+        priceLabel={ownedTrack ? undefined : <Gem value={track.price} size={16} />}
         afford={affordable}
         actionLabel={
           ownedTrack
@@ -851,7 +943,7 @@ export function ShopScreen() {
               ? 'Играет ✓'
               : 'Выбрать'
             : affordable
-              ? `Купить · 💎${track.price}`
+              ? 'Купить'
               : `Ещё ${track.price - gems} 💎`
         }
         actionTone={ownedTrack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
@@ -905,23 +997,20 @@ export function ShopScreen() {
   );
 
   const soundCard = (pack: SoundPack) => {
-    const ownedPack = soundOwned.includes(pack.id);
+    // Бесплатный стартовый набор доступен сразу — его выбирают, а не покупают.
+    const ownedPack = hasSoundPack(soundOwned, pack.id);
     const selected = selectedSound === pack.id;
     const affordable = gems >= pack.price;
     return (
       <ShopCard
         key={pack.id}
-        art={
-          <div className="music-cover sound-cover" aria-hidden="true">
-            <span>{pack.emoji}</span>
-            <i>♪</i>
-          </div>
-        }
+        art={<DigitalCover pack={pack} variant="card" />}
         title={pack.title}
         desc={pack.desc}
         cardCls={`music-item sound-item${selected ? ' on' : ownedPack ? ' owned' : ''}`}
         extra={cueButtons(pack, 'sm')}
-        priceLabel={ownedPack ? 'Твои ✓' : `💎 ${pack.price}`}
+        statusLabel={ownedPack ? 'Твои ✓' : undefined}
+        priceLabel={ownedPack ? undefined : <Gem value={pack.price} size={16} />}
         afford={affordable}
         actionLabel={
           ownedPack
@@ -929,7 +1018,7 @@ export function ShopScreen() {
               ? 'Звучит ✓'
               : 'Выбрать'
             : affordable
-              ? `Купить · 💎${pack.price}`
+              ? 'Купить'
               : `Ещё ${pack.price - gems} 💎`
         }
         actionTone={ownedPack ? (selected ? 'green' : 'ghost') : affordable ? 'primary' : 'ghost'}
@@ -972,14 +1061,16 @@ export function ShopScreen() {
         : hasShipArt(item.id)
           ? shipAlt(item.id, item.title)
           : `${item.title} — техника БУКа`;
+      /** Подпись для кадров наряда: там нет ни машины, ни корабля — только вещь. */
+      const altFor = (it: ShopItem) => `${it.title} — фото товара`;
       return (
         <>
-          <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}`}>
+          <div className={`shop-bigart${toy ? ' shop-bigart-toy' : ''}${!toy && hasOutfitPair(item.id) ? ' shop-bigart-photo' : ''}`}>
             {toy ? (
-              // Техника в подробной карточке — сам товар крупным планом
-              // (машина/судно — карандашный лист, телефон — поворотный WebP). БУКа здесь
-              // нет: ребёнок пришёл посмотреть вещь, а не примерку на сове.
-              <ToyArt
+              // Техника в подробной карточке — сам товар крупным планом.
+              // Машины листаются в CarTour, телефоны/корабли/самолёты — в TechTour;
+              // БУКа здесь нет: ребёнок пришёл рассмотреть вещь, а не сову.
+              CAR_TOUR_IDS.has(item.id) ? <CarTour key={item.id} id={item.id} tuning={profile.shop?.tuning} alt={artAlt} /> : isTechTourItem(item.id) ? <TechTour key={item.id} id={item.id} alt={artAlt} /> : <ToyArt
                 key={item.id}
                 id={item.id}
                 interactive
@@ -988,51 +1079,57 @@ export function ShopScreen() {
                 tuning={profile.shop?.tuning}
                 alt={artAlt}
               />
+            ) : hasOutfitPair(item.id) ? (
+              // 0.89.0: у наряда с фотосерией в листе — два кадра вместо крупной
+              // совы. Сова в вещи осталась на примерке ниже и в гардеробе:
+              // здесь ребёнок пришёл рассмотреть саму вещь.
+              <OutfitPhotoTour key={item.id} id={item.id} alt={altFor(item)} />
             ) : (
               <Mascot mood="happy" look={{ [item.slot]: item.id }} costumeId={null} stage={growth.index} size={150} />
             )}
           </div>
-          {toy && toyPlayHint(item.id) && <p className="tiny muted phone-rotate-hint">{toyPlayHint(item.id)}</p>}
-          <h2 style={{ margin: '0 0 2px' }}>{item.title}</h2>
-          <RarityChip item={item} className="rarity-chip-detail" />
-          <p className="tiny muted" style={{ marginTop: 0 }}>{item.desc}</p>
-          {(carKind(item.id) || shipKind(item.id)) && (
-            <p className="tiny muted">
-              <b>{carKind(item.id) ?? shipKind(item.id)}</b>
-              {(carNote(item.id) ?? shipNote(item.id)) && (
-                <>
-                  <br />
-                  {carNote(item.id) ?? shipNote(item.id)}
-                </>
-              )}
-            </p>
-          )}
-          {toy && (
-            <p className="tiny muted">
-              Встанет в ангаре БУКа — там её видно крупно и целиком.
-            </p>
-          )}
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {owned_ ? (toy ? 'Уже в ангаре' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
-            </span>
+          {/* Подсказки «Нажми на машину/телефон» убраны (2026-10-29): лишний
+              текст под фото; зум и поворот — стандартное поведение по тапу. */}
+          {/* Лист товара: витринная иерархия вместо россыпи похожих абзацев
+              (жалоба 2026-10-29: «текст дублируется, сверстан как школьник»).
+              desc дублировал note («карбон и диски» дважды), к ним примешивалась
+              общая строка «После покупки…», а цена, баланс и возврат шли тремя
+              мелкими строками без ритма. Теперь: заголовок → строка «тип ·
+              редкость» → один живой абзац (у техники note — он для листа и
+              написан; desc остаётся на витринной карточке) → смета за тонкой
+              линией → сноска мелким шрифтом. */}
+          <h2 className="sheet-title">{item.title}</h2>
+          <div className="sheet-headline">
+            <RarityChip item={item} className="rarity-chip-detail" />
+            {(carKind(item.id) ?? shipKind(item.id)) && (
+              <span className="sheet-kind">{carKind(item.id) ?? shipKind(item.id)}</span>
+            )}
           </div>
-          {!owned_ && (
-            <p className="tiny muted mb">
-              Если передумаешь — вернём {sellPrice(item)} 💎 ({SELL_RATE[item.kind ?? 'outfit'] * 100}% от цены)
-            </p>
-          )}
+          <p className="sheet-lead">{carNote(item.id) ?? shipNote(item.id) ?? item.desc}</p>
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {item.price}</span>
+              <span className="sheet-balance">
+                {owned_ ? (toy ? 'Уже в «Моём мире»' : 'Уже в гардеробе') : `У тебя ${gems} 💎`}
+              </span>
+            </div>
+            {!owned_ && (
+              <p className="sheet-fine">
+                Если передумаешь — вернём {sellPrice(item)} 💎 ({SELL_RATE[item.kind ?? 'outfit'] * 100}% от цены)
+              </p>
+            )}
+          </div>
           <div className="row mb">
             {owned_ ? (
               <button
                 className={`btn lg grow ${wearing ? 'green' : 'primary'}`}
                 onClick={() => {
-                  tapWear(item);
+                  if (toy) openMyWorld();
+                  else tapWear(item);
                   closeSheet();
                 }}
               >
-                {wearing ? (toy ? 'С подиума' : 'Снять') : toy ? 'На подиум' : 'Надеть'}
+                {toy ? 'Посмотреть в «Моём мире»' : wearing ? 'Снять' : 'Надеть'}
               </button>
             ) : (
               <button
@@ -1057,7 +1154,8 @@ export function ShopScreen() {
               {isWished(wishlist, item.id) ? '💜 В мечтах — убрать' : '🤍 В мечты'}
             </button>
           )}
-          {owned_ && (
+          {/* Перекраска — только там, где её есть к чему применить. */}
+          {owned_ && supportsTint(item.id) && (
             <>
               <button
                 className="btn lg wide ghost mb"
@@ -1078,126 +1176,63 @@ export function ShopScreen() {
                   onPick={(tint, unlocked) => tapTint({ id: item.id, title: item.title }, tint, unlocked)}
                 />
               )}
-              <button
-                type="button"
-                className="btn lg wide ghost mb"
-                onClick={() => {
-                  sfx.tap();
-                  setAskSell(item);
-                }}
-              >
-                Сдать обратно · +{sellPrice(item)} 💎
-              </button>
             </>
           )}
-        </>
-      );
-    }
-    if (sheet.kind === 'building') {
-      const building = sheet.building;
-      const owned_ = isBuildingOwned(buildingsOwned, building.id);
-      const selected = activeBuilding === building.id;
-      const affordable = gems >= building.price;
-      const missing = Math.max(0, building.price - gems);
-      return (
-        <>
-          <div className="shop-bigart building-detail-art">
-            <BuildingArt id={building.id} loading="eager" />
-          </div>
-          <h2 style={{ margin: '0 0 2px' }}>{building.title}</h2>
-          <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
-          <p className="tiny muted" style={{ marginTop: 0 }}>{building.desc}</p>
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {selected ? 'Уже стоит на участке' : owned_ ? 'В твоей коллекции' : `У тебя ${gems} 💎`}
-            </span>
-          </div>
-          <p className="tiny muted mb">Купленное здание останется у тебя. Можно переставлять его на участок и менять на другое.</p>
-          <div className="row mb">
-            {owned_ ? (
-              <button
-                className={`btn lg grow ${selected ? 'green' : 'primary'}`}
-                disabled={selected}
-                onClick={() => {
-                  selectBuilding(building);
-                  closeSheet();
-                }}
-              >
-                {selected ? 'На участке ✓' : 'Поставить на участок'}
-              </button>
-            ) : (
-              <button
-                className="btn lg grow primary"
-                disabled={!affordable}
-                onClick={() => {
-                  closeSheet();
-                  sfx.tap();
-                  setAskBuilding(building);
-                }}
-              >
-                {affordable ? `Построить · 💎${building.price}` : `Ещё ${missing} 💎`}
-              </button>
-            )}
-          </div>
-        </>
-      );
-    }
-    if (sheet.kind === 'baseSet') {
-      const setInfo = sheet.set;
-      const base = BUILDING_BY_ID[setInfo.baseId];
-      const car = ITEM_BY_ID[setInfo.carId];
-      const plane = ITEM_BY_ID[setInfo.planeId];
-      const costume = ALL_COSTUMES.find((entry) => entry.id === setInfo.costumeId)!;
-      const baseOwned = isBuildingOwned(buildingsOwned, setInfo.baseId);
-      const carOwned = isOwned(owned, setInfo.carId);
-      const planeOwned = isOwned(owned, setInfo.planeId);
-      const costumeOwned = allOwnedCostumes.includes(setInfo.costumeId);
-      const complete = baseOwned && carOwned && planeOwned && costumeOwned;
-      const price = priceForSet(setInfo);
-      const affordable = gems >= price;
-      return (
-        <>
-          <div className="shop-bigart base-set-detail">
-            <div className="base-set-detail-grid">
-              <BuildingArt id={base.id} className="building-card-art" loading="eager" />
-              <ToyArt id={car.id} size={64} tuning={profile.shop?.tuning} />
-              <ToyArt id={plane.id} size={64} tuning={profile.shop?.tuning} />
-              <Mascot mood="happy" costumeId={costume.id} size={66} stage={growth.index} />
-            </div>
-          </div>
-          <h2 style={{ margin: '0 0 2px' }}>{setInfo.title}</h2>
-          <RarityLabel rarity={setInfo.rarity} className="rarity-chip-detail" />
-          <p className="tiny muted" style={{ marginTop: 6 }}>{setInfo.desc}</p>
-          <div className="col mb">
-            {[{ title: base.title, emoji: base.emoji, owned: baseOwned }, { title: car.title, emoji: '🚗', owned: carOwned }, { title: plane.title, emoji: '✈️', owned: planeOwned }, { title: costume.title, emoji: '✨', owned: costumeOwned }].map((part) => (
-              <div className="between tiny" key={part.title}>
-                <span>{part.emoji} {part.title}</span>
-                <b>{part.owned ? 'Уже есть ✓' : 'В наборе'}</b>
-              </div>
-            ))}
-          </div>
-          <p className="tiny muted mb">Премиум-набор: стоимость в 3 раза выше суммы недостающих вещей. Уже купленные части повторно не оплачиваются.</p>
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>{complete ? 'Все части уже в коллекции' : `У тебя ${gems} 💎`}</span>
-          </div>
-          <button
-            className={`btn lg wide ${complete ? 'green' : 'primary'}`}
-            disabled={complete || !affordable}
-            onClick={() => {
-              if (complete || !affordable) return;
-              closeSheet();
-              setAskBaseSet(setInfo);
-            }}
-          >
-            {complete ? 'Уже всё твоё ✓' : affordable ? `Купить набор · 💎${price}` : `Ещё ${price - gems} 💎`}
-          </button>
+          {/* Сдать обратно можно ЛЮБУЮ купленную вещь — в том числе снимок,
+              который не перекрашивается (0.80.0: кнопка случайно оказалась
+              внутри блока перекраски и пропадала у фототоваров). */}
+          {owned_ && (
+            <button
+              type="button"
+              className="btn lg wide ghost mb"
+              onClick={() => {
+                sfx.tap();
+                setAskSell(item);
+              }}
+            >
+              Сдать обратно · +{sellPrice(item)} 💎
+            </button>
+          )}
         </>
       );
     }
     if (sheet.kind === 'costume') {
       const c = sheet.costume;
+      const isCrystal = CRYSTAL_COSTUMES.some((x) => x.id === c.id);
+      if (isCrystal) {
+        const ownedC = crystalOwned.includes(c.id);
+        const wearingC = pz.worn === c.id;
+        const priceC = c.price ?? 0;
+        const affordableC = gems >= priceC;
+        return (
+          <>
+            <div className="shop-bigart"><Mascot mood="happy" costumeId={c.id} size={150} stage={growth.index} /></div>
+            {/* Единая схема листа (2026-10-29): заголовок → редкость → один
+                абзац → смета; условие покупки — сноской под сметой. */}
+            <h2 className="sheet-title">{c.title}</h2>
+            {c.rarity && (
+              <div className="sheet-headline">
+                <RarityLabel rarity={c.rarity} className="rarity-chip-detail" />
+              </div>
+            )}
+            <p className="sheet-lead">{c.desc}</p>
+            <div className="sheet-facts">
+              <div className="row">
+                <span className={`shop-price${affordableC ? ' afford' : ''}`}>💎 {priceC}</span>
+                <span className="sheet-balance">{ownedC ? 'Уже в гардеробе' : `У тебя ${gems} 💎`}</span>
+              </div>
+              <p className="sheet-fine">Костюм своей научной базы: покупается за кристаллы, а не собирается из фрагментов.</p>
+            </div>
+            <div className="row mb">
+              {ownedC ? (
+                <button className={`btn lg grow ${wearingC ? 'green' : 'primary'}`} onClick={() => { tapCostume(c.id); closeSheet(); }}>{wearingC ? 'Снять' : 'Надеть'}</button>
+              ) : (
+                <button className="btn lg grow primary" disabled={!affordableC} onClick={() => { closeSheet(); sfx.tap(); setAskCrystalCostume(c); }}>{affordableC ? `Купить за 💎${priceC}` : `Ещё ${Math.max(0, priceC - gems)} 💎`}</button>
+              )}
+            </div>
+          </>
+        );
+      }
       const done = pz.assembled.includes(c.id);
       const prog = costumeProgress(pz, c.id);
       const wearing = pz.worn === c.id;
@@ -1207,8 +1242,13 @@ export function ShopScreen() {
           <div className="shop-bigart">
             <Mascot mood="happy" costumeId={c.id} size={150} stage={growth.index} />
           </div>
-          <h2 style={{ margin: '0 0 2px' }}>{c.title}</h2>
-          <p className="tiny muted" style={{ marginTop: 0 }}>{c.desc}</p>
+          <h2 className="sheet-title">{c.title}</h2>
+          {c.rarity && (
+            <div className="sheet-headline">
+              <RarityLabel rarity={c.rarity} className="rarity-chip-detail" />
+            </div>
+          )}
+          <p className="sheet-lead">{c.desc}</p>
           {done ? (
             <div className="row mb">
               <button
@@ -1281,26 +1321,92 @@ export function ShopScreen() {
         </>
       );
     }
+    if (sheet.kind === 'building') {
+      const building = sheet.building;
+      const owned_ = isBuildingOwned(buildingsOwned, building.id);
+      const affordable = gems >= building.price;
+      const missing = Math.max(0, building.price - gems);
+      return (
+        <>
+          <div className="shop-bigart building-detail-art"><BaseTour id={building.id} loading="eager" /></div>
+          {/* Лист здания — та же типографская схема, что у товара (единый стиль,
+              2026-10-29): заголовок → редкость → один абзац → смета. Подсказка
+              «Нажми на картинку…» убрана: дублировала подпись фасада, а тап по
+              кадру — стандартное поведение карусели. */}
+          <h2 className="sheet-title">{building.title}</h2>
+          <div className="sheet-headline">
+            <RarityLabel rarity={building.rarity} className="rarity-chip-detail" />
+          </div>
+          <p className="sheet-lead">{building.desc}</p>
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {building.price}</span>
+              <span className="sheet-balance">{owned_ ? 'Уже в коллекции' : `У тебя ${gems} 💎`}</span>
+            </div>
+          </div>
+          <div className="row mb">
+            {owned_ ? (
+              <button className="btn lg grow primary" onClick={() => { closeSheet(); openMyWorld(); }}>Посмотреть в «Моём мире»</button>
+            ) : (
+              <button className="btn lg grow primary" disabled={!affordable} onClick={() => { closeSheet(); sfx.tap(); setAskBuilding(building); }}>{affordable ? `Построить · 💎${building.price}` : `Ещё ${missing} 💎`}</button>
+            )}
+          </div>
+        </>
+      );
+    }
+    if (sheet.kind === 'baseSet') {
+      const setInfo = sheet.set;
+      const price = priceForSet(setInfo);
+      const ownedParts = {
+        base: isBuildingOwned(buildingsOwned, setInfo.baseId),
+        car: isOwned(owned, setInfo.carId),
+        plane: isOwned(owned, setInfo.planeId),
+        costume: allOwnedCostumes.includes(setInfo.costumeId),
+      };
+      const complete = Object.values(ownedParts).every(Boolean);
+      const affordable = !complete && gems >= price;
+      return (
+        <>
+          <h2 className="sheet-title">{setInfo.title}</h2>
+          <div className="sheet-headline">
+            <RarityLabel rarity={setInfo.rarity} className="rarity-chip-detail" />
+          </div>
+          <p className="sheet-lead">{setInfo.desc}</p>
+          <SetComposition set={setInfo} owned={ownedParts} stage={growth.index} />
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>{complete ? 'Набор собран ✓' : `💎 ${price}`}</span>
+              <span className="sheet-balance">{complete ? 'Всё уже у тебя' : `У тебя ${gems} 💎`}</span>
+            </div>
+            {!complete && <p className="sheet-fine">Цена — за недостающие части со скидкой 25%.</p>}
+          </div>
+          {!complete && (
+            <div className="row mb">
+              <button className="btn lg grow primary" disabled={!affordable} onClick={() => { closeSheet(); sfx.tap(); setAskBaseSet(setInfo); }}>{affordable ? `Купить набор · 💎${price}` : `Ещё ${Math.max(0, price - gems)} 💎`}</button>
+            </div>
+          )}
+        </>
+      );
+    }
     if (sheet.kind === 'sound') {
       const pack = sheet.pack;
-      const ownedPack = soundOwned.includes(pack.id);
+      const ownedPack = hasSoundPack(soundOwned, pack.id);
       const selected = selectedSound === pack.id;
       const affordable = gems >= pack.price;
       return (
         <>
           <div className="shop-bigart">
-            <div className="music-cover music-cover-lg sound-cover" aria-hidden="true">
-              <span>{pack.emoji}</span>
-              <i>♪</i>
-            </div>
+            <DigitalCover pack={pack} variant="full" />
           </div>
-          <h2 style={{ margin: '0 0 2px' }}>{pack.title}</h2>
-          <p className="tiny muted" style={{ marginTop: 0 }}>{pack.desc} · звуки правильного ответа и ошибки</p>
-          <div className="row mb">
-            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {pack.price}</span>
-            <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-              {ownedPack ? 'В коллекции' : pack.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
-            </span>
+          <h2 className="sheet-title">{pack.title}</h2>
+          <p className="sheet-lead">{pack.desc} · звуки правильного ответа и ошибки</p>
+          <div className="sheet-facts">
+            <div className="row">
+              <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {pack.price}</span>
+              <span className="sheet-balance">
+                {ownedPack ? 'В коллекции' : pack.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
+              </span>
+            </div>
           </div>
           <div className="mb">{cueButtons(pack, 'lg')}</div>
           <div className="row mb">
@@ -1342,21 +1448,19 @@ export function ShopScreen() {
     return (
       <>
         <div className="shop-bigart">
-          <div className="music-cover music-cover-lg" aria-hidden="true">
-            <span>{track.emoji}</span>
-            <i>♫</i>
-            {previewing && <span className="shop-eq"><i /><i /><i /></span>}
-          </div>
+          <DigitalCover track={track} variant="full" playing={previewing} />
         </div>
-        <h2 style={{ margin: '0 0 2px' }}>{track.title}</h2>
-        <p className="tiny muted" style={{ marginTop: 0 }}>
+        <h2 className="sheet-title">{track.title}</h2>
+        <p className="sheet-lead">
           «{track.originalTitle}» · {track.artist} · {fmtTime(track.seconds)}
         </p>
-        <div className="row mb">
-          <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {track.price}</span>
-          <span className="tiny muted grow" style={{ alignSelf: 'center' }}>
-            {ownedTrack ? 'В коллекции' : track.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
-          </span>
+        <div className="sheet-facts">
+          <div className="row">
+            <span className={`shop-price${affordable ? ' afford' : ''}`}>💎 {track.price}</span>
+            <span className="sheet-balance">
+              {ownedTrack ? 'В коллекции' : track.price === 0 ? 'Бесплатно' : `У тебя ${gems} 💎`}
+            </span>
+          </div>
         </div>
         <div className="row mb">
           <button className="btn lg grow ghost" onClick={() => togglePreview(track)}>
@@ -1400,7 +1504,7 @@ export function ShopScreen() {
     );
   })();
 
-  // ── Гардероб: мои вещи ────────────────────────────────────────────────
+  // ── Мои покупки: что уже моё ──────────────────────────────────────────
 
   const wardrobeRow = (key: string, target: Detail, art: ReactNode, title: string, state: string, wearing: boolean, actionLabel: string, onAction: () => void) => (
     <div key={key} className={`shop-wear${wearing ? ' on' : ''}`} role="button" tabIndex={0} aria-label={title}
@@ -1424,36 +1528,61 @@ export function ShopScreen() {
   );
 
   const ownedBySlot = (slot: string) =>
-    SHOP_ITEMS.filter((i) => i.slot === slot && isOwned(owned, i.id));
+    SHOP_ITEMS.filter((i) => i.slot === slot && isOwned(owned, i.id) && !i.series);
 
   return (
-    <div className="screen">
+    // shop-screen — метка «всё внутри = витрина»: по ней app.css красит
+    // активные пункты меню, лист и подтверждения покупки единым акцентом
+    // --lux-cta (жалоба 2026-10-29 — см. блок «Единый акцент витрины»).
+    <div className="screen shop-screen">
       {/* ── Шапка: название и баланс — и больше ничего ─────────────────── */}
       <div className="shop-sticky">
-        <div className="row mb">
-          <h1 className="grow" style={{ margin: 0 }}>
-            Магазин БУКа 🎩
-          </h1>
-          <div className="stat-pill gems">💎 {gems}</div>
-        </div>
-        <div className="shop-seg" role="tablist" aria-label="Витрина или гардероб">
-          <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
-            🛍️ Витрина
-          </button>
-          <button role="tab" aria-selected={view === 'wardrobe'} className={view === 'wardrobe' ? 'on' : ''} onClick={() => setView('wardrobe')}>
-            👕 Гардероб · {owned.length + pz.assembled.length + musicOwned.length + soundOwned.length}
-          </button>
-        </div>
-        {view === 'vitrina' && (
-          <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
-            {CATS.map((c) => (
-              <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
-                {c.emoji} {c.title}
-              </button>
-            ))}
+          <div className="row mb">
+            <h1 className="grow" style={{ margin: 0 }}>
+              БУК <Icon name="hat" size={22} />
+            </h1>
+            <div className="stat-pill gems">
+              <Gem value={gems} size={22} />
+            </div>
           </div>
-        )}
-      </div>
+          {/* 0.90.1: две вкладки вместо трёх. «Мои покупки» и «Мой мир»
+              отвечали на один вопрос «что у меня есть», поэтому остался
+              «Мой мир», а внутри него — режимы «Коллекция» и «Вещи». */}
+          <div className="shop-seg" role="tablist" aria-label="Разделы БУКа">
+            <button role="tab" aria-selected={view === 'vitrina'} className={view === 'vitrina' ? 'on' : ''} onClick={() => setView('vitrina')}>
+              🛍️ Витрина
+            </button>
+            <button role="tab" aria-selected={view === 'world'} className={view === 'world' ? 'on' : ''} onClick={() => { setView('world'); setWorldMode('collection'); }}>
+              🌍 Мой мир
+            </button>
+          </div>
+          {view === 'world' && (
+            <div className="shop-seg shop-seg-sub" role="tablist" aria-label="Мой мир: коллекция или вещи">
+              <button role="tab" aria-selected={worldMode === 'collection'} className={worldMode === 'collection' ? 'on' : ''} onClick={() => setWorldMode('collection')}>
+                🖼️ Коллекция
+              </button>
+              <button role="tab" aria-selected={worldMode === 'items'} className={worldMode === 'items' ? 'on' : ''} onClick={() => setWorldMode('items')}>
+                🎒 Вещи
+              </button>
+            </div>
+          )}
+          {view === 'vitrina' && (
+            <div className="shop-cats" role="tablist" aria-label="Разделы магазина">
+              {CATS.filter((c) => c.id !== 'naash' || SCHOOL.on).map((c) => (
+                <button key={c.id} role="tab" aria-selected={cat === c.id} className={`chip${cat === c.id ? ' on' : ''}`} onClick={() => setCat(c.id)}>
+                  {c.icon ? <Icon name={c.icon} size={16} /> : c.emoji} {c.title}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+      {view === 'world' && worldMode === 'collection' && <WorldScreen onBack={closeMyWorld} />}
+
+      {/* ── Школа НААШ (0.74.0): форма БУКа и полка идей ──────────────────────
+          Полка живёт своим компонентом: карточки ей передаёт магазин, поэтому
+          покупка, «Мечты», перекраска и сдача — те же, что на других полках. */}
+      {view === 'vitrina' && cat === 'naash' && SCHOOL.on && <NaashPanel renderItem={itemCard} />}
 
       {view === 'vitrina' && cat === 'outfits' && (
         <section className="mt" aria-label="Наряды">
@@ -1513,7 +1642,7 @@ export function ShopScreen() {
                           showToast({
                             emoji: '🤍',
                             title: 'Копим!',
-                            text: `«${hero.item.title}»: ещё ${missing} 💎. В списке «Мечты» в Гардеробе`,
+                            text: `«${hero.item.title}»: ещё ${missing} 💎. Мечты — в «Моих покупках»`,
                           });
                         } else {
                           showToast({
@@ -1540,13 +1669,13 @@ export function ShopScreen() {
               aria-label={`Следующая цель: ${hero.costume.title}`}
               onClick={() => {
                 setView('vitrina');
-                setCat('costumes');
+                setCat('outfits');
                 openSheet({ kind: 'costume', costume: hero.costume });
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   setView('vitrina');
-                  setCat('costumes');
+                  setCat('outfits');
                   openSheet({ kind: 'costume', costume: hero.costume });
                 }
               }}
@@ -1570,7 +1699,7 @@ export function ShopScreen() {
                   onClick={(e) => {
                     e.stopPropagation();
                     setView('vitrina');
-                    setCat('costumes');
+                    setCat('outfits');
                     tapPickCostume(hero.costume.id);
                   }}
                 >
@@ -1604,10 +1733,7 @@ export function ShopScreen() {
                 }}
               >
                 <div className="shop-hero-art">
-                  <div className="music-cover" style={{ width: 84, height: 84, fontSize: 36 }}>
-                    <span>{hero.track.emoji}</span>
-                    <i>♫</i>
-                  </div>
+                  <DigitalCover track={hero.track} variant="mini" />
                 </div>
                 <div className="shop-hero-body grow">
                   <span className="shop-badge">🎯 Следующая цель</span>
@@ -1635,7 +1761,7 @@ export function ShopScreen() {
                           showToast({
                             emoji: '🤍',
                             title: 'Копим!',
-                            text: `«${hero.track.title}»: ещё ${missing} 💎. В списке «Мечты» в Гардеробе`,
+                            text: `«${hero.track.title}»: ещё ${missing} 💎. Мечты — в «Моих покупках»`,
                           });
                         } else {
                           showToast({
@@ -1662,21 +1788,19 @@ export function ShopScreen() {
 
           <div className="mb">
             <h2 className="mb">Наряды БУКа</h2>
-            <div className="tiny muted">Купленное сразу надевается · тап по карточке — подробнее</div>
           </div>
-          <ShowcaseGrid>{OUTFIT_ITEMS.slice().sort(compareByRarity).map(itemCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{CATALOG_OUTFITS.slice().sort(byPriceAscending).map(itemCard)}</ShowcaseGrid>
         </section>
       )}
 
-      {/* ── Техника: отдельные полки авто, самолётов, кораблей и телефонов ── */}
-      {view === 'vitrina' && cat === 'toys' && (
-        <section className="mt" aria-label="Техника">
+      {/* ── Техника: отдельные полки авто, кораблей и телефонов ─────────── */}
+      {view === 'vitrina' && (cat === 'toys' || cat === 'pets' || cat === 'sport' || cat === 'food') && (
+        <section className="mt" aria-label={cat === 'toys' ? 'Техника' : cat === 'pets' ? 'Питомцы' : cat === 'sport' ? 'Спорт' : 'Вкусняшки'}>
           <div className="mb">
-            <h2 className="mb">Техника БУКа</h2>
-            <div className="tiny muted">Авто, самолёты, корабли и телефоны — каждый раздел отдельно. Купленное ждёт тебя в ангаре.</div>
+            <h2 className="mb">{cat === 'toys' ? 'Техника БУКа' : cat === 'pets' ? 'Питомцы' : cat === 'sport' ? 'Спорт' : 'Вкусняшки'}</h2>
           </div>
-          <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
-            {TOY_SHELVES.map(({ id, title, emoji }) => (
+          {cat === 'toys' && <div className="shop-cats shop-toy-cats" role="tablist" aria-label="Разделы техники">
+            {TOY_SHELVES.filter(({ id }) => !['pet', 'sport', 'food', 'school'].includes(id)).map(({ id, title, emoji }) => (
               <button
                 key={id}
                 type="button"
@@ -1688,16 +1812,16 @@ export function ShopScreen() {
                 {emoji} {title}
               </button>
             ))}
-          </div>
+          </div>}
           {ownedToys.length > 0 && (
-            <button type="button" className="btn sm ghost wide hangar-open" onClick={openHangar}>
-              🚗 Мой ангар — вся твоя техника крупным планом ➜
+            <button type="button" className="btn sm ghost wide" onClick={openMyWorld}>
+              🌍 Посмотреть всю коллекцию ➜
             </button>
           )}
-          {toyGoal && (
+          {cat === 'toys' && toyGoal && (
             <div className="shop-tech-goal">
               <span className="shop-tech-goal-icon" aria-hidden="true">
-                {toyGoal.emoji ?? '🚗'}
+                <ToyArt id={toyGoal.id} size={48} tuning={profile.shop?.tuning} />
               </span>
               <span className="grow">
                 <b>Ближайшая покупка: {toyGoal.title}</b>
@@ -1723,13 +1847,13 @@ export function ShopScreen() {
               </button>
             </div>
           )}
-          {TOY_SHELVES.filter(({ id }) => id === toyShelf).map(({ id, title, emoji }) => (
+          {TOY_SHELVES.filter(({ id }) => id === (cat === 'pets' ? 'pet' : cat === 'sport' ? 'sport' : cat === 'food' ? 'food' : toyShelf)).map(({ id, title, emoji }) => (
             <div className={`shop-case-group shop-case-${id}`} key={id}>
               <h3 className="shop-case-group-title">
                 <span aria-hidden="true">{emoji}</span> {title}
               </h3>
               <ShowcaseGrid tone={id === 'car' ? 'mint' : id === 'ship' || id === 'plane' ? 'sky' : undefined}>
-                {toysByShelf(id).slice().sort(compareByRarity).map(itemCard)}
+                {toysByShelf(id).slice().sort(byPriceAscending).map(itemCard)}
               </ShowcaseGrid>
             </div>
           ))}
@@ -1737,39 +1861,25 @@ export function ShopScreen() {
       )}
 
       {view === 'vitrina' && cat === 'buildings' && (
-        <section className="mt building-section" aria-label="Здания">
+        <section className="mt building-section" aria-label="Базы">
           <div className="mb">
-            <h2 className="mb">Здания для твоего мира</h2>
-            <div className="tiny muted">Четыре научные базы: две легендарные и две топовые, каждая со своим миром и машиной.</div>
+            <h2 className="mb">Базы</h2>
           </div>
-
-          <div className={`building-plot${selectedBuilding ? ' has-building' : ''}`}>
-            {selectedBuilding ? (
-              <BuildingArt id={selectedBuilding.id} className="building-plot-art" loading="eager" />
-            ) : (
-              <div className="building-plot-empty" role="img" aria-label="Свободный участок">
-                <span aria-hidden="true">🏗️</span>
-                <b>Пока свободный участок</b>
-                <small>Выбери здание ниже — оно появится здесь</small>
-              </div>
-            )}
-            <div className="building-plot-caption">
-              <span className="building-plot-kicker">🏡 ТВОЙ УЧАСТОК</span>
-              <b>{selectedBuilding?.title ?? 'Место для первой постройки'}</b>
-              <span>{selectedBuilding?.desc ?? 'Купи или выбери здание, чтобы украсить свой мир'}</span>
-            </div>
-            <div className="building-plot-count">В коллекции: {buildingsOwned.length} из {BUILDINGS.length}</div>
-          </div>
-
-          <div className="building-catalog-heading">
-            <h3>Выбери здание</h3>
-            <span className="tiny muted">Тапни по карточке — подробности</span>
-          </div>
-          <ShowcaseGrid tone="sky">{BUILDINGS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || a.price - b.price).map(buildingCard)}</ShowcaseGrid>
+          <ShowcaseGrid tone="sky">{BUILDINGS.slice().sort(byPriceAscending).map(buildingCard)}</ShowcaseGrid>
         </section>
       )}
 
-      {view === 'vitrina' && cat === 'costumes' && (
+      {view === 'vitrina' && cat === 'sets' && (
+        <section className="mt" aria-label="Наборы баз">
+          <div className="mb">
+            <h2 className="mb">Наборы научных баз 🎁</h2>
+            <div className="tiny muted">База, её машина, её самолёт и её костюм — одним набором. Цена — за недостающие части со скидкой 25%.</div>
+          </div>
+          <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
+        </section>
+      )}
+
+      {view === 'vitrina' && cat === 'outfits' && (
         <section className="mt" aria-label="Костюмы">
           <div className="mb">
             <h2 className="mb">Костюмы · пазлы</h2>
@@ -1784,7 +1894,7 @@ export function ShopScreen() {
           )}
           {(() => {
             const activeId = collecting;
-            const activeCostumeObj = activeId ? PUZZLE_COSTUMES.find((c) => c.id === activeId) : null;
+            const activeCostumeObj = activeId ? COSTUMES.find((c) => c.id === activeId) : null;
             const prog = activeCostumeObj ? costumeProgress(pz, activeCostumeObj.id) : 0;
             if (!activeCostumeObj) return null;
             return (
@@ -1801,22 +1911,10 @@ export function ShopScreen() {
               </div>
             );
           })()}
-          <ShowcaseGrid>{PUZZLE_COSTUMES.map(costumeCard)}</ShowcaseGrid>
-          <div className="mb mt">
-            <h3 className="mb">Костюмы за кристаллы ✨</h3>
-            <div className="tiny muted">Каждый образ подходит к своей научной базе.</div>
-          </div>
-          <ShowcaseGrid>{CRYSTAL_COSTUMES.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity ?? 'common') - RARITY_ORDER.indexOf(b.rarity ?? 'common') || (a.price ?? 0) - (b.price ?? 0)).map(crystalCostumeCard)}</ShowcaseGrid>
-        </section>
-      )}
-
-      {view === 'vitrina' && cat === 'sets' && (
-        <section className="mt" aria-label="Наборы">
-          <div className="mb">
-            <h2 className="mb">Наборы научных баз 🎁</h2>
-            <div className="tiny muted">В каждом наборе — тематическая база, машина, самолёт и подходящий костюм. Если часть уже есть, платишь только за недостающие вещи.</div>
-          </div>
-          <ShowcaseGrid tone="sky">{BASE_SETS.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity) || priceForSet(a) - priceForSet(b)).map(baseSetCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{COSTUMES.map(costumeCard)}</ShowcaseGrid>
+          <h3 className="music-shelf-title" style={{ marginTop: 18 }}>✨ Костюмы за кристаллы</h3>
+          <div className="tiny muted mb">Костюмы баз — в цвет своей базы, а ещё здесь живут особые: Леди Баг и Титан. Покупается сразу, собирать фрагменты не нужно.</div>
+          <ShowcaseGrid>{CRYSTAL_COSTUMES.slice().sort(byPriceAscending).map(crystalCostumeCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1825,19 +1923,15 @@ export function ShopScreen() {
           <div className="between mb">
             <div>
               <h2 style={{ margin: 0 }}>Музыка БУКа 🎵</h2>
-              <div className="tiny muted">{MUSIC_TRACKS.length} мелодий Kevin MacLeod · слушай перед покупкой</div>
+              <div className="tiny muted">{MUSIC_TRACKS.length} мелодий · можно послушать</div>
             </div>
-          </div>
-          <div className="music-store-note">
-            🎧 Настоящие записи Kevin MacLeod — они работают офлайн и используются по лицензии CC BY 4.0
-            (автор указан в разделе «Авторы и лицензии»).
           </div>
           <div className="mb"><MusicCreditsToggle /></div>
           {/* Полки: спокойный фон отдельно — у каждого своё место в игре */}
           {MUSIC_SHELVES.map(({ shelf, title }) => (
             <div className="music-shelf" key={shelf}>
               <h3 className="music-shelf-title">{title}</h3>
-              <ShowcaseGrid>{tracksByShelf(shelf).map(trackCard)}</ShowcaseGrid>
+              <ShowcaseGrid>{tracksByShelf(shelf).slice().sort(byPriceAscending).map(trackCard)}</ShowcaseGrid>
             </div>
           ))}
         </section>
@@ -1847,15 +1941,9 @@ export function ShopScreen() {
         <section className="mt" aria-label="Звуки">
           <div className="mb">
             <h2 style={{ margin: 0 }}>Звуки БУКа 🔊</h2>
-            <div className="tiny muted">
-              {SOUND_PACKS.length} наборов · мелодия за правильный ответ ✓ и за ошибку ✗ · слушай перед покупкой
-            </div>
+            <div className="tiny muted">{SOUND_PACKS.length} наборов · можно послушать</div>
           </div>
-          <div className="music-store-note">
-            🎶 Выбранный набор звучит в уроках, заданиях и квестах. Мелодия ошибки всегда мягкая и короткая:
-            это подсказка «попробуй иначе», а не наказание.
-          </div>
-          <ShowcaseGrid>{SOUND_PACKS.map(soundCard)}</ShowcaseGrid>
+          <ShowcaseGrid>{SOUND_PACKS.slice().sort(byPriceAscending).map(soundCard)}</ShowcaseGrid>
         </section>
       )}
 
@@ -1863,9 +1951,6 @@ export function ShopScreen() {
         <section className="mt" aria-label="Фоны приложения">
           <div className="mb">
             <h2 className="mb">Фоны и оформление</h2>
-            <p className="tiny muted">
-              Выбирай настроение приложения. Каждый стиль доступен бесплатно и подходит для светлой и тёмной схемы.
-            </p>
           </div>
           <div role="group" aria-label="Выбор оформления приложения">
             <ShowcaseGrid>
@@ -1882,7 +1967,7 @@ export function ShopScreen() {
         </section>
       )}
 
-      {view === 'wardrobe' && (
+      {view === 'world' && worldMode === 'items' && (
         <>
           {/* Примерочная: кто сейчас наряжен */}
           <div className="card mb shop-stage">
@@ -1893,27 +1978,54 @@ export function ShopScreen() {
               <div style={{ fontWeight: 800 }}>
                 {growth.title} · мой наряд
               </div>
-              <div className="tiny">{growth.desc}</div>
               <div className="tiny" style={{ marginTop: 4 }}>
-                {growth.nextAt
-                  ? `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} · до ступени выше ${growth.nextAt - mastered}`
-                  : `Освоено ${mastered} ${plural(mastered, 'слово', 'слова', 'слов')} — самая высокая ступень ✨`}
-              </div>
-              <div className="tiny" style={{ marginTop: 4 }}>
-                {owned.length ? `Коллекция собрана на ${wardrobeValue(owned)} 💎` : 'Пока без обновок — витрина ➜'}
+                Освоено {mastered} {plural(mastered, 'слово', 'слова', 'слов')}
+                {growth.nextAt ? ` · до роста ${growth.nextAt - mastered}` : ' · высшая ступень ✨'}
               </div>
             </div>
           </div>
 
-          {/* Мои наряды: по слотам, только купленное */}
-          <section className="mb" aria-label="Мои наряды">
-            <h2 className="mb">Мои наряды</h2>
-            {ownedOutfits.length === 0 && (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока пусто. Купленное в витрине сразу попадает сюда 🎩
+          {/* Приглашение вместо стены пустых карточек: у новичка «Мои покупки»
+              должны быть короткими. */}
+          {noPurchases && (
+            <div className="card shop-empty mb">
+              <div className="shop-empty-emoji" aria-hidden="true">🛍️</div>
+              <div className="shop-empty-title">Пока ничего не куплено</div>
+              <div className="tiny muted">Покупки появятся здесь.</div>
+              <button type="button" className="btn primary wide mt" onClick={() => setView('vitrina')}>
+                В витрину ➜
+              </button>
+            </div>
+          )}
+
+          {/* Вещи линейки НААШ собираются вместе: надетая форма и кружка в «Моём мире». */}
+          {ownedSchool.length > 0 && (
+            <section className="mb" aria-label="Школа НААШ">
+              <h2 className="mb">🏫 Школа НААШ</h2>
+              <div className="col">
+                {ownedSchool.map((item) => {
+                  const toy = isToy(item);
+                  const wearing = !toy && isWearing(look, item);
+                  return wardrobeRow(
+                    item.id,
+                    { kind: 'item', item },
+                    toy ? <ToyArt id={item.id} size={44} tuning={profile.shop?.tuning} /> : <Mascot mood="idle" look={{ [item.slot]: item.id }} stage={growth.index} size={44} />,
+                    item.title,
+                    toy ? 'В коллекции «Моего мира»' : item.desc,
+                    wearing,
+                    toy ? 'Посмотреть' : wearing ? 'Снять' : 'Надеть',
+                    () => (toy ? openMyWorld() : tapWear(item)),
+                  );
+                })}
               </div>
-            )}
-            {(['head', 'face', 'neck', 'badge'] as const).map((slot) => {
+            </section>
+          )}
+
+          {/* Наряды: по слотам, только купленное. Пустая секция не рисуется. */}
+          {ownedOutfits.length > 0 && (
+          <section className="mb" aria-label="Наряды">
+            <h2 className="mb">Наряды</h2>
+            {(['head', 'face', 'neck', 'badge', 'back', 'body', 'feet'] as const).map((slot) => {
               const items = ownedBySlot(slot);
               if (!items.length) return null;
               return (
@@ -1937,25 +2049,20 @@ export function ShopScreen() {
               );
             })}
           </section>
+          )}
 
-          {/* Моя техника: авто, телефоны и корабли (0.19.0 → 0.20.0).
-              0.22.0: техника не на БУКе — коллекция в сцене «Ангар», вход здесь. */}
-          <section className="mb" aria-label="Моя техника">
+          {/* Техника остаётся в своих полках магазина и полностью видна в «Моём мире». */}
+          <section className="mb" aria-label="Техника">
             <div className="row mb" style={{ alignItems: 'center' }}>
               <h2 className="grow" style={{ margin: 0 }}>
-                Моя техника
+                Техника
               </h2>
-              {ownedToys.length > 0 && (
-                <button type="button" className="btn sm ghost" onClick={openHangar}>
-                  Открыть ангар ➜
-                </button>
-              )}
+              {/* Вход в полную карту коллекции остаётся доступен и при пустой технике. */}
+              <button type="button" className="btn sm ghost" onClick={openMyWorld}>
+                Посмотреть в «Моём мире» ➜
+              </button>
             </div>
-            {ownedToys.length === 0 && (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока пусто. Полка «Техника» в витрине
-              </div>
-            )}
+            {ownedToys.length > 0 && (
             <div className="col">
               {ownedToys.map((item) =>
                 wardrobeRow(
@@ -1964,61 +2071,40 @@ export function ShopScreen() {
                   <ToyArt id={item.id} size={44} tuning={profile.shop?.tuning} />,
                   item.title,
                   item.desc,
-                  isWearing(look, item),
-                  isWearing(look, item) ? 'С подиума' : 'На подиум',
-                  () => tapWear(item),
+                  false,
+                  'Посмотреть',
+                  openMyWorld,
+                ),
+              )}
+            </div>
+            )}
+          </section>
+
+          {buildingsOwned.length > 0 && (
+          <section className="mb" aria-label="Базы">
+            <h2 className="mb">Базы</h2>
+            <div className="col">
+              {BUILDINGS.filter((b) => buildingsOwned.includes(b.id)).map((building) =>
+                wardrobeRow(
+                  building.id,
+                  { kind: 'building', building },
+                  <BuildingArt id={building.id} className="building-wardrobe-art" />,
+                  building.title,
+                  'В твоей коллекции «Моего мира»',
+                  false,
+                  'Посмотреть',
+                  openMyWorld,
                 ),
               )}
             </div>
           </section>
+          )}
 
-          {/* Мои здания: участок и выбор купленной постройки. */}
-          <section className="mb" aria-label="Мои здания">
-            <div className="row mb" style={{ alignItems: 'center' }}>
-              <h2 className="grow" style={{ margin: 0 }}>Мои здания</h2>
-              <button
-                type="button"
-                className="btn sm ghost"
-                onClick={() => {
-                  setView('vitrina');
-                  setCat('buildings');
-                }}
-              >
-                Открыть участок ➜
-              </button>
-            </div>
-            {buildingsOwned.length === 0 ? (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока пусто. Загляни на полку «Здания» в витрине и выбери первую постройку 🏡
-              </div>
-            ) : (
-              <div className="col">
-                {BUILDINGS.filter((building) => isBuildingOwned(buildingsOwned, building.id)).map((building) =>
-                  wardrobeRow(
-                    building.id,
-                    { kind: 'building', building },
-                    <BuildingArt id={building.id} className="building-wardrobe-art" />,
-                    building.title,
-                    activeBuilding === building.id ? 'Стоит на участке' : building.desc,
-                    activeBuilding === building.id,
-                    activeBuilding === building.id ? 'На участке ✓' : 'Поставить',
-                    () => selectBuilding(building),
-                  ),
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Мои костюмы: собранное */}
-          <section className="mb" aria-label="Мои костюмы">
-            <h2 className="mb">Мои костюмы</h2>
-            {pz.assembled.length === 0 && !(profile.shop?.crystalCostumesOwned?.length) && (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока ни одного костюма. Каждый урок приносит фрагмент 🧩
-              </div>
-            )}
+          {allOwnedCostumes.length > 0 && (
+          <section className="mb" aria-label="Костюмы">
+            <h2 className="mb">Костюмы</h2>
             <div className="col">
-              {ALL_COSTUMES.filter((c) => pz.assembled.includes(c.id) || (profile.shop?.crystalCostumesOwned ?? []).includes(c.id)).map((c) =>
+              {ALL_COSTUMES.filter((c) => allOwnedCostumes.includes(c.id)).map((c) =>
                 wardrobeRow(
                   c.id,
                   { kind: 'costume', costume: c },
@@ -2032,10 +2118,11 @@ export function ShopScreen() {
               )}
             </div>
           </section>
+          )}
 
-          {/* Моя музыка: коллекция и выбор фона */}
-          <section className="mb" aria-label="Моя музыка">
-            <h2 className="mb">Моя музыка</h2>
+          {musicOwned.length > 0 && (
+          <section className="mb" aria-label="Музыка">
+            <h2 className="mb">Музыка</h2>
             {selectedMusic && (
               <button className="music-choice" onClick={() => chooseMusic(null)}>
                 <span className="music-emoji">🔇</span>
@@ -2048,51 +2135,44 @@ export function ShopScreen() {
                 className={`music-choice${selectedMusic === track.id ? ' selected' : ''}`}
                 onClick={() => chooseMusic(selectedMusic === track.id ? null : track.id)}
               >
-                <span className="music-emoji">{track.emoji}</span>
+                <DigitalCover track={track} variant="mini" className="music-choice-cover" />
                 <span className="grow"><b>{track.title}</b><small>«{track.originalTitle}»</small></span>
                 {selectedMusic === track.id && <span aria-label="Выбрано">✓</span>}
               </button>
             ))}
-            {musicOwned.length === 0 && (
-              <p className="tiny">Пока нет мелодий. Витрина ➜ полка «Музыка» — две стартовые бесплатно.</p>
-            )}
           </section>
+          )}
 
-          {/* Мои звуки: какой набор звучит за ответы в уроках */}
-          <section className="mb" aria-label="Мои звуки">
-            <h2 className="mb">Мои звуки</h2>
-            {SOUND_PACKS.filter((p) => soundOwned.includes(p.id)).map((pack) => (
+          {/* Звуки: какой набор звучит за ответы в уроках */}
+          <section className="mb" aria-label="Звуки">
+            <h2 className="mb">Звуки</h2>
+            {SOUND_PACKS.filter((p) => hasSoundPack(soundOwned, p.id)).map((pack) => (
               <button
                 key={pack.id}
                 className={`music-choice sound-choice${selectedSound === pack.id ? ' selected' : ''}`}
                 onClick={() => (selectedSound === pack.id ? tryCue(pack, 'correct') : chooseSound(pack))}
               >
-                <span className="music-emoji">{pack.emoji}</span>
+                <DigitalCover pack={pack} variant="mini" className="music-choice-cover" />
                 <span className="grow"><b>{pack.title}</b><small>{pack.desc}</small></span>
                 {selectedSound === pack.id && <span aria-label="Выбрано">✓</span>}
               </button>
             ))}
-            <p className="tiny muted">Больше наборов — витрина ➜ полка «Звуки».</p>
+
           </section>
 
-          {/* Мечты 🤍: список желаний с прогрессом накопления */}
+          {/* Пустую полку не показываем: «Мечты» нужны только после выбора вещи. */}
+          {wishlist.length > 0 && (
           <section className="mb" aria-label="Мечты">
             <div className="between mb">
               <div>
                 <h2 style={{ margin: 0 }}>Мечты 🤍</h2>
-                <div className="tiny muted">Отмечай сердцем — видно, к чему копить</div>
               </div>
             </div>
-            {wishlist.length === 0 ? (
-              <div className="card tiny mb" style={{ textAlign: 'center' }}>
-                Пока ничего не отложено. Нажми 🤍 на карточке в витрине — и вещь появится здесь с прогрессом накопления ✨
-              </div>
-            ) : (
-              <div className="wishlist-grid">
+            <div className="wishlist-grid">
                 {wishlist.map((id) => {
                   const item = ITEM_BY_ID[id];
                   const track = MUSIC_BY_ID[id];
-                  const costume = ALL_COSTUMES.find((c) => c.id === id);
+                  const costume = COSTUMES.find((c) => c.id === id);
 
                   if (item) {
                     const left = missingGems(item, gems);
@@ -2182,10 +2262,7 @@ export function ShopScreen() {
                           💜
                         </button>
                         <div className="wishlist-card-art">
-                          <div className="music-cover" style={{ width: 56, height: 56, fontSize: 24 }}>
-                            <span>{track.emoji}</span>
-                            <i>♫</i>
-                          </div>
+                          <DigitalCover track={track} variant="mini" />
                         </div>
                         <div className="shop-title">{track.title}</div>
                         <div className="shop-progress wishlist-progress-row">
@@ -2257,7 +2334,7 @@ export function ShopScreen() {
                           onClick={(e) => {
                             e.stopPropagation();
                             setView('vitrina');
-                            setCat('costumes');
+                            setCat('outfits');
                             tapPickCostume(costume.id);
                           }}
                         >
@@ -2270,16 +2347,11 @@ export function ShopScreen() {
                   return null;
                 })}
               </div>
-            )}
           </section>
+          )}
         </>
       )}
 
-      <p className="tiny center">
-        Кристаллы 💎 дают за задания дня и сундук — загляни на главную.
-        <br />
-        БУК растёт, когда ты осваиваешь слова: сейчас — {growth.title.toLowerCase()}.
-      </p>
 
       {/* ── Подробная карточка (sheet снизу) ───────────────────────────── */}
       {sheet && (
@@ -2288,9 +2360,6 @@ export function ShopScreen() {
           {sheetBody}
         </Sheet>
       )}
-
-      {/* ── «Ангар БУКа»: сцена коллекции техники (0.22.0) ──────────────── */}
-      {hangarOpen && <HangarScene onClose={() => setHangarOpen(false)} />}
 
       {askMusic && (
         <ConfirmDialog
@@ -2316,49 +2385,15 @@ export function ShopScreen() {
         />
       )}
 
-      {askCrystalCostume && (
-        <ConfirmDialog
-          emoji="✨"
-          title={`Купить костюм «${askCrystalCostume.title}»?`}
-          text={`Отдашь ${askCrystalCostume.price} 💎. Костюм сразу появится в гардеробе и будет надет на БУКа.`}
-          stayLabel={`Купить за 💎${askCrystalCostume.price}`}
-          leaveLabel="Не сейчас"
-          onStay={confirmCrystalCostumeBuy}
-          onLeave={() => setAskCrystalCostume(null)}
-        />
-      )}
-
-      {askBaseSet && (
-        <ConfirmDialog
-          emoji={askBaseSet.emoji}
-          title={`Купить ${askBaseSet.title}?`}
-          text={`Премиум-набор включает базу, машину, самолёт и костюм. Цена — ${priceForSet(askBaseSet)} 💎 за недостающие части.`}
-          stayLabel={`Купить · 💎${priceForSet(askBaseSet)}`}
-          leaveLabel="Не сейчас"
-          onStay={confirmBaseSetBuy}
-          onLeave={() => setAskBaseSet(null)}
-        />
-      )}
-
-      {askBuilding && (
-        <ConfirmDialog
-          emoji={askBuilding.emoji}
-          title={`Построить «${askBuilding.title}»?`}
-          text={`Отдашь ${askBuilding.price} 💎 из ${gems}. Здание сразу появится на твоём участке.`}
-          stayLabel={`Построить · 💎${askBuilding.price}`}
-          leaveLabel="Не сейчас"
-          onStay={confirmBuildingBuy}
-          onLeave={() => setAskBuilding(null)}
-        />
-      )}
-
       {ask && (
         <ConfirmDialog
           emoji={ask.emoji ?? '🎩'}
+          // Техника — сам товар, как на витрине (рисунок, а не эмодзи-заглушка)
+          art={isToy(ask) ? <ToyArt id={ask.id} size={120} tuning={profile.shop?.tuning} /> : undefined}
           title={`Купить «${ask.title}»?`}
           text={
             isToy(ask)
-              ? `Отдашь ${ask.price} 💎 из ${gems}. Покупка сразу появится рядом с БУКом.`
+              ? `Отдашь ${ask.price} 💎 из ${gems}. Вещь появится в твоей коллекции «Моего мира».`
               : `Отдашь ${ask.price} 💎 из ${gems}. БУК сразу это примерит.`
           }
           stayLabel={`Купить за 💎${ask.price}`}
@@ -2377,6 +2412,42 @@ export function ShopScreen() {
           leaveLabel="Оставить"
           onStay={confirmSell}
           onLeave={() => setAskSell(null)}
+        />
+      )}
+
+      {askBuilding && (
+        <ConfirmDialog
+          emoji={askBuilding.emoji}
+          title={`Построить «${askBuilding.title}»?`}
+          text={`Отдашь ${askBuilding.price} 💎 из ${gems}. База появится в твоей коллекции «Моего мира».`}
+          stayLabel={`Построить · 💎${askBuilding.price}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmBuildingBuy}
+          onLeave={() => setAskBuilding(null)}
+        />
+      )}
+
+      {askCrystalCostume && (
+        <ConfirmDialog
+          emoji="✨"
+          title={`Купить костюм «${askCrystalCostume.title}»?`}
+          text={`Отдашь ${askCrystalCostume.price ?? 0} 💎 из ${gems}. Костюм сразу появится в гардеробе и будет надет на БУКа.`}
+          stayLabel={`Купить за 💎${askCrystalCostume.price ?? 0}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmCrystalCostumeBuy}
+          onLeave={() => setAskCrystalCostume(null)}
+        />
+      )}
+
+      {askBaseSet && (
+        <ConfirmDialog
+          emoji={askBaseSet.emoji}
+          title={`Купить ${askBaseSet.title}?`}
+          text={`Набор включает базу, машину, самолёт и костюм. Цена — ${priceForSet(askBaseSet)} 💎 за недостающие части.`}
+          stayLabel={`Купить · 💎${priceForSet(askBaseSet)}`}
+          leaveLabel="Не сейчас"
+          onStay={confirmBaseSetBuy}
+          onLeave={() => setAskBaseSet(null)}
         />
       )}
 

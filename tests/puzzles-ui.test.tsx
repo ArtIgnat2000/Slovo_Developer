@@ -14,7 +14,7 @@ import type { Profile, PuzzleState } from '../src/types';
 import { COSTUMES, PUZZLE_SIZE } from '../src/engine/puzzles';
 import { COSTUME_PALETTES, TINT_PRICE } from '../src/engine/tints';
 import { useApp } from '../src/state/store';
-import { body, btnText, buttons, check, click, has, sleep } from './ui-helpers';
+import { body, btnText, buttons, check, click, has, openOwnItems, sleep } from './ui-helpers';
 
 const store = () => useApp.getState();
 
@@ -43,6 +43,7 @@ async function goTab(name: string) {
   await sleep(60);
 }
 
+
 export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promise<void>) {
   console.log('\n── Костюмные пазлы: урок → фрагмент → костюм ──');
 
@@ -50,11 +51,7 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   store().createProfile('Тест пазлов', '🦉');
   await sleep(60);
   await goTab('Уроки');
-  // С первого запуска все костюмы уже собраны (см. smoke: «всё открыто»); для пути
-  // «урок → фрагмент → костюм» возвращаем коллекцию к пустой.
-  check('пазлы: у нового профиля все костюмы открыты', (active().puzzle?.assembled.length ?? -1) === COSTUMES.length);
-  seedPuzzle({ pieces: {}, collecting: null, assembled: [], worn: null });
-  check('пазлы: для сценария коллекция пустая', (active().puzzle?.assembled.length ?? -1) === 0);
+  check('пазлы: у нового профиля пустая коллекция', (active().puzzle?.assembled.length ?? -1) === 0);
 
   // 8 фрагментов первого костюма — следующий завершённый урок его собирает
   seedPuzzle({ pieces: { [COSTUMES[0].id]: PUZZLE_SIZE - 1 }, collecting: COSTUMES[0].id, assembled: [], worn: null });
@@ -85,22 +82,27 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   // Ещё один урок — первый фрагмент следующего костюма и честный счётчик
   click(btnText('К урокам'));
   await sleep(40);
-  const gemsBeforePiece = active().gems;
   await playLesson(true);
   await sleep(80);
   check('пазлы: новый фрагмент показан как 1 из 9', has('1 из 9'), document.querySelector('.card')?.textContent ?? '');
   p = active();
-  check('пазлы: кристаллы за обычные фрагменты не начисляются', p.gems === gemsBeforePiece, `${gemsBeforePiece} → ${p.gems}`);
+  check('пазлы: кристаллы за обычные фрагменты не начисляются', p.gems === 0, String(p.gems));
   click(btnText('К урокам'));
   await sleep(40);
 
   // Магазин БУКа: сетка костюмов, прогресс и примерка
   await goTab('БУК');
-  // Полка костюмов — чип в витрине (концепция 2026-10-17)
-  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Костюмы'))!);
+  // 0.75.2: полки нарядов и костюмов объединены — костюмы живут на «Нарядах»
+  // (отдельного чипа «Костюмы» больше нет, см. PR #141).
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'))!);
   await sleep(30);
   const cards = () => Array.from(document.querySelectorAll('.costume-card'));
-  check('пазлы: в магазине 10 карточек костюмов', cards().length === 10, String(cards().length));
+  // 0.70.0: костюмов стало 14 — сравниваем с каталогом, а не с числом в тексте.
+  check(
+    `пазлы: в магазине ${COSTUMES.length} карточек костюмов`,
+    cards().length === COSTUMES.length,
+    String(cards().length),
+  );
   const snowCard = cards().find((el) => (el.textContent ?? '').includes(COSTUMES[1].title));
   check(
     'пазлы: на карточке видно 1 собранный фрагмент из 9',
@@ -184,21 +186,20 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   );
 
   // Сменить цель можно тапом — прогресс прежней цели не сгорит
-  const thirdBtn = cards()
-    .find((el) => (el.textContent ?? '').includes(COSTUMES[2].title))
-    ?.querySelector('button') as HTMLButtonElement | undefined;
+  // Кнопка действия живёт в этикетке карточки (`.shop-body`); в углу картинки
+  // теперь сердечко «в мечты», поэтому ищем именно кнопку действия.
+  const actionOf = (card?: Element) => card?.querySelector('.shop-body button') as HTMLButtonElement | undefined;
+  const thirdBtn = actionOf(cards().find((el) => (el.textContent ?? '').includes(COSTUMES[2].title)));
   click(thirdBtn);
   await sleep(40);
   p = active();
   check('пазлы: «Собирать» переключает цель', p.puzzle?.collecting === COSTUMES[2].id, String(p.puzzle?.collecting));
-  const snowBtn = snowCard?.querySelector('button') as HTMLButtonElement | undefined;
+  const snowBtn = actionOf(snowCard);
   check('пазлы: прежняя цель предлагается продолжить', (snowBtn?.textContent ?? '').includes(`Продолжить · 1/${PUZZLE_SIZE}`), snowBtn?.textContent ?? '');
 
   // Снять и снова надеть костюм (кнопки перечитываем: после перерисовки висячие ссылки опасны)
   const wearBtn = (title: string) =>
-    (Array.from(document.querySelectorAll('.costume-card'))
-      .find((el) => (el.textContent ?? '').includes(title))
-      ?.querySelector('button') as HTMLButtonElement | undefined);
+    actionOf(Array.from(document.querySelectorAll('.costume-card')).find((el) => (el.textContent ?? '').includes(title)));
   click(wearBtn(COSTUMES[0].title));
   await sleep(60);
   check('пазлы: тап по «Надето ✓» снимает костюм', active().puzzle?.worn === null, String(active().puzzle?.worn));
@@ -206,16 +207,12 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   await sleep(60);
   check('пазлы: «Надеть» возвращает костюм', active().puzzle?.worn === COSTUMES[0].id, String(active().puzzle?.worn));
 
-  // ── Гардероб: иконки в строках «Мои костюмы» (жалоба 2026-10-19) ──────────
+  // ── «Мой мир → Вещи»: иконки в строках «Костюмы» (жалоба 2026-10-19) ──────
   // Собранный костюм обязан показываться в гардеробе строкой С КАРТИНКОЙ БУКа:
   // иконка живёт внутри плитки `.shop-wear-icon`, а не «плавает» по экрану.
-  click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Гардероб'))!);
+  await openOwnItems();
   await sleep(40);
-  // Строки костюмов (наряды в гардеробе рисуются эмодзи и сюда не относятся)
-  const costumeTitles = COSTUMES.map((c) => c.title);
-  const wearRows = Array.from(document.querySelectorAll('.shop-wear')).filter((row) =>
-    costumeTitles.includes(row.getAttribute('aria-label') ?? ''),
-  );
+  const wearRows = Array.from(document.querySelectorAll('.shop-wear'));
   check(
     'пазлы: собранный костюм попадает в строки гардероба',
     wearRows.some((row) => (row.textContent ?? '').includes(COSTUMES[0].title)),
@@ -229,7 +226,7 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   // Возвращаем полку костюмов: следующие проверки читают карточки витрины.
   click(Array.from(document.querySelectorAll('.shop-seg button')).find((b) => (b.textContent ?? '').includes('Витрина'))!);
   await sleep(30);
-  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Костюмы'))!);
+  click(Array.from(document.querySelectorAll('.shop-cats .chip')).find((c) => (c.textContent ?? '').includes('Наряды'))!);
   await sleep(30);
 
   // ── Акцент костюма: свечение и плащ за 1 💎 (тюнинг, engine/tints.ts) ───────
@@ -352,11 +349,8 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   await sleep(30);
 
   // Покупка новой вещи не должна перезаписывать гардероб без уже открытых красок.
-  // Всё открыто с первого запуска: для тестовой покупки кепку сначала «не покупаем»
   useApp.setState((s) => ({
-    profiles: s.profiles.map((p) => (p.id === s.activeId
-      ? { ...p, gems: 50, shop: { ...p.shop!, owned: (p.shop?.owned ?? []).filter((id) => id !== 'cap') } }
-      : p)),
+    profiles: s.profiles.map((p) => (p.id === s.activeId ? { ...p, gems: 50 } : p)),
   }));
   await sleep(30);
   check('акцент: тестовая покупка аксессуара доступна', useApp.getState().buyItem('cap'), '');
@@ -397,8 +391,8 @@ export async function runPuzzleUiChecks(playLesson: (second?: boolean) => Promis
   // «Повторение» фрагментов не даёт: выдача вызывается только в ветке non-review
   const src = readFileSync('src/ui/screens/LessonScreen.tsx', 'utf8');
   check(
-    'пазлы: выдача привязана к завершению настоящего урока, не повторения',
-    /if \(lessonId !== REVIEW\.id\) \{[\s\S]*?finishPuzzleLesson\(\)/.test(src),
+    'пазлы: выдача привязана к завершению настоящего урока, не повторения и не списка',
+    /if \(lessonId !== REVIEW\.id && !listId\) \{[\s\S]*?finishPuzzleLesson\(\)/.test(src),
     'нет guard-а в LessonScreen',
   );
 }

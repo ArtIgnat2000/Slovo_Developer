@@ -111,6 +111,45 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
     ],
   },
 
+  // ── Школа НААШ (0.74.0, docs/proposals/naash-shop.md) ────────────────────
+  // Красится ТОЛЬКО ткань: знак школы на всех вещах остаётся кремовым на
+  // синем контуре (в палитре он не участвует). Поэтому у трёх вещей одна и та
+  // же школьная лестница оттенков: синий знака → тёмно-синий → графит → бордо.
+  'school-cap': {
+    base: { id: BASE_TINT, title: 'Синяя', colors: ['#0F4CA0', '#0A2C5E', '#F4EFE4'] },
+    extra: [
+      { id: 'navy', title: 'Тёмно-синяя', colors: ['#0A2C5E', '#061B3D', '#F4EFE4'] },
+      { id: 'graphite', title: 'Графит', colors: ['#2B3140', '#1B2029', '#F4EFE4'] },
+      { id: 'burgundy', title: 'Бордо', colors: ['#7C2B3A', '#5A1C28', '#F4EFE4'] },
+    ],
+  },
+  'school-scarf': {
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#0F4CA0', '#0A2C5E', '#F4EFE4'] },
+    extra: [
+      { id: 'navy', title: 'Тёмно-синий', colors: ['#0A2C5E', '#061B3D', '#F4EFE4'] },
+      { id: 'graphite', title: 'Графит', colors: ['#2B3140', '#1B2029', '#F4EFE4'] },
+      { id: 'burgundy', title: 'Бордо', colors: ['#7C2B3A', '#5A1C28', '#F4EFE4'] },
+    ],
+  },
+  'school-hoodie': {
+    base: { id: BASE_TINT, title: 'Синее', colors: ['#0F4CA0', '#0A2C5E', '#F4EFE4'] },
+    extra: [
+      { id: 'navy', title: 'Тёмно-синее', colors: ['#0A2C5E', '#061B3D', '#F4EFE4'] },
+      { id: 'graphite', title: 'Графит', colors: ['#2B3140', '#1B2029', '#F4EFE4'] },
+      { id: 'burgundy', title: 'Бордо', colors: ['#7C2B3A', '#5A1C28', '#F4EFE4'] },
+    ],
+  },
+  // У значка меняется эмаль, а сам знак (крыша, буквы, полка) — нет: он
+  // читается в цветах школы, иначе это уже не школьный значок.
+  'school-pin': {
+    base: { id: BASE_TINT, title: 'Кремовый', colors: ['#F4EFE4', '#0F4CA0', '#0A2C5E'] },
+    extra: [
+      { id: 'sky', title: 'Голубой', colors: ['#DCE6F4', '#0F4CA0', '#0A2C5E'] },
+      { id: 'sand', title: 'Песочный', colors: ['#EFE2C8', '#8A6A2A', '#0A2C5E'] },
+      { id: 'graphite', title: 'Серый', colors: ['#C9CFDA', '#2B3140', '#0A2C5E'] },
+    ],
+  },
+
   // ── Техника (0.19.0): телефоны, машины, корабли ──────────────────────────
   // 0.21.1: машины нарисованы цветным карандашом, у каждой свой цвет кузова;
   // Те же три роли цвета, что у нарядов: [корпус, тень/стекло, акцент].
@@ -222,38 +261,6 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'white', title: 'Белый', colors: ['#e2e8f0', '#111827', '#94a3b8'] },
     ],
   },
-  'car-atomic-base': {
-    base: { id: BASE_TINT, title: 'Кремовая с бирюзой', colors: ['#e8e2d5', '#263348', '#28b8d6'] },
-    extra: [
-      { id: 'blue', title: 'Космическая синяя', colors: ['#487bd3', '#122043', '#7cddff'] },
-      { id: 'violet', title: 'Сиреневая', colors: ['#a887d6', '#29203d', '#f3bf67'] },
-      { id: 'green', title: 'Изумрудная', colors: ['#5b9d78', '#1c443a', '#d4d968'] },
-    ],
-  },
-  'car-electron-base': {
-    base: { id: BASE_TINT, title: 'Белая с бирюзой', colors: ['#eef5f4', '#204956', '#2dced1'] },
-    extra: [
-      { id: 'blue', title: 'Синяя', colors: ['#387bc3', '#142e4a', '#8be3f3'] },
-      { id: 'green', title: 'Мятная', colors: ['#73bdab', '#244e4a', '#ddc75b'] },
-      { id: 'violet', title: 'Лавандовая', colors: ['#aaa1ce', '#34334e', '#5ed3d4'] },
-    ],
-  },
-  'car-arctic-base': {
-    base: { id: BASE_TINT, title: 'Ледяная с оранжевым', colors: ['#b6d2e0', '#2f5063', '#e98a3a'] },
-    extra: [
-      { id: 'blue', title: 'Полярная синяя', colors: ['#6eabd0', '#193a58', '#d6f5ff'] },
-      { id: 'green', title: 'Хвойная', colors: ['#6b9587', '#223d3d', '#f0a33c'] },
-      { id: 'red', title: 'Красная', colors: ['#c86a62', '#492c37', '#f0c36e'] },
-    ],
-  },
-  'car-moon-base': {
-    base: { id: BASE_TINT, title: 'Лунная серебряная', colors: ['#dce0e3', '#374151', '#c9a44f'] },
-    extra: [
-      { id: 'blue', title: 'Звёздная синяя', colors: ['#708cb5', '#1b2a43', '#e4cb86'] },
-      { id: 'red', title: 'Марсианская', colors: ['#bd786a', '#442d33', '#d8b668'] },
-      { id: 'green', title: 'Морская', colors: ['#75a9a0', '#253c43', '#d9bd72'] },
-    ],
-  },
   'ship-paper': {
     base: { id: BASE_TINT, title: 'Белая с золотом', colors: ['#f8fafc', '#172033', '#c5a45b'] },
     extra: [
@@ -284,6 +291,38 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'blue', title: 'Синий', colors: ['#345b82', '#1c2b3b', '#f0bd50'] },
       { id: 'green', title: 'Оливковый', colors: ['#526044', '#242b21', '#e5b849'] },
       { id: 'red', title: 'Красный', colors: ['#7d3d3e', '#332124', '#f0c150'] },
+    ],
+  },
+  'car-atomic-base': {
+    base: { id: BASE_TINT, title: 'Кремовая с бирюзой', colors: ['#e8e2d5', '#263348', '#28b8d6'] },
+    extra: [
+      { id: 'blue', title: 'Космическая синяя', colors: ['#487bd3', '#122043', '#7cddff'] },
+      { id: 'violet', title: 'Сиреневая', colors: ['#a887d6', '#29203d', '#f3bf67'] },
+      { id: 'green', title: 'Изумрудная', colors: ['#5b9d78', '#1c443a', '#d4d968'] },
+    ],
+  },
+  'car-electron-base': {
+    base: { id: BASE_TINT, title: 'Белая с бирюзой', colors: ['#eef5f4', '#204956', '#2dced1'] },
+    extra: [
+      { id: 'blue', title: 'Синяя', colors: ['#387bc3', '#142e4a', '#8be3f3'] },
+      { id: 'green', title: 'Мятная', colors: ['#73bdab', '#244e4a', '#ddc75b'] },
+      { id: 'violet', title: 'Лавандовая', colors: ['#aaa1ce', '#34334e', '#5ed3d4'] },
+    ],
+  },
+  'car-arctic-base': {
+    base: { id: BASE_TINT, title: 'Ледяная с оранжевым', colors: ['#b6d2e0', '#2f5063', '#e98a3a'] },
+    extra: [
+      { id: 'blue', title: 'Полярная синяя', colors: ['#6eabd0', '#193a58', '#d6f5ff'] },
+      { id: 'green', title: 'Хвойная', colors: ['#6b9587', '#223d3d', '#f0a33c'] },
+      { id: 'red', title: 'Красная', colors: ['#c86a62', '#492c37', '#f0c36e'] },
+    ],
+  },
+  'car-moon-base': {
+    base: { id: BASE_TINT, title: 'Лунная серебряная', colors: ['#dce0e3', '#374151', '#c9a44f'] },
+    extra: [
+      { id: 'blue', title: 'Звёздная синяя', colors: ['#708cb5', '#1b2a43', '#e4cb86'] },
+      { id: 'red', title: 'Марсианская', colors: ['#bd786a', '#442d33', '#d8b668'] },
+      { id: 'green', title: 'Морская', colors: ['#75a9a0', '#253c43', '#d9bd72'] },
     ],
   },
   'plane-swift': {
@@ -326,6 +365,493 @@ export const TINT_PALETTES: Record<string, TintPalette<ItemTint>> = {
       { id: 'gold', title: 'Солнечный реактор', colors: ['#c19b48', '#51402a', '#aaf5c0'] },
     ],
   },
+  // 0.76.0: база паровозов — медь, латунь и тёплый свет топки.
+  'car-steam-base': {
+    base: { id: BASE_TINT, title: 'Медная с латунью', colors: ['#b4713c', '#3a2418', '#f2c14e'] },
+    extra: [
+      { id: 'green', title: 'Патинная зелёная', colors: ['#6d8f6a', '#24301f', '#e8c27a'] },
+      { id: 'blue', title: 'Ночной синий', colors: ['#4a6d93', '#1b2436', '#f4c766'] },
+      { id: 'red', title: 'Бордовая', colors: ['#9a3f37', '#331a18', '#f0b95a'] },
+    ],
+  },
+  'plane-steam-base': {
+    base: { id: BASE_TINT, title: 'Латунный', colors: ['#c89a52', '#4a3320', '#ffcf6b'] },
+    extra: [
+      { id: 'green', title: 'Бутылочный', colors: ['#5b7f63', '#25332a', '#f0c87a'] },
+      { id: 'red', title: 'Красная медь', colors: ['#b0563f', '#3a201b', '#ffd98a'] },
+      { id: 'blue', title: 'Стальной синий', colors: ['#587696', '#222e3f', '#efc27b'] },
+    ],
+  },
+
+  // ── 0.70.0: украшения и крылья (docs/proposals/shop-girls-catalog.md, вариант A) ─
+  // Индексы те же, что у старых вещей: [основной, тень/второй тон, акцент].
+  // База — ровно то, что нарисовано в ui/MascotLook.tsx по умолчанию.
+  'clips-stars': {
+    base: { id: BASE_TINT, title: 'Золотые', colors: ['#f5c542', '#d99a15', '#fff6da'] },
+    extra: [
+      { id: 'pink', title: 'Розовые', colors: ['#ff6fa5', '#d94d80', '#ffe3ef'] },
+      { id: 'blue', title: 'Голубые', colors: ['#5aa9f0', '#3577b8', '#e6f4ff'] },
+      { id: 'silver', title: 'Серебряные', colors: ['#cdd6e2', '#98a4b6', '#ffffff'] },
+    ],
+  },
+  wreath: {
+    base: { id: BASE_TINT, title: 'Ромашковый', colors: ['#ffffff', '#f2c53d', '#4caf6a'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ffc2dd', '#f2a03d', '#4caf6a'] },
+      { id: 'blue', title: 'Васильковый', colors: ['#a9c8ff', '#f2c53d', '#3f8a58'] },
+      { id: 'lilac', title: 'Сиреневый', colors: ['#d9c2ff', '#f2c53d', '#5b9a70'] },
+    ],
+  },
+  'hat-ribbon': {
+    base: { id: BASE_TINT, title: 'Соломенная', colors: ['#e8cf95', '#c9a55e', '#ff6fa5'] },
+    extra: [
+      { id: 'white', title: 'С белой лентой', colors: ['#e8cf95', '#c9a55e', '#ffffff'] },
+      { id: 'blue', title: 'С голубой лентой', colors: ['#e8cf95', '#c9a55e', '#6fb8ff'] },
+      { id: 'red', title: 'С красной лентой', colors: ['#e8cf95', '#c9a55e', '#ef4444'] },
+    ],
+  },
+  crown: {
+    base: { id: BASE_TINT, title: 'Золотая', colors: ['#ffd76a', '#d9a520', '#ff6fa5'] },
+    extra: [
+      { id: 'silver', title: 'Серебряная', colors: ['#dfe7f2', '#a3b0c4', '#6fb8ff'] },
+      { id: 'rose', title: 'Розовое золото', colors: ['#f6c1a8', '#cf8c6a', '#ff6fa5'] },
+      { id: 'emerald', title: 'Изумрудная', colors: ['#ffd76a', '#d9a520', '#34c77b'] },
+    ],
+  },
+  'glasses-heart': {
+    base: { id: BASE_TINT, title: 'Розовые', colors: ['#ff5c8a', '#c93b66', '#ffd6e4'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневые', colors: ['#a855f7', '#7c3aed', '#efe0ff'] },
+      { id: 'red', title: 'Красные', colors: ['#ef4444', '#b91c1c', '#ffe0e0'] },
+      { id: 'black', title: 'Чёрные', colors: ['#2f3245', '#1b1d28', '#dfe7f2'] },
+    ],
+  },
+  'glasses-round': {
+    base: { id: BASE_TINT, title: 'Золотые', colors: ['#c9a24a', '#9a7a2e', '#bfe3ff'] },
+    extra: [
+      { id: 'black', title: 'Чёрные', colors: ['#2f3245', '#1b1d28', '#cfe8ff'] },
+      { id: 'silver', title: 'Серебряные', colors: ['#cdd6e2', '#98a4b6', '#dff0ff'] },
+      { id: 'pink', title: 'Розовые', colors: ['#ff8fb1', '#d96a8c', '#ffe6f0'] },
+    ],
+  },
+  choker: {
+    base: { id: BASE_TINT, title: 'Бордовая', colors: ['#7b2d4a', '#5a1e35', '#ff7aab'] },
+    extra: [
+      { id: 'black', title: 'Чёрная', colors: ['#2b2b38', '#1a1a24', '#cdd6e2'] },
+      { id: 'blue', title: 'Синяя', colors: ['#2b4b8f', '#1e3a73', '#8fc7ff'] },
+      { id: 'green', title: 'Зелёная', colors: ['#2f6b46', '#225235', '#8ce9c4'] },
+    ],
+  },
+  beads: {
+    base: { id: BASE_TINT, title: 'Розовые', colors: ['#ff8fb1', '#d96a8c', '#ffd166'] },
+    extra: [
+      { id: 'pearl', title: 'Жемчужные', colors: ['#f4f1ea', '#d8d2c4', '#e8c74a'] },
+      { id: 'blue', title: 'Голубые', colors: ['#7fb8f0', '#4d8ac9', '#ffd166'] },
+      { id: 'green', title: 'Зелёные', colors: ['#6ecf9a', '#3f9c6b', '#ffd166'] },
+    ],
+  },
+  bag: {
+    base: { id: BASE_TINT, title: 'Сиреневый', colors: ['#b06ad9', '#8a4bb0', '#ffd166'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb1', '#d96a8c', '#ffd166'] },
+      { id: 'red', title: 'Красный', colors: ['#e04a67', '#a82f47', '#ffd166'] },
+      { id: 'black', title: 'Чёрный', colors: ['#33323f', '#1f1e28', '#cdd6e2'] },
+    ],
+  },
+  'brooch-flower': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#ff8fc0', '#d96a99', '#f5c542'] },
+    extra: [
+      { id: 'blue', title: 'Голубой', colors: ['#8fc4ff', '#5d93d1', '#f5c542'] },
+      { id: 'lilac', title: 'Сиреневый', colors: ['#c9a2ff', '#9670d1', '#f5c542'] },
+      { id: 'red', title: 'Красный', colors: ['#ff7a7a', '#d14f4f', '#f5c542'] },
+    ],
+  },
+  'badge-cat': {
+    base: { id: BASE_TINT, title: 'Персиковый', colors: ['#ffd9e6', '#f2a6c2', '#7a5cff'] },
+    extra: [
+      { id: 'grey', title: 'Дымчатый', colors: ['#d7dae3', '#a9aebd', '#7a5cff'] },
+      { id: 'ginger', title: 'Рыжий', colors: ['#ffc178', '#e09a45', '#2f6b46'] },
+      { id: 'black', title: 'Чёрный', colors: ['#4b4b5a', '#2a2a35', '#ffd166'] },
+    ],
+  },
+  'wings-butterfly': {
+    base: { id: BASE_TINT, title: 'Розовые', colors: ['#ff9ec7', '#c86a9b', '#ffe066'] },
+    extra: [
+      { id: 'blue', title: 'Голубые', colors: ['#8fc7ff', '#5a8fc9', '#ffe066'] },
+      { id: 'violet', title: 'Сиреневые', colors: ['#c4a2ff', '#8f6ae0', '#ffe066'] },
+      { id: 'gold', title: 'Золотые', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'wings-dragon': {
+    base: { id: BASE_TINT, title: 'Изумрудные', colors: ['#6a8f4a', '#3f5c2c', '#e8c74a'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневые', colors: ['#6a4a7a', '#432c50', '#e8c74a'] },
+      { id: 'red', title: 'Багровые', colors: ['#8f3b3b', '#5c2020', '#e8c74a'] },
+      { id: 'night', title: 'Ночные', colors: ['#3f4460', '#232741', '#8fd8ff'] },
+    ],
+  },
+
+  // ── 0.72.0: платья, питомцы, спорт, вкусняшки и линейка iPhone 18 ──────
+  'hair-buns': {
+    base: { id: BASE_TINT, title: 'Каштановые', colors: ['#8a5a34', '#6b4226', '#ff6fb5'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'hair-ponytail': {
+    base: { id: BASE_TINT, title: 'Русые', colors: ['#a06a35', '#7c4f24', '#ff6fb5'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+    ],
+  },
+  'hair-curls': {
+    base: { id: BASE_TINT, title: 'Тёмные', colors: ['#7c4a21', '#5d3517', '#ffd166'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#f87171', '#dc2626', '#fee2e2'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'peach', title: 'Персиковый', colors: ['#ffc79e', '#f59e7c', '#fff3e8'] },
+    ],
+  },
+  'glasses-sigma': {
+    base: { id: BASE_TINT, title: 'Чёрные', colors: ['#111827', '#000000', '#38bdf8'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#f87171', '#dc2626', '#fee2e2'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'pendant-heart': {
+    base: { id: BASE_TINT, title: 'Розовое', colors: ['#f43f5e', '#b45309', '#ffd9e2'] },
+    extra: [
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'pendant-star': {
+    base: { id: BASE_TINT, title: 'Золотая', colors: ['#ffd166', '#d9a520', '#fff7cc'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'coral', title: 'Коралловый', colors: ['#fda4af', '#f43f5e', '#fff1f2'] },
+    ],
+  },
+  'bag-pink': {
+    base: { id: BASE_TINT, title: 'Розовая', colors: ['#ff8fb8', '#d94f7e', '#ffffff'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'bracelet-beads': {
+    base: { id: BASE_TINT, title: 'Радужные', colors: ['#ff8fb8', '#7cc6ff', '#ffd166'] },
+    extra: [
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'bracelet-heart': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#f43f5e', '#be123c', '#ffe4e6'] },
+    extra: [
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+    ],
+  },
+  'dress-pink': {
+    base: { id: BASE_TINT, title: 'Розовое', colors: ['#ff9ec7', '#e05a8a', '#ffffff'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'red', title: 'Красный', colors: ['#f87171', '#dc2626', '#fee2e2'] },
+    ],
+  },
+  'dress-star': {
+    base: { id: BASE_TINT, title: 'Звёздное', colors: ['#3b5bdb', '#2b3f9e', '#ffd166'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'coral', title: 'Коралловый', colors: ['#fda4af', '#f43f5e', '#fff1f2'] },
+    ],
+  },
+  'dress-rainbow': {
+    base: { id: BASE_TINT, title: 'Радужное', colors: ['#f87171', '#fbbf24', '#7cc6ff'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'shoes-pink': {
+    base: { id: BASE_TINT, title: 'Розовые', colors: ['#ff8fb8', '#d94f7e', '#ffffff'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'red', title: 'Красный', colors: ['#f87171', '#dc2626', '#fee2e2'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'shoes-sparkle': {
+    base: { id: BASE_TINT, title: 'Сиреневые', colors: ['#e9d5ff', '#a78bfa', '#ffffff'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'skates-ice': {
+    base: { id: BASE_TINT, title: 'Белые', colors: ['#f8fafc', '#94a3b8', '#7cc6ff'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+    ],
+  },
+  'phone-18': {
+    base: { id: BASE_TINT, title: 'Бордовый', colors: ['#8e2434', '#5f1220', '#f3c1c9'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+    ],
+  },
+  'phone-18-air': {
+    base: { id: BASE_TINT, title: 'Светло-бордовый', colors: ['#b5546a', '#7e2a3c', '#ffe3ea'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'phone-18-pro': {
+    base: { id: BASE_TINT, title: 'Тёмный бордо', colors: ['#6d1220', '#3f0a13', '#e8a0a8'] },
+    extra: [
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+    ],
+  },
+  'phone-18-max': {
+    base: { id: BASE_TINT, title: 'Винный', colors: ['#57101d', '#2e0810', '#d98c96'] },
+    extra: [
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'car-pink-cabrio': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#fff1f6'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'red', title: 'Красный', colors: ['#f87171', '#dc2626', '#fee2e2'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'car-pink-star': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#ff6fb5', '#c2185b', '#ffd166'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'car-tesla': {
+    base: { id: BASE_TINT, title: 'Синий', colors: ['#1d4ed8', '#0b1220', '#e2e8f0'] },
+    extra: [
+      { id: 'red', title: 'Красный', colors: ['#f87171', '#dc2626', '#fee2e2'] },
+      { id: 'white', title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#fff7cc'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+    ],
+  },
+  'car-pink-tank': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+    extra: [
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'ship-titanic': {
+    base: { id: BASE_TINT, title: 'Чёрно-красный', colors: ['#1f2937', '#b91c1c', '#f8fafc'] },
+    extra: [
+      { id: 'white', title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#fff7cc'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+    ],
+  },
+  'pet-cat': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#ffb26b', '#e08a3c', '#ffffff'] },
+    extra: [
+      { id: 'white', title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#fff7cc'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+    ],
+  },
+  'pet-bunny': {
+    base: { id: BASE_TINT, title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#ff9ec7'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+    ],
+  },
+  'pet-panda': {
+    base: { id: BASE_TINT, title: 'Чёрно-белая', colors: ['#f8fafc', '#1f2937', '#7fe3b1'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'pet-corgi': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#f2a65a', '#d9822b', '#ffffff'] },
+    extra: [
+      { id: 'peach', title: 'Персиковый', colors: ['#ffc79e', '#f59e7c', '#fff3e8'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'pet-hamster': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#f5a94b', '#d97f26', '#fff3d6'] },
+    extra: [
+      { id: 'white', title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#fff7cc'] },
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'brown', title: 'Коричневый', colors: ['#b0722f', '#7e4a1c', '#f5e0bd'] },
+    ],
+  },
+  'pet-chihuahua': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#e8b06a', '#c98a3f', '#ffffff'] },
+    extra: [
+      { id: 'white', title: 'Белый', colors: ['#f8fafc', '#cbd5e1', '#fff7cc'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'cream', title: 'Кремовый', colors: ['#fde68a', '#d97706', '#fffbeb'] },
+    ],
+  },
+  'pet-cat-siamese': {
+    base: { id: BASE_TINT, title: 'Кремовый', colors: ['#f3e3cb', '#5b3a44', '#7cc6ff'] },
+    extra: [
+      { id: 'brown', title: 'Коричневый', colors: ['#b0722f', '#7e4a1c', '#f5e0bd'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+    ],
+  },
+  'pet-cat-scottish': {
+    base: { id: BASE_TINT, title: 'Дымчатый', colors: ['#b6c2d2', '#7d90a8', '#ffd166'] },
+    extra: [
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+    ],
+  },
+  'pet-poodle': {
+    base: { id: BASE_TINT, title: 'Белый', colors: ['#f8fafc', '#d8c8e8', '#ff9ec7'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'apricot', title: 'Абрикосовый', colors: ['#fed7aa', '#fb923c', '#fff7ed'] },
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+    ],
+  },
+  'pet-cat-british': {
+    base: { id: BASE_TINT, title: 'Серый', colors: ['#9fb0c3', '#7086a0', '#ffd166'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'cream', title: 'Кремовый', colors: ['#fde68a', '#d97706', '#fffbeb'] },
+    ],
+  },
+  'pet-cat-sphynx': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#eda9a0', '#c97a72', '#a8d8ff'] },
+    extra: [
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'cream', title: 'Кремовый', colors: ['#fde68a', '#d97706', '#fffbeb'] },
+    ],
+  },
+  'pet-cat-mainecoon': {
+    base: { id: BASE_TINT, title: 'Рыжий', colors: ['#b0722f', '#7e4a1c', '#f5e0bd'] },
+    extra: [
+      { id: 'grey', title: 'Серый', colors: ['#cbd5e1', '#94a3b8', '#f8fafc'] },
+      { id: 'black', title: 'Чёрный', colors: ['#475569', '#1e293b', '#e2e8f0'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'pet-elephant': {
+    base: { id: BASE_TINT, title: 'Серый', colors: ['#aebdd1', '#8496b3', '#f8fafc'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'sand', title: 'Песочный', colors: ['#fde68a', '#f59e0b', '#fefce8'] },
+    ],
+  },
+  'sport-ball': {
+    base: { id: BASE_TINT, title: 'Классический', colors: ['#f8fafc', '#1f2937', '#ef4444'] },
+    extra: [
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'red', title: 'Красный', colors: ['#f87171', '#dc2626', '#fee2e2'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'sport-skate': {
+    base: { id: BASE_TINT, title: 'Яркий', colors: ['#f43f5e', '#881337', '#ffd166'] },
+    extra: [
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+    ],
+  },
+  'sport-dumbbell': {
+    base: { id: BASE_TINT, title: 'Стальные', colors: ['#64748b', '#334155', '#f43f5e'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'sport-racket': {
+    base: { id: BASE_TINT, title: 'Голубая', colors: ['#38bdf8', '#0369a1', '#fde047'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'food-icecream': {
+    base: { id: BASE_TINT, title: 'Клубничное', colors: ['#ff9ec7', '#fbbf24', '#fff7cc'] },
+    extra: [
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+    ],
+  },
+  'food-donut': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#ff8fb8', '#b45309', '#ffffff'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'food-kulich': {
+    base: { id: BASE_TINT, title: 'Праздничный', colors: ['#f5d0a9', '#b45309', '#ffffff'] },
+    extra: [
+      { id: 'pink', title: 'Розовый', colors: ['#ff8fb8', '#d94f7e', '#ffeef5'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'gold', title: 'Золотой', colors: ['#ffd76a', '#d9a520', '#fff6da'] },
+    ],
+  },
+  'food-cake': {
+    base: { id: BASE_TINT, title: 'Розовый', colors: ['#fda4af', '#e11d48', '#fff7cc'] },
+    extra: [
+      { id: 'violet', title: 'Сиреневый', colors: ['#c4a2ff', '#8f6ae0', '#f3e8ff'] },
+      { id: 'sky', title: 'Голубой', colors: ['#7cc6ff', '#3f8fd9', '#e0f2fe'] },
+      { id: 'mint', title: 'Мятный', colors: ['#7fe3b1', '#39b679', '#e6fff3'] },
+    ],
+  },
 };
 
 // ── Акценты костюмов ───────────────────────────────────────────────────────
@@ -359,6 +885,11 @@ const GLOW_NAMES: Record<string, string> = {
   '#ffffff': 'Белый',
   '#ffd166': 'Золотой',
   '#7dffb0': 'Зелёный',
+  // 0.70.0: свечения «волшебных» костюмов
+  '#ffe066': 'Золотой',
+  '#8fd8ff': 'Голубой',
+  '#7cf0d0': 'Бирюзовый',
+  '#ffb3d9': 'Розовый',
 };
 
 /**
@@ -377,6 +908,11 @@ const COSTUME_ACCENT_EXTRAS: Record<string, [string, string, string]> = {
   'star-commander': ['red', 'blue', 'green'],
   'shadow-initiate': ['blue', 'green', 'violet'],
   'forest-sage': ['red', 'blue', 'violet'],
+  // 0.70.0: «волшебные» костюмы (вариант A разбора интересов).
+  fairy: ['blue', 'violet', 'gold'],
+  sorceress: ['red', 'green', 'gold'],
+  mermaid: ['violet', 'gold', 'green'],
+  cat: ['blue', 'violet', 'gold'],
 };
 
 /**

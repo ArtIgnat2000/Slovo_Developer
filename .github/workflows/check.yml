@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -28,7 +28,13 @@ jobs:
       - run: npm run audio:check
       - run: npm run typecheck
       - run: npm run content:check
+      - run: npm run test:content
       - run: npm run test:adaptive
+      - run: npm run server:test
       - run: npm run test:smoke
+      - run: npm run test:galleries
+      - run: npm run test:guard
+      - run: npm run test:icons
+      - run: npm run test:contrast
       - run: npm run build
       - run: npm run test:boot

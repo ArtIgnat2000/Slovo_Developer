@@ -15,15 +15,100 @@ export const btn = (pred: (b: HTMLButtonElement) => boolean) => buttons().find(p
 export const btnText = (t: string) => btn((b) => (b.textContent ?? '').includes(t));
 export const has = (t: string) => body().includes(t);
 
-/** Лист наград на главной: квесты, сундук, неделя. Идемпотентно, если уже открыт. */
-export async function openRewardsSheet(): Promise<void> {
-  if (document.querySelector('.rewards-sheet')) return;
-  const tab = buttons().find((b) => (b.getAttribute('aria-label') ?? '').startsWith('Награды'));
-  if (tab) {
-    click(tab);
+/**
+ * Раскрыть «весь путь» на главной (0.67.0).
+ *
+ * С 0.67.0 главная показывает только «Дальше» — три ближайших урока, а весь
+ * путь раскрывается кнопкой. Тестам, которые считают уроки класса или ищут
+ * урок по счёту, нужно сначала раскрыть путь. Идемпотентно: если путь уже
+ * раскрыт (`aria-expanded="true"`), ничего не делает.
+ */
+export async function expandPath(): Promise<void> {
+  const toggle = document.querySelector('[data-path-toggle]') as HTMLButtonElement | null;
+  if (toggle && toggle.getAttribute('aria-expanded') !== 'true') {
+    click(toggle);
     await sleep(60);
   }
 }
+
+/** Сегмент БУКа по тексту: «Витрина», «Мой мир», «Коллекция», «Вещи». */
+export function shopSegment(text: string): HTMLButtonElement | undefined {
+  return Array.from(document.querySelectorAll('.shop-seg button')).find((b) =>
+    (b.textContent ?? '').includes(text),
+  ) as HTMLButtonElement | undefined;
+}
+
+/**
+ * БУК → «Мой мир → Вещи» (0.90.1).
+ *
+ * Раньше это был отдельный сегмент «Мои покупки». После слияния разделов вещи
+ * живут внутри «Моего мира» вторым режимом, поэтому тестам нужны два клика.
+ * Идемпотентно: если режим «Вещи» уже открыт, второй клик не вредит.
+ */
+export async function openOwnItems(): Promise<void> {
+  const world = shopSegment('Мой мир');
+  if (world && !document.querySelector('.shop-stage')) {
+    click(world);
+    await sleep(50);
+  }
+  const items = shopSegment('Вещи');
+  if (items && items.getAttribute('aria-selected') !== 'true') {
+    click(items);
+    await sleep(50);
+  }
+}
+
+/**
+ * БУК → «Мой мир → Коллекция». Возврат на витрину — тем же сегментом.
+ */
+export async function openWorldCollection(): Promise<void> {
+  const world = shopSegment('Мой мир');
+  if (world) {
+    click(world);
+    await sleep(50);
+  }
+  const collection = shopSegment('Коллекция');
+  if (collection && collection.getAttribute('aria-selected') !== 'true') {
+    click(collection);
+    await sleep(50);
+  }
+}
+
+/** Меню ☰ на главной (0.33.0). Идемпотентно, если уже открыто. */
+export async function openHomeMenu(): Promise<void> {
+  if (document.querySelector('.home-menu')) return;
+  const trigger = document.querySelector('[data-menu-trigger]');
+  if (trigger) {
+    click(trigger);
+    await sleep(60);
+  }
+}
+
+/** Лист наград на главной: квесты, сундук, неделя. Идемпотентно, если уже открыт.
+ *  С 0.33.0 🎁 в шапке нет — награды живут первой строкой меню ☰. */
+export async function openRewardsSheet(): Promise<void> {
+  if (document.querySelector('.rewards-sheet')) return;
+  await openHomeMenu();
+  const row = document.querySelector('[data-menu="rewards"]');
+  if (row) {
+    click(row);
+    await sleep(60);
+  }
+}
+
+/**
+ * Кристалл и число в интерфейсе (0.54.0): эмодзи 💎 заменён компонентом
+ * `<Gem>` — SVG-иконка с `aria-hidden` плюс число. Текста «💎 128» больше нет,
+ * поэтому ищем по классу и сравниваем число.
+ */
+export const gemAmounts = () =>
+  Array.from(document.querySelectorAll('.gem-amount')).map((el) => (el.textContent ?? '').trim());
+
+/** Есть ли где-то на экране счётчик/цена с этим числом кристаллов. */
+export const hasGem = (n: number | string) => gemAmounts().includes(String(n));
+
+/** Кнопка подсказки в задании: 0.54.0 — иконка вместо «💡 Подсказка». */
+export const hintButton = () => document.querySelector('[data-hint]') as HTMLButtonElement | null;
 
 let failures = 0;
 
@@ -45,9 +130,19 @@ export const byHint = new Map(WORDS.map((w) => [w.hint, w]));
  * «родителям видно…» ловила бы контент соседней вкладки.
  */
 export async function openParentSection(title: string): Promise<HTMLButtonElement | undefined> {
-  const tab = buttons().find(
+  let tab = buttons().find(
     (b) => b.getAttribute('role') === 'tab' && (b.textContent ?? '').includes(title),
   );
+  // «Данные» и «Приложение» теперь собраны под короткой вкладкой «Ещё».
+  // Сначала открываем её, затем выбираем нужный вложенный раздел.
+  if (!tab && (title.includes('Данные') || title.includes('Приложение'))) {
+    const more = buttons().find((b) => b.getAttribute('role') === 'tab' && (b.textContent ?? '').includes('Ещё'));
+    if (more) {
+      click(more);
+      await sleep(50);
+      tab = buttons().find((b) => b.getAttribute('role') === 'tab' && (b.textContent ?? '').includes(title));
+    }
+  }
   if (tab) {
     click(tab);
     await sleep(50);
@@ -67,6 +162,12 @@ export function currentWord() {
   // и □, чтобы намеренная ошибка в smoke всегда была действительно ошибкой.
   const spans = Array.from(document.querySelectorAll('.word-big > span'));
   const pattern = spans.map((s) => (s.textContent ?? '').trim()).join('');
+  // Карточка «Запомни слово» (визуальный диктант) показывает слово целиком,
+  // без пропусков. Раньше helper возвращал null, и тест БУКа падал с
+  // «слово не определилось» — хотя слово на экране было. 0.63.0.
+  if (pattern && !pattern.includes('□')) {
+    return WORDS.find((w) => w.text.toLowerCase() === pattern.toLowerCase()) ?? null;
+  }
   if (!pattern.includes('□')) return null;
   return (
     WORDS.find(

@@ -12,7 +12,7 @@
 
 import type { ReactNode } from 'react';
 
-export type ParentTabId = 'overview' | 'progress' | 'settings' | 'app';
+export type ParentTabId = 'overview' | 'lists' | 'settings' | 'more' | 'progress' | 'app';
 
 export interface ParentTabItem {
   id: ParentTabId;
@@ -20,12 +20,18 @@ export interface ParentTabItem {
   title: string;
 }
 
-/** Разделы родительского экрана: «как дела» → «сохранность» → «как заниматься» → «приложение». */
+/**
+ * Основные разделы: обучение, школьные списки, программа и вспомогательные
+ * задачи (данные приложения и передача/обновление).
+ *
+ * «Списки» (0.58.0) — слова к контрольной из школы: родитель вставляет текст,
+ * ребёнок тренирует (docs/proposals/word-lists.md).
+ */
 export const PARENT_TABS: ParentTabItem[] = [
-  { id: 'overview', emoji: '📊', title: 'Обзор' },
-  { id: 'progress', emoji: '💾', title: 'Прогресс' },
+  { id: 'overview', emoji: '📊', title: 'Обучение' },
+  { id: 'lists', emoji: '🏫', title: 'Списки' },
   { id: 'settings', emoji: '⚙️', title: 'Настройки' },
-  { id: 'app', emoji: '📲', title: 'Приложение' },
+  { id: 'more', emoji: '⋯', title: 'Ещё' },
 ];
 
 interface TabsProps {
@@ -44,6 +50,7 @@ export function ParentTabs({ items, value, onChange }: TabsProps) {
     const index = items.findIndex((i) => i.id === value);
     const next = items[(index + delta + items.length) % items.length];
     onChange(next.id);
+    document.getElementById(`parent-tab-${next.id}`)?.focus();
   };
 
   return (
@@ -71,7 +78,7 @@ export function ParentTabs({ items, value, onChange }: TabsProps) {
           <span className="seg-tab-emoji" aria-hidden="true">
             {item.emoji}
           </span>
-          {item.title}
+          <span className="seg-tab-label">{item.title}</span>
         </button>
       ))}
     </div>

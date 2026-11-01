@@ -2,9 +2,19 @@ import { effectiveCards, recordAttempt, type Attempts } from '../../engine/adapt
 import { scheduleWordImages } from '../../platform/word-images';
 import { createStudySessionId, StudyClock } from '../../engine/study';
 import { useEffect, useRef, useState } from 'react';
-import type { Profile, Task, WordState } from '../../types';
-import { LESSON_BY_ID, LESSONS, REVIEW, WORD_BY_ID, WORDS } from '../../content/words';
-import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, makeTask, pickDanger, repairTask, shuffle } from '../../engine/scheduler';
+import type { ClassId, GradeLesson, Profile, Task, Word, WordState } from '../../types';
+import {
+  CLASS_META,
+  LESSON_BY_ID,
+  REVIEW,
+  WORD_BY_ID,
+  WORDS,
+  LESSONS_BY_GRADE,
+  availableClass,
+} from '../../content/words';
+import { classComplete, classProgress, nextClass } from '../../engine/classes';
+import { buildLesson, DEFAULT_LESSON_SIZE, lessonCardLimit, lookupWith, makeTask, pickDanger, repairTask, shuffle, type WordLookup } from '../../engine/scheduler';
+import { drillLimit, hardWords, listModeOf, listWords, MAX_LIST_WORDS } from '../../engine/word-lists';
 import { pickReview, pickReviewWords } from '../../engine/srs';
 import { dayKey, dayPlan, masteredCount, todayStat, useActiveProfile, useApp } from '../../state/store';
 import { BONUS_CHEST_GEMS, claimableQuests, dayMetrics, plural, questId } from '../../engine/quests';
@@ -39,6 +49,11 @@ interface Props {
    * сравнивал бы урок с новой целью. Чтобы этого не было, держим снимок.
    */
   goal: number;
+  /**
+   * Переход в другой режим того же списка к контрольной (0.62.0):
+   * «тренировать ошибки» и «пройти контрольную заново» прямо с результатов.
+   */
+  onStartList?: (listId: string, mode: 'train' | 'check' | 'errors') => void;
 }
 
 interface Verdict {
@@ -53,9 +68,27 @@ interface Stats {
   xp: number;
 }
 
-export function LessonScreen({ lessonId, onExit, goal }: Props) {
-  const lesson = LESSON_BY_ID[lessonId];
+export function LessonScreen({ lessonId, onExit, goal, onStartList }: Props) {
   const profile = useActiveProfile();
+  // Тренировка списка к контрольной (0.58.0): урока в программе нет, набор
+  // слов берём из списка, а «урок» собираем на месте. Всё остальное —
+  // обычный экран урока: те же задания, тот же прогресс по словам.
+  const listMode = listModeOf(lessonId);
+  const listId = listMode?.listId ?? null;
+  const list = listId ? (profile?.lists ?? []).find((l) => l.id === listId) : undefined;
+  /** Полный контроль (0.62.0): все слова по одному заданию, подсказки отключены. */
+  const isCheck = listMode?.mode === 'check';
+  /** Тренировка только по ошибкам последней контрольной. */
+  const isErrors = listMode?.mode === 'errors';
+  const lesson = list
+    ? {
+        id: lessonId,
+        title: isCheck ? `Контрольная: ${list.title}` : isErrors ? `Ошибки: ${list.title}` : list.title,
+        emoji: isCheck ? '📋' : isErrors ? '🔁' : '🏫',
+        order: 0,
+        wordIds: list.words,
+      }
+    : LESSON_BY_ID[lessonId];
   // Действия стора берём без подписки на всё состояние (ссылки стабильны):
   // подписка на весь стор заставляла бы урок перерисовываться на каждый чих.
   const { touchDay, answer, addXp, finishLesson, finishPuzzleLesson, grantAchievement } = useApp.getState();
@@ -64,13 +97,21 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const attempts = useRef<Attempts>({ total: 0, independent: 0 });
   const observed = useRef(new Set<string>());
   const solvedTasks = useRef(new Set<string>());
+  /**
+   * Результат по каждому слову (0.62.0): первая ошибка делает слово
+   * «провальным» — именно так контрольная и оценивает. Используется в отчёте
+   * в конце и для кнопки «тренировать ошибки».
+   */
+  const wordOk = useRef<Record<string, boolean>>({});
+  /** Сколько разных слов уже спросили (для отчёта «12 из 26»). */
+  const askedWords = useRef(new Set<string>());
   const finalized = useRef(false);
   const runProfile = useRef(profile?.id).current;
   const ceiling = useRef(lessonCardLimit(profile?.lessonSize)).current;
   const finalizeAdaptive = (kind: 'finish' | 'quit') => {
     if (finalized.current) return;
     finalized.current = true;
-    if (lessonId !== REVIEW.id && runProfile) useApp.getState().adaptLesson(runProfile, ceiling,
+    if (lessonId !== REVIEW.id && !listId && runProfile) useApp.getState().adaptLesson(runProfile, ceiling,
       kind === 'quit' ? { kind } : { kind, attempts: attempts.current });
   };
   const stats = useRef<Stats>({ correct: 0, wrong: 0, xp: 0 });
@@ -130,6 +171,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const [lastGain, setLastGain] = useState(0);
   // Иток пазла за этот прогон урока — карточка на экране результатов.
   const [puzzleAward, setPuzzleAward] = useState<PuzzleAward | null>(null);
+  // Класс, который ребёнок закрыл именно этим уроком: на результатах появляется
+  // карточка «2 класс пройден!» с переходом дальше (0.31.0). Считаем переход
+  // «было → стало», а не «класс пройден сейчас»: иначе карточка висела бы на
+  // каждом уроке уже пройденного класса.
+  const [classWin, setClassWin] = useState<ClassId | null>(null);
 
   // ── Помощник БУК (docs/buk-in-lesson.md) ──────────────────────────────────
   // Настройка: глобальное «Сова БУК: не показывать» сильнее урока — если совы
@@ -330,7 +376,15 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   useEffect(() => {
     if (done) return;
     // Look ahead only a few cards, including dynamically inserted repair tasks.
-    return scheduleWordImages(queue.slice(index + 1, index + 4).map((t) => WORD_BY_ID[t.wordId]));
+    // Карточки берём через резолвер: у слов из списка к контрольной (0.61.0)
+    // теперь свои картинки, и они тоже должны быть прогреты заранее.
+    const lookup = lookupOf(profile);
+    return scheduleWordImages(
+      queue
+        .slice(index + 1, index + 4)
+        .map((t) => lookup(t.wordId))
+        .filter((w): w is NonNullable<typeof w> => !!w),
+    );
   }, [queue, index, done]);
 
   /** Выход из урока: если ещё ничего не отвечено — терять нечего, выходим сразу. */
@@ -353,6 +407,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       return;
     }
     const ok = quality >= 3;
+    // Полный контроль: слово считается верным, только если НИ РАЗУ не ошибся.
+    if (listMode) {
+      askedWords.current.add(task.wordId);
+      wordOk.current[task.wordId] = (wordOk.current[task.wordId] ?? true) && ok;
+    }
     // Повторёнными считаем и слова из режима «Повторение», и вставки-повторения
     // внутри обычного урока: задание дня — «повтори N слов», где бы это ни случилось
     answer(task.wordId, quality, lessonId === REVIEW.id || task.reason === 'review', sessionId.current ? {
@@ -380,14 +439,18 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       stats.current.wrong += 1;
       setStreak(0);
       say('sad', pick(CHEER));
-      // Ошибку обязательно отрабатываем: слово вернётся чуть позже в этом же уроке
-      setQueue((q) => {
-        // Повторную отработку добавляем один раз и не для заданий-исправлений
-        if (task.reason === 'repair') return q;
-        if (q.some((t, i) => i > index && t.wordId === task.wordId && t.reason === 'repair')) return q;
-        const at = Math.min(index + 3, q.length);
-        return [...q.slice(0, at), repairTask(task.wordId), ...q.slice(at)];
-      });
+      // Ошибку обязательно отрабатываем: слово вернётся чуть позже в этом же уроке.
+      // В полном контроле отработки нет — он проверяет, а не учит (0.62.0),
+      // поэтому там просто идём дальше по списку.
+      if (!isCheck) {
+        setQueue((q) => {
+          // Повторную отработку добавляем один раз и не для заданий-исправлений
+          if (task.reason === 'repair') return q;
+          if (q.some((t, i) => i > index && t.wordId === task.wordId && t.reason === 'repair')) return q;
+          const at = Math.min(index + 3, q.length);
+          return [...q.slice(0, at), repairTask(task.wordId, lookupOf(profile)), ...q.slice(at)];
+        });
+      }
     }
 
     setVerdict({ ok, wordId: task.wordId, hint: quality === 3 });
@@ -405,6 +468,14 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
   const finish = () => {
     if (finalized.current) return;
     let weeklyAwardGems = 0;
+    // Класс урока и его состояние ДО начисления: последний урок программы
+    // закрывает класс, и это нужно показать на результатах.
+    const lessonGrade = (lesson as GradeLesson | undefined)?.grade ?? null;
+    let classWasDone = true;
+    if (lessonGrade) {
+      const before = useApp.getState().profiles.find((p) => p.id === runProfile) ?? null;
+      classWasDone = classComplete(before, lessonGrade);
+    }
     studyClock.current?.finish('completed');
     ensureTouchedToday();
     finalizeAdaptive('finish');
@@ -412,8 +483,32 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const answered = correct + wrong;
     const pct = answered === 0 ? 100 : Math.round((correct / answered) * 100);
     const stars = starsFor(correct, answered);
-    // «Повторение» — тренировка, а не урок: короны и счётчик уроков оно не наращивает
-    if (lessonId !== REVIEW.id) {
+    // «Повторение» и список к контрольной — тренировки, а не уроки программы:
+    // короны, пазлы и счётчик уроков дня они не наращивают.
+    // Список к контрольной: тренировка отмечает «когда занимались», полный
+    // контроль сохраняет ещё и итог по словам — из него берутся «ошибки».
+    if (listId) {
+      const result = {
+        total: askedWords.current.size,
+        correct: Object.values(wordOk.current).filter(Boolean).length,
+        wrong: Object.entries(wordOk.current)
+          .filter(([, ok]) => !ok)
+          .map(([id]) => id),
+      };
+      // 0.63.0: пишем заход в историю для ЛЮБОГО режима — иначе динамику
+      // частичных тренировок видеть нельзя (раньше сохранялась только
+      // полная контрольная).
+      const runResult = {
+        mode: (listMode?.mode ?? 'train') as 'train' | 'check' | 'errors',
+        total: result.total,
+        correct: result.correct,
+        wrong: result.wrong,
+        listSize: list?.words.length,
+      };
+      if (result.total > 0) useApp.getState().saveListRun(listId, runResult);
+      else useApp.getState().touchList(listId);
+    }
+    if (lessonId !== REVIEW.id && !listId) {
       weeklyAwardGems = finishLesson(lessonId, pct).reduce((sum, reward) => sum + reward.gems, 0);
       const pz = finishPuzzleLesson();
       setPuzzleAward(pz);
@@ -423,6 +518,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       } else if (pz?.event === 'gems') {
         say('happy', 'Коллекция костюмов собрана — держи кристаллы!');
       }
+    }
+    let completedGrade: ClassId | null = null;
+    if (lessonGrade && !classWasDone) {
+      const after = useApp.getState().profiles.find((p) => p.id === runProfile) ?? null;
+      if (classComplete(after, lessonGrade)) completedGrade = lessonGrade;
     }
     const bonus = XP.lessonDone + (stars === 3 ? XP.perfectBonus : 0);
     addXp(bonus);
@@ -443,6 +543,11 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     } else {
       say('think', 'Попробуем ещё раз?');
     }
+    if (completedGrade) {
+      setConfetti(true);
+      setClassWin(completedGrade);
+      say('dance', `${CLASS_META[completedGrade].title} пройден! 🎉`);
+    }
 
     const fresh = useApp.getState().profiles.find((p) => p.id === profile?.id) ?? profile;
     if (fresh) {
@@ -460,7 +565,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     const after = claimableToday(useApp.getState().profiles.find((p) => p.id === profile?.id) ?? null);
     const newQuestRewards = after.length > claimableBefore.length;
     const messages: string[] = [];
-    if (lessonId !== REVIEW.id) messages.push(`На главной ждёт бонусный сундук: +${BONUS_CHEST_GEMS} 💎.`);
+    if (lessonId !== REVIEW.id && !listId) messages.push(`На главной ждёт бонусный сундук: +${BONUS_CHEST_GEMS} 💎.`);
     if (newQuestRewards) messages.push('Награду за задания дня можно забрать на главной.');
     if (weeklyAwardGems > 0) messages.push(`Недельная награда уже начислена: +${weeklyAwardGems} 💎.`);
     if (messages.length) {
@@ -483,13 +588,49 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       <>
         <Confetti show={confetti} />
         <Results
-          lessonId={lessonId}
+          listTitle={list ? lesson.title : undefined}
+          isCheck={isCheck}
+          check={list?.lastCheck ?? (listId ? {
+            at: Date.now(),
+            total: askedWords.current.size,
+            correct: Object.values(wordOk.current).filter(Boolean).length,
+            wrong: Object.entries(wordOk.current).filter(([, ok]) => !ok).map(([id]) => id),
+          } : undefined)}
+          checkedWords={list ? listWords(list, profile?.customWords ?? {}) : []}
+          errorsCount={list?.lastCheck?.wrong.length ?? 0}
+          onTrainErrors={() => {
+            if (!listId || !onStartList) return;
+            onStartList(listId, 'errors');
+          }}
+          onRestartCheck={() => {
+            if (!listId || !onStartList) return;
+            onStartList(listId, 'check');
+          }}
+          onTrainList={() => {
+            if (!listId || !onStartList) return;
+            onStartList(listId, 'train');
+          }}
+          previous={(() => {
+            // 0.63.0: сравниваем с предыдущим заходом ТОГО ЖЕ режима —
+            // «было 4 из 6 → стало 6 из 6» понятнее звёзд.
+            if (!list) return undefined;
+            const sameMode = (list.runs ?? []).slice(0, -1).filter((r) => r.mode === (listMode?.mode ?? 'train'));
+            const prev = sameMode[sameMode.length - 1];
+            return prev ? { at: prev.at, total: prev.total, correct: prev.correct } : undefined;
+          })()}
           correct={stats.current.correct}
           wrong={stats.current.wrong}
           xp={xpShown}
           goal={goal}
           xpBefore={xpBefore}
           puzzle={puzzleAward}
+          classWin={classWin}
+          onNextClass={() => {
+            if (!classWin) return;
+            const next = nextClass(classWin);
+            if (next) useApp.getState().setActiveClass(next);
+            onExit();
+          }}
           onHome={onExit}
         />
         <FloatingMascot />
@@ -509,7 +650,8 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
       </div>
     );
   }
-  const word = WORD_BY_ID[task.wordId];
+  // Карточка слова: банк или своё слово списка к контрольной (0.58.0).
+  const word = lookupOf(profile)(task.wordId) ?? WORD_BY_ID[task.wordId];
   // Прогресс — от исходного плана и только вперёд (отработки ошибок не откатывают полоску)
   const stepsDone = Math.min(index + (verdict ? 1 : 0), total);
   const progress = (stepsDone / Math.max(1, total)) * 100;
@@ -525,7 +667,15 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
     : null;
 
   return (
-    <div ref={screenRef} className={`screen lesson-screen ${verdict ? 'has-verdict' : ''}`}>
+    <div
+      ref={screenRef}
+      // Полный контроль: подсказки отключены (класс прячет кнопки «Подсказка»
+      // и баннеры «опасных букв»). См. .lesson-check в app.css.
+      className={`screen lesson-screen ${verdict ? 'has-verdict' : ''}${isCheck ? ' lesson-check' : ''}`}
+      // id урока в разметке: по нему смоук проверяет, что открылся урок своего
+      // класса, не разбирая карточку (тип задания зависит от случайной перестановки).
+      data-lesson-id={lesson.id}
+    >
       <div className="row mb lesson-header">
         <button
           className="lesson-exit"
@@ -576,7 +726,7 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
           `.lesson-task.is-frozen`, состояние внутри неё не сбрасывается, так что
           ребёнок видит свой ответ и подсветку «верно/неверно». */}
       <div ref={taskRef} className={`lesson-task ${verdict ? 'is-frozen' : ''}`}>
-        <TaskView key={task.uid} task={task} word={word} onSolve={onSolve} onAttempt={(quality) => {
+        <TaskView key={task.uid} task={task} word={word} noHints={isCheck} onSolve={onSolve} onAttempt={(quality) => {
         if (!finalized.current) {
           studyClock.current?.activity();
           ensureTouchedToday();
@@ -653,38 +803,61 @@ export function LessonScreen({ lessonId, onExit, goal }: Props) {
  * крупно — XP за сегодня, мелко — «цель 120», перебор — бейджем (см. п. 3 плана).
  */
 function Results({
-  lessonId,
   correct,
   wrong,
   xp,
   goal,
   xpBefore,
   puzzle,
+  classWin,
+  onNextClass,
   onHome,
+  listTitle,
+  isCheck,
+  check,
+  checkedWords,
+  errorsCount,
+  onTrainErrors,
+  onRestartCheck,
+  onTrainList,
+  previous,
 }: {
-  lessonId: string;
   correct: number;
   wrong: number;
   xp: number;
   goal: number;
   xpBefore: number;
+  /** Заголовок списка к контрольной: у урока-списка нет карточки в программе. */
+  listTitle?: string;
+  /** Полный контроль списка (0.62.0): показываем отчёт по словам. */
+  isCheck?: boolean;
+  /** Итог контрольной: сколько слов проверено, сколько верно, какие провалились. */
+  check?: { at: number; total: number; correct: number; wrong: string[] };
+  /** Карточки всех слов списка — чтобы показать «слово за словом». */
+  checkedWords?: Word[];
+  /** Сколько слов провалилось в последней контрольной (для кнопки «ошибки»). */
+  errorsCount?: number;
+  /** Предыдущий заход того же режима — для «было → стало» (0.63.0). */
+  previous?: { at: number; total: number; correct: number };
+  onTrainErrors?: () => void;
+  onRestartCheck?: () => void;
+  onTrainList?: () => void;
   /** Иток костюмного пазла этого урока (engine/puzzles.ts); null — не за что (повторение). */
   puzzle?: PuzzleAward | null;
+  /** Класс, закрытый именно этим уроком: карточка «класс пройден» с переходом дальше. */
+  classWin?: ClassId | null;
+  onNextClass: () => void;
   onHome: () => void;
 }) {
   const [puzzleOpen, setPuzzleOpen] = useState(true);
   const answered = correct + wrong;
   const stars = starsFor(correct, answered);
   const profile = useActiveProfile();
-  const lesson = LESSON_BY_ID[lessonId];
-  const isReview = lessonId === REVIEW.id;
-
-  // XP за сегодня берём из профиля: туда уже попали и задания, и бонус за урок.
+  // Урока-списка нет в общем каталоге, поэтому результат использует только
+  // переданные данные. XP за сегодня уже включает задания и бонус за урок.
   const xpToday = profile ? todayStat(profile).xp : xpBefore + xp;
   const goalDone = xpToday >= goal;
   const over = Math.max(0, xpToday - goal);
-  const gained = xpToday - xpBefore;
-  const beforePct = Math.min(100, (xpBefore / Math.max(1, goal)) * 100);
   const afterPct = Math.min(100, (xpToday / Math.max(1, goal)) * 100);
   // Цель закрылась именно этим уроком? Это отдельный повод для праздника.
   const closedNow = goalDone && xpBefore < goal;
@@ -725,13 +898,31 @@ function Results({
           )}
           {profile && wrong > 0 && (
             <div className="kv">
-              <span>Вернёмся к ним завтра</span>
-              <b>
-                {wrong} {plural(wrong, 'слово', 'слова', 'слов')}
-              </b>
+              <span>Ошибки</span>
+              <b>{wrong} {plural(wrong, 'ошибка', 'ошибки', 'ошибок')}</b>
             </div>
           )}
         </div>
+
+        {classWin && (
+          <div className="card class-win">
+            <div className="class-win-emoji" aria-hidden="true">🎉</div>
+            <h3 className="class-win-title">{CLASS_META[classWin].title} пройден!</h3>
+            <ClassWinMeta grade={classWin} />
+            {nextClass(classWin) ? (
+              <button className="btn primary wide lg" onClick={onNextClass}>
+                Дальше — {CLASS_META[nextClass(classWin)!].title}
+              </button>
+            ) : (
+              <button className="btn green wide lg" onClick={onHome}>
+                Вся программа позади — к урокам 🗺️
+              </button>
+            )}
+            <p className="tiny" style={{ marginTop: 8 }}>
+              Опыт, кристаллы и покупки остаются с тобой.
+            </p>
+          </div>
+        )}
 
         {puzzle?.event === 'assembled' && puzzleOpen && (
           <div className="card puzzle-win">
@@ -761,38 +952,96 @@ function Results({
           </div>
         )}
 
+        {/* Отчёт по словам списка к контрольной (0.62.0): видно ИМЕННО ЧТО
+            проверяли и где ошибся — раньше были только звёзды и «12 из 26». */}
+        {listTitle && (
+          <div className="card check-report" data-check-report>
+            <h3 style={{ margin: '0 0 6px' }}>
+              {isCheck ? '📋 Результат контрольной' : '🏫 Тренировка списка'}
+            </h3>
+            <div className="kv">
+              <span>Проверено слов</span>
+              <b>{check?.total ?? answered}</b>
+            </div>
+            <div className="kv">
+              <span>Верно</span>
+              <b>
+                {check?.correct ?? correct} из {check?.total ?? answered}
+              </b>
+            </div>
+            {isCheck && (check?.wrong.length ?? 0) > 0 && (
+              <div className="kv">
+                <span>Ошибки</span>
+                <b>{check?.wrong.length}</b>
+              </div>
+            )}
+            {previous && (() => {
+              // 0.66.0: сравнение словами, а не стрелкой. «4 из 6 → 6 из 6»
+              // ребёнок читал как два числа без вывода — теперь вывод есть.
+              const nowCorrect = check?.correct ?? correct;
+              const nowTotal = check?.total ?? answered;
+              const better = nowCorrect > previous.correct;
+              const worse = nowCorrect < previous.correct;
+              return (
+                <div className="kv" data-run-compare>
+                  <span>В прошлый раз</span>
+                  <b>
+                    {previous.correct} из {previous.total}, сейчас {nowCorrect} из {nowTotal}
+                    {better ? ' — лучше!' : worse ? ' — потренируемся' : ' — так же'}
+                  </b>
+                </div>
+              );
+            })()}
+
+            {!!checkedWords?.length && (
+              <div className="check-words" data-check-words>
+                {checkedWords.map((w) => {
+                  const failed = check?.wrong.includes(w.id);
+                  const asked = !check || check.total >= checkedWords.length || check.wrong.includes(w.id) || true;
+                  return (
+                    <span
+                      key={w.id}
+                      className={`check-word${failed ? ' bad' : ' ok'}${asked ? '' : ' skipped'}`}
+                      data-check-word={w.id}
+                    >
+                      <span aria-hidden="true">{failed ? '✗' : '✓'}</span> {w.text}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              {isCheck && (errorsCount ?? check?.wrong.length ?? 0) > 0 && onTrainErrors && (
+                <button className="btn primary sm" data-train-errors onClick={onTrainErrors}>
+                  Тренировать ошибки · {errorsCount ?? check?.wrong.length}
+                </button>
+              )}
+              {isCheck && onRestartCheck && (
+                <button className="btn ghost sm" data-restart-check onClick={onRestartCheck}>
+                  Пройти заново
+                </button>
+              )}
+              {!isCheck && onTrainList && (
+                <button className="btn ghost sm" onClick={onTrainList}>
+                  Ещё тренировка
+                </button>
+              )}
+            </div>
+
+          </div>
+        )}
+
         <div className="card">
           <div className="row" style={{ textAlign: 'left' }}>
             <Ring value={afterPct} main={String(xpToday)} sub={`цель ${goal}`} done={goalDone} />
             <div className="grow">
-              <h3 style={{ marginBottom: 2 }}>Цель дня</h3>
-              <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+              <h3 style={{ marginBottom: 4 }}>Цель дня</h3>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                 <p className="muted" style={{ margin: 0 }}>
-                  {closedNow
-                    ? '🎉 Цель дня закрыта!'
-                    : goalDone
-                      ? 'Цель уже была закрыта — а ты принёс ещё! 🎉'
-                      : `Ещё ${goal - xpToday} XP до цели дня`}
+                  {goalDone ? '🎉 Выполнена!' : `Осталось ${goal - xpToday} XP`}
                 </p>
                 {over > 0 && <span className="goal-over">+{over} сверх цели</span>}
-              </div>
-              {/* Полоска — как на главной; метка показывает, где было начало урока */}
-              <div className="goal-track">
-                <Bar value={afterPct} tone="green" />
-                {xpBefore > 0 && !goalDone && (
-                  <i className="goal-mark" style={{ left: `${beforePct}%` }} aria-hidden="true" />
-                )}
-              </div>
-              <div className="tiny" style={{ marginTop: 4 }}>
-                {gained > 0 ? (
-                  <>
-                    {isReview ? 'Тренировка дала ' : 'Урок принёс '}
-                    <b>+{gained} XP</b>
-                    {xpBefore > 0 && <> · сегодня было уже {xpBefore} XP</>}
-                  </>
-                ) : (
-                  <>Прогресс есть — слова стали крепче в памяти 💪</>
-                )}
               </div>
             </div>
           </div>
@@ -800,12 +1049,22 @@ function Results({
           <button className="btn green wide lg mt" onClick={onHome}>
             К урокам 🗺️
           </button>
-          <div className="tiny" style={{ marginTop: 8 }}>
-            {lesson.emoji} {lesson.title}
-          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/** Итог класса на карточке победы: уроки и освоенные слова. */
+function ClassWinMeta({ grade }: { grade: ClassId }) {
+  const profile = useActiveProfile();
+  const info = classProgress(profile, grade);
+  return (
+    <p className="tiny" style={{ margin: '0 0 10px' }}>
+      {info.lessons} {plural(info.lessons, 'урок', 'урока', 'уроков')} позади · {info.mastered} из {info.words}{' '}
+      {plural(info.words, 'слова', 'слов', 'слов')} освоено
+      {nextClass(grade) ? ` · дальше ${CLASS_META[nextClass(grade)!].title.toLowerCase()}` : ' · вся программа 1–4'}.
+    </p>
   );
 }
 
@@ -822,6 +1081,53 @@ function claimableToday(profile: Profile | null): string[] {
 // ── Формирование очереди заданий ────────────────────────────────────────────
 
 function buildQueue(profile: Profile | null, lessonId: string): Task[] {
+  const mode = listModeOf(lessonId);
+  if (mode) {
+    const list = (profile?.lists ?? []).find((l) => l.id === mode.listId);
+    if (!list) return [];
+    // Источник карточек: банк + свои слова профиля. Без этого «подлежащее»
+    // из списка не нашлось бы (его нет в банке 257 слов).
+    const lookup = lookupWith(profile?.customWords);
+    const all = listWords(list, profile?.customWords ?? {});
+    if (!all.length) return [];
+
+    // Полный контроль (0.62.0): ВСЕ слова списка, по одному заданию, без
+    // знакомства и без отработок. Порядок — как в списке, чтобы отчёт
+    // «слово за словом» совпадал с тем, что задали в школе.
+    if (mode.mode === 'check') {
+      return all.slice(0, MAX_LIST_WORDS).map((w) => makeTask(checkKind(w), w.id, 'review', pickDanger(w), lookup));
+    }
+
+    const states: Record<string, WordState> = profile?.words ?? {};
+    // Тренировка «по ошибкам» (0.63.0): берём слова, которые ошибались чаще
+    // всего за ВСЮ историю заходов (а не только в последней контрольной) —
+    // так тренировка сама находит то, что не получается. Если истории нет,
+    // откатываемся к провалам последней контрольной.
+    const wrong = list.lastCheck?.wrong ?? [];
+    const hard = hardWords(list, MAX_LIST_WORDS).map((h) => h.id);
+    const problemIds = hard.length ? hard : wrong;
+    const pool =
+      mode.mode === 'errors' && problemIds.length
+        ? all.filter((w) => problemIds.includes(w.id))
+        : all;
+    // Размер тренировки списка — ОТДЕЛЬНЫЙ параметр (0.63.0), не «размер урока»:
+    // готовиться к контрольной по 6 слов легче, чем проходить 12–20.
+    // Полный контроль сюда не доходит (выше return) и проверяет всё подряд.
+    const maxCards = drillLimit(profile, pool.length);
+    // Каких слов не хватает в наборе, если список длиннее одного захода:
+    // сначала те, что ребёнок ещё не видел, потом самые слабые. Так за
+    // несколько заходов список проходится целиком, а не первые 12 слов.
+    const order = [...pool]
+      .sort((a, b) => needOf(states[b.id]) - needOf(states[a.id]))
+      .slice(0, Math.min(maxCards, MAX_LIST_WORDS))
+      .map((w) => w.id);
+    const lesson = { id: lessonId, title: list.title, emoji: '🏫', order: 0, wordIds: order };
+    const tasks = buildLesson({ lesson, level: 1, states, reviewWords: [], maxCards: 0, lookup });
+    const intro = tasks.filter((t) => t.kind === 'intro');
+    const rest = shuffle(tasks.filter((t) => t.kind !== 'intro'));
+    return [...intro, ...rest];
+  }
+
   const lesson = LESSON_BY_ID[lessonId];
   const states: Record<string, WordState> = profile?.words ?? {};
   const level = profile?.lessons?.[lessonId]?.level ?? 0;
@@ -855,8 +1161,11 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   }
 
   // Не подмешиваем в повторение слова текущего урока (и открытого «следующего»):
-  // ребёнок ещё не прошёл их, а повторение должно быть про старое
-  const current = LESSONS.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);
+  // ребёнок ещё не прошёл их, а повторение должно быть про старое.
+  // «Следующий» — из программы активного класса: иначе в уроке 1 класса
+  // исключались бы слова из пути 2 класса и интерливинг пустел.
+  const classLessons = LESSONS_BY_GRADE[availableClass(profile?.activeClass ?? 2)];
+  const current = classLessons.find((l) => (profile?.lessons[l.id]?.level ?? 0) < 5);
   const exclude = new Set([...lesson.wordIds, ...(current?.wordIds ?? [])]);
   const review = pickReview(WORDS, states, exclude, 3);
   const tasks = buildLesson({ lesson, level, states, reviewWords: review, maxCards });
@@ -865,6 +1174,32 @@ function buildQueue(profile: Profile | null, lessonId: string): Task[] {
   const rest = shuffle(tasks.filter((t) => t.kind !== 'intro' && t.reason !== 'review'));
   const rev = tasks.filter((t) => t.reason === 'review');
   return [...intro, ...rest, ...rev];
+}
+
+/**
+ * Задание для полного контроля (0.62.0).
+ *
+ * Пишем слово по памяти — только так проверка честно показывает, знает ли
+ * ребёнок написание. Фразы («до свидания») собрать из букв нельзя, для них
+ * остаётся выбор буквы.
+ */
+function checkKind(word: { text: string }): Task['kind'] {
+  return word.text.includes(' ') ? 'gap' : 'write';
+}
+
+/**
+ * Насколько слову нужна тренировка (0.58.0): большое число — берём раньше.
+ * Слова, которых ребёнок ещё не видел, идут первыми, затем самые слабые и
+ * просроченные. Так список длиннее одного захода проходится целиком за
+ * несколько заходов, а не крутит первые 12 слов.
+ */
+/** Источник карточек для профиля: банк плюс свои слова списков. */
+const lookupOf = (profile: Profile | null): WordLookup => lookupWith(profile?.customWords);
+
+function needOf(st: WordState | undefined): number {
+  if (!st) return 1000;
+  const overdue = st.due && st.due < Date.now() ? 200 : 0;
+  return overdue + (100 - st.s);
 }
 
 function makeReviewTask(kind: 'write' | 'fix', wordId: string): Task {

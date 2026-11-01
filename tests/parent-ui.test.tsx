@@ -7,9 +7,11 @@
 //  • настройки объясняют последствие, бинарные — переключателем;
 //  • разрушительное действие живёт отдельно, в разделе «Прогресс»;
 //  • ошибка в примере-замке показывается на месте, а не модальным окном.
+import { readFileSync } from 'node:fs';
 import { body, btnText, buttons, check, click, has, openParentSection, sleep } from './ui-helpers';
 import { dayKey, useApp } from '../src/state/store';
-import { WORDS } from '../src/content/words';
+import { WORDS, WORDS_BY_GRADE } from '../src/content/words';
+import { runGemResetUiChecks } from './gem-reset-ui.test';
 
 const store = () => useApp.getState();
 
@@ -28,10 +30,17 @@ async function unlockWith(compute: (a: number, b: number) => number): Promise<bo
 }
 
 const tabButtons = () =>
-  Array.from(document.querySelectorAll('[role="tab"]')) as HTMLButtonElement[];
+  Array.from(document.querySelectorAll('.seg-tabs[role="tablist"] [role="tab"]')) as HTMLButtonElement[];
 
 export async function runParentUiChecks(): Promise<void> {
   console.log('\n── «Родителям»: разделы, настройки и замок ──');
+  const parentCss = readFileSync('src/styles/app.css', 'utf8');
+  check('мобильная навигация складывается в две широкие колонки',
+    /@media \(max-width: 560px\)[\s\S]*?\.seg-tabs\s*\{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/.test(parentCss));
+  check('главные переключатели имеют область касания не меньше 48 px',
+    /\.seg-tab\s*\{[^}]*min-height: 48px/.test(parentCss) &&
+      /\.choice-item\s*\{[^}]*min-height: 48px/.test(parentCss) &&
+      /\.switch\s*\{[^}]*min-height: 48px/.test(parentCss));
   const home = buttons().find((b) => (b.textContent ?? '').includes('Уроки') && b.className.includes('tab'));
   click(home);
   await sleep(60);
@@ -55,14 +64,69 @@ export async function runParentUiChecks(): Promise<void> {
   // 2. Верный ответ открывает раздел — и сразу на «Обзор», а не на настройки.
   const opened = await unlockWith((a, b) => a * b);
   check('верный ответ открывает раздел родителей', opened, body().slice(0, 120));
-  check('раздел открывается обзором: главное — как дела у ребёнка', has('Сегодня') && has('Что подтянуть'), body().slice(0, 160));
+  check('раздел открывается кратким прогрессом по словам', has('Прогресс по словам') && has('освоено'), body().slice(0, 160));
+  check('статистика занятий закрыта по умолчанию', btnText('Статистика занятий')?.getAttribute('aria-expanded') === 'false');
+  check('обзор не отвлекает необязательными блоками',
+    !has('Достижения') && !has('Общее') && !has('Списки к контрольной') && !has('Сегодня'));
+  check('объяснение метрики спрятано за раскрытием', document.querySelector('.parent-metric-help')?.hasAttribute('open') === false);
+  const gradeSelect = document.querySelector('#parent-learning-grade') as HTMLSelectElement | null;
+  const originalGrade = store().profiles.find((p) => p.id === store().activeId)?.activeClass ?? 2;
+  if (gradeSelect) {
+    gradeSelect.value = '1';
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await sleep(20);
+  }
+  check('классный фильтр переключает словарь для анализа', document.querySelector('.parent-learning-summary .stat-tile-value')?.textContent?.endsWith(`/ ${WORDS_BY_GRADE[1].length}`) === true, body().slice(0, 180));
+  check('фильтр анализа не меняет класс программы ребёнка',
+    (store().profiles.find((p) => p.id === store().activeId)?.activeClass ?? 2) === originalGrade);
+  if (gradeSelect) {
+    gradeSelect.value = String(originalGrade);
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+    await sleep(20);
+  }
+  // Карточка проблемного слова не выводит из родительского раздела.
+  const selected = WORDS_BY_GRADE[1][0];
+  const activeProfile = store().profiles.find((p) => p.id === store().activeId)!;
+  const savedErrors = activeProfile.errors;
+  useApp.setState((state) => ({ profiles: state.profiles.map((p) => p.id === state.activeId
+    ? { ...p, errors: { ...p.errors, [selected.id]: 3 } } : p) }));
+  if (gradeSelect) {
+    gradeSelect.value = '1';
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  }
+  await sleep(30);
+  const proto = window.HTMLDialogElement.prototype;
+  const oldShowModal = proto.showModal;
+  const oldClose = proto.close;
+  proto.showModal = function () { this.setAttribute('open', ''); };
+  proto.close = function () { this.removeAttribute('open'); this.dispatchEvent(new window.Event('close')); };
+  const problem = document.querySelector('.parent-summary-errors button.word-chip') as HTMLButtonElement | null;
+  check('проблемное слово открывается кнопкой, перехода в словарик нет', !!problem && !btnText('Открыть словарик'));
+  click(problem);
+  await sleep(30);
+  check('карточка открыта поверх родительского обзора',
+    !!document.querySelector(`dialog[open][aria-label="Карточка слова ${selected.text}"]`) && has('Прогресс по словам'));
+  click(document.querySelector('.parent-word-dialog button.btn'));
+  await sleep(30);
+  check('после закрытия остаются выбранный класс и родительский раздел',
+    !document.querySelector('.parent-word-dialog') && gradeSelect?.value === '1' && has('Прогресс по словам') && !has('Раздел для взрослых'));
+  proto.showModal = oldShowModal;
+  proto.close = oldClose;
+  useApp.setState((state) => ({ profiles: state.profiles.map((p) => p.id === state.activeId ? { ...p, errors: savedErrors } : p) }));
+  if (gradeSelect) {
+    gradeSelect.value = String(originalGrade);
+    gradeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  }
+  await sleep(20);
+  click(btnText('Статистика занятий'));
+  await sleep(30);
 
   // 3. Четыре раздела-вкладки с корректной семантикой (aria) — и ровно один на экране.
   const tabs = tabButtons();
   check(
-    'в разделе четыре раздела-вкладки: обзор, прогресс, настройки, приложение',
+    'в разделе четыре основных вкладки: обучение, списки, настройки, ещё',
     tabs.length === 4 &&
-      ['Обзор', 'Прогресс', 'Настройки', 'Приложение'].every((title) =>
+      ['Обучение', 'Списки', 'Настройки', 'Ещё'].every((title) =>
         tabs.some((t) => (t.textContent ?? '').includes(title)),
       ),
     tabs.map((t) => t.textContent).join(' | '),
@@ -95,9 +159,17 @@ export async function runParentUiChecks(): Promise<void> {
   await sleep(50);
   check(
     'стрелки клавиатуры переключают разделы (как вкладки браузера)',
-    arrow.defaultPrevented && has('Передать приложение') && !has('Размер урока'),
+    arrow.defaultPrevented && has('Данные') && has('Приложение') && !has('Размер урока'),
     `${body().slice(0, 140)}`,
   );
+  check('в «Ещё» виден только один выбранный вложенный раздел',
+    document.querySelectorAll('#parent-panel-more [role="tab"][aria-selected="true"]').length === 1 &&
+      document.querySelectorAll('#parent-panel-more [role="tabpanel"]').length === 1);
+  click(document.querySelector('#parent-more-tab-app'));
+  await sleep(30);
+  check('вложенная вкладка открывает приложение, не показывая карточки данных',
+    has('Передать приложение') && !has('Резервная копия'));
+  await openParentSection('Ещё');
   check(
     'фокус в наборе вкладок один (roving tabindex)',
     tabButtons().filter((t) => t.tabIndex === 0).length === 1 &&
@@ -107,15 +179,19 @@ export async function runParentUiChecks(): Promise<void> {
 
   // 5. Настройки: группы по вопросам, объяснения и рабочие элементы управления.
   await openParentSection('Настройки');
+  check('расширенные настройки свернуты по умолчанию', !document.querySelector('.parent-advanced-settings')?.hasAttribute('open'));
+  check('родитель не управляет музыкой за ребёнка', !Array.from(document.querySelectorAll('[role="switch"]')).some((el) => el.getAttribute('aria-label') === 'Музыка'));
+  click(document.querySelector('.parent-advanced-settings summary'));
+  await sleep(20);
   check(
     'настройки собраны в три понятные группы',
     has('Занятия') && has('Звук и отклик') && has('Вид'),
     body().slice(0, 200),
   );
   check(
-    'у каждой настройки есть объяснение последствий',
-    has('Сколько опыта (XP) считается выполненной нормой дня') &&
-      has('Что делает сова БУК, если ребёнок просит помощи'),
+    'настройки объяснены коротко',
+    has('Дневная норма XP на главной') && has('Как БУК помогает в задании') &&
+      !has('Сколько опыта (XP) считается выполненной нормой дня'),
     document.querySelector('.parent-panel')?.textContent?.slice(0, 200) ?? '',
   );
 
@@ -179,7 +255,7 @@ export async function runParentUiChecks(): Promise<void> {
 
   // 6. Разрушительное действие — отдельно, в разделе «Прогресс», под предупреждением.
   check('в настройках нет кнопки сброса прогресса', !btnText('Сбросить прогресс'), body().slice(0, 160));
-  await openParentSection('Прогресс');
+  await openParentSection('Данные');
   check(
     'сброс прогресса живёт в «Прогрессе» и отделён предупреждением',
     !!btnText('Сбросить прогресс') &&
@@ -188,29 +264,43 @@ export async function runParentUiChecks(): Promise<void> {
     body().slice(0, 200),
   );
   check(
-    'в «Прогрессе» есть копия, сохранность и корзина',
-    has('Копия прогресса') && has('Сохранность') && has('Сохранить файл'),
+    'в «Данных» сразу видны только копия и состояние сохранения',
+    has('Резервная копия') && has('Сохранение') && has('Сохранить файл') &&
+      document.querySelector('.parent-data-details')?.hasAttribute('open') === false,
     body().slice(0, 200),
   );
+  await runGemResetUiChecks(async () => {
+    const parent = buttons().find((b) => (b.textContent ?? '').includes('Родителям') && b.className.includes('tab'));
+    click(parent);
+    await sleep(60);
+    await unlockWith((a, b) => a * b);
+    await openParentSection('Данные');
+  });
 
-  // 7. «Приложение» — про приложение, а не про ребёнка: ссылка, версия, V-labs.
+  // 7. «Приложение»: передача, установка и обновления; техническое — закрыто.
   await openParentSection('Приложение');
   check(
-    'в «Приложении» есть передача ссылки, версия сборки и карточка V-labs',
-    has('Передать приложение') && has('Версия') && has('Слово2 сделали в V-labs'),
+    'в «Приложении» сразу видны только основные действия',
+    has('Передать приложение') && has('Установка') && has('Обновления') &&
+      document.querySelector('.parent-app-about')?.hasAttribute('open') === false,
     body().slice(0, 240),
   );
-  click(btnText('Диагностика приложения'));
+  click(document.querySelector('.parent-app-about summary'));
+  click(btnText('Диагностика'));
   await sleep(60);
-  check('диагностика доступна также из вкладки «Приложение»', !!document.querySelector('.diag-screen'));
+  check('диагностика доступна из технического раздела', !!document.querySelector('.diag-screen'));
   click(document.querySelector('.diag-screen button'));
   await sleep(60);
   check('после проверки вкладка «Приложение» остаётся открытой',
-    document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.includes('Приложение') === true);
-  await openParentSection('Обзор');
+    document.querySelector('#parent-tab-more[aria-selected="true"]') !== null &&
+      document.querySelector('#parent-more-tab-app[aria-selected="true"]') !== null);
+  await openParentSection('Обучение');
+  click(btnText('Статистика занятий'));
+  await sleep(30);
   check(
-    'обзор не показывает рекламу школы — она не отвлекает от отчёта',
-    has('XP за сегодня') && !has('Слово2 сделали в V-labs'),
+    'подробности ограничены активностью, без игровых и рекламных блоков',
+    has('Сегодня') && has('Последние 7 дней') && !has('Достижения') &&
+      !has('Классы 1–4') && !has('Слово2 сделали в V-labs'),
     body().slice(0, 200),
   );
 
@@ -231,8 +321,8 @@ export async function runParentUiChecks(): Promise<void> {
     store().addStudyTime(sessionId, 132);
     store().finishStudySession(sessionId, 'completed');
     await sleep(60);
-    check('сегодняшний отчёт показывает оценку активного времени и сессии', has('2 мин') && has('Занятия сегодня'), body().slice(0, 300));
-    check('разбор показывает слово с ошибкой и успешный повтор', has(word.text) && has('После ошибки верно повторил'), body().slice(0, 400));
+    check('сегодняшний отчёт показывает активное время и занятия', has('2 мин') && has('Занятия ·'), body().slice(0, 300));
+    check('разбор показывает слово с ошибкой и успешный повтор', has(word.text) && has('Исправлено повтором'), body().slice(0, 400));
     check('сессия показывает результат и вид задания, без записи ответа ребёнка', has('1 верно · 1 ошибка') && has('напиши слово'), body().slice(0, 500));
     useApp.setState((s) => ({
       profiles: s.profiles.map((p) => p.id === profileId ? originalProfile : p),

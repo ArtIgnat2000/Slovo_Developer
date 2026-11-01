@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { check } from './ui-helpers';
+import { THEME_STYLES } from '../src/engine/theme-styles';
 import {
   applyTheme,
   applyThemeStyle,
@@ -78,6 +79,54 @@ export async function runThemeChecks(): Promise<void> {
   );
   check('в HTML ровно один тег color-scheme', (html.match(/<meta\s+name="color-scheme"/g) ?? []).length === 1);
 
+  // Maybach — базовая палитра всего приложения, а не только ниши товаров.
+  // jsdom не рисует CSS: проверяем реальные токены и связи поверхностей.
+  const tokens = readFileSync('src/styles/tokens.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const darkBlock = tokens.match(/\[data-theme='dark'\]\s*\{([^}]+)\}/)?.[1] ?? '';
+  const darkTokens = Object.fromEntries([...darkBlock.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  check('Maybach: фон страницы совпадает с обсидианом витрины', darkTokens['--bg'] === '#16120d' && darkTokens['--bg'] === darkTokens['--lux-panel']);
+  check('Maybach: обычные и товарные карточки одного материала', darkTokens['--card'] === '#282219' && darkTokens['--card'] === darkTokens['--lux-card']);
+  check('Maybach: панели, рамки и подложки без синего оттенка',
+    ['--bg', '--bg-2', '--card', '--line', '--primary-soft', '--art-plate', '--art-plate-glow'].every((key) => {
+      const color = darkTokens[key];
+      return /^#[0-9a-f]{6}$/i.test(color ?? '') && parseInt(color.slice(1, 3), 16) >= parseInt(color.slice(3, 5), 16) && parseInt(color.slice(3, 5), 16) >= parseInt(color.slice(5, 7), 16);
+    }));
+  check('Maybach: акценты шампань и тёмный текст выбранных кнопок', darkTokens['--primary'] === '#d6b56c' && darkTokens['--on-primary'] === '#171310');
+  check('Maybach: подсветка фона и промо без старого фиолетового свечения',
+    ['--bg-glow-1', '--bg-glow-2', '--promo-glow-1', '--promo-glow-2'].every((key) => {
+      const rgb = darkTokens[key]?.match(/rgba\((\d+),\s*(\d+),\s*(\d+)/);
+      return !!rgb && Number(rgb[1]) >= Number(rgb[2]) && Number(rgb[2]) >= Number(rgb[3]);
+    }));
+  const classicStyle = THEME_STYLES.find((style) => style.id === 'classic')!;
+  check('Maybach: превью и системная панель совпадают с фоном приложения', classicStyle.preview.dark === darkTokens['--bg'] && classicStyle.panelColor.dark === darkTokens['--bg']);
+  const appCss = readFileSync('src/styles/app.css', 'utf8');
+  check('Maybach: кнопки вне магазина не сохраняют фиолетовую тень', !appCss.includes('#5b3ede') && appCss.includes('var(--primary-depth)'));
+
+  // Дуга БУКа в тёмной теме: плашки дверей не карточный цвет, а обсидиан с
+  // шампань-кромкой — иначе подписи сливаются с карточками уроков (0.87.2,
+  // скриншот 2026-10-30). Тоже читаем текстом: jsdom не рисует CSS.
+  const darkHub = appCss.match(/:root\[data-theme='dark'\] \.buk-door-label \{([^}]+)\}/)?.[1] ?? '';
+  const darkEmoji = appCss.match(/:root\[data-theme='dark'\] \.buk-door-emoji \{([^}]+)\}/)?.[1] ?? '';
+  const darkVeil = appCss.match(/:root\[data-theme='dark'\] \.buk-hub-veil \{([^}]+)\}/)?.[1] ?? '';
+  check(
+    'Дуга в тёмной: подпись — обсидиан с шампань-кромкой, не карточный цвет',
+    darkHub.includes('background: var(--bg)') &&
+      darkHub.includes('border-color: var(--primary-ink)') &&
+      darkHub.includes('color: var(--ink)') &&
+      !darkHub.includes('var(--card)'),
+    darkHub.trim() || 'правило не найдено',
+  );
+  check(
+    'Дуга в тёмной: кружок эмодзи — та же обсидиан-кромка',
+    darkEmoji.includes('background: var(--bg)') && darkEmoji.includes('border-color: var(--primary-ink)'),
+    darkEmoji.trim() || 'правило не найдено',
+  );
+  check(
+    'Дуга в тёмной: подложка плотнее (0.30 против 0.16 в светлой)',
+    darkVeil.includes('rgb(0 0 0 / 0.3)'),
+    darkVeil.trim() || 'правило не найдено',
+  );
+
   // ── 2. Настройка после загрузки и при переключении ──────────────────────
   applyTheme('light');
   check(
@@ -102,7 +151,7 @@ export async function runThemeChecks(): Promise<void> {
   check('тёмная тема: метатег dark (only dark в HTML недопустим)', schemeMeta()?.getAttribute('content') === 'dark');
   check(
     'тёмная тема: цвет панели',
-    document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#171426',
+    document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#16120d',
   );
   applyTheme('light');
   check('после возврата к светлой метатег снова only light', schemeMeta()?.getAttribute('content') === 'only light');
@@ -140,7 +189,7 @@ export async function runThemeChecks(): Promise<void> {
   check(
     'возврат к классическому стилю восстанавливает исходный цвет панели',
     document.documentElement.dataset.themeStyle === 'classic' &&
-      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#171426',
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#16120d',
   );
   applyThemeStyle('space');
   applyTheme('light');
@@ -184,7 +233,7 @@ export async function runThemeChecks(): Promise<void> {
     document.documentElement.dataset.theme === 'dark' &&
       document.documentElement.dataset.themeStyle === 'classic' &&
       document.documentElement.style.colorScheme === 'only dark' && schemeMeta()?.content === 'dark' &&
-      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#171426',
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content') === '#16120d',
   );
   runBoot('dark', false, 'neon');
   check(

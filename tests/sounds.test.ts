@@ -9,6 +9,7 @@ import {
   SOUND_PACK_BY_ID,
   STARTER_SOUND_IDS,
   canBuySoundPack,
+  hasSoundPack,
   cueOf,
   cueSeconds,
   normalizeSoundShop,
@@ -52,6 +53,13 @@ assert.deepEqual(cueOf('xylophone', 'wrong'), SOUND_PACK_BY_ID.xylophone.wrong);
 
 // ── Покупка ─────────────────────────────────────────────────────────────────
 const paidPack = SOUND_PACKS.find((p) => p.price > 0)!;
+const freePack = SOUND_PACKS.find((p) => p.price === 0)!;
+assert.equal(hasSoundPack([], freePack.id), true, 'бесплатный набор доступен без записи в soundOwned');
+assert.equal(hasSoundPack(undefined, freePack.id), true, 'старый профиль без soundOwned');
+assert.equal(hasSoundPack([], paidPack.id), false, 'платный — только после покупки');
+assert.equal(hasSoundPack([paidPack.id], paidPack.id), true);
+assert.equal(hasSoundPack([], 'ghost'), false, 'незнакомый id');
+assert.equal(canBuySoundPack(freePack, 999, []), false, 'бесплатный набор не покупают');
 assert.equal(canBuySoundPack(paidPack, paidPack.price, []), true);
 assert.equal(canBuySoundPack(paidPack, paidPack.price - 1, []), false, 'не хватает кристаллов');
 assert.equal(canBuySoundPack(paidPack, 999, [paidPack.id]), false, 'повторно не списывается');
@@ -65,7 +73,7 @@ assert.deepEqual(
   { soundOwned: [...STARTER_SOUND_IDS, paidPack.id], soundPack: paidPack.id },
   'чужие id и дубли отброшены, купленный набор выбран',
 );
-assert.equal(normalizeSoundShop({ soundOwned: [], soundPack: paidPack.id }).soundPack, DEFAULT_SOUND_PACK, 'неоткрытый набор не выбирается');
+assert.deepEqual(normalizeSoundShop({ soundOwned: [], soundPack: paidPack.id }), { soundOwned: [], soundPack: DEFAULT_SOUND_PACK }, 'новый профиль стартует без наборов звуков');
 assert.equal(normalizeSoundShop({ soundPack: 'xylophone' }).soundPack, 'xylophone', 'стартовый набор выбирается без покупки');
 
 console.log('✓ звуки: каталог мелодий ответа, ошибка мягче успеха, покупка и нормализация сохранения');
